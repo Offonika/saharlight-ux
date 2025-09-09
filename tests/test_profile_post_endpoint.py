@@ -1,7 +1,7 @@
+import hashlib
+import hmac
 import json
 import time
-import hmac
-import hashlib
 import urllib.parse
 from typing import Any, Callable
 
@@ -14,7 +14,6 @@ from sqlalchemy.pool import StaticPool
 import services.api.app.main as server
 from services.api.app.config import settings
 from services.api.app.diabetes.services import db
-from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
 
@@ -31,7 +30,7 @@ def build_init_data(user_id: int = 1) -> str:
 @pytest.fixture
 def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
-    return {TG_INIT_DATA_HEADER: build_init_data()}
+    return {"Authorization": f"tg {build_init_data()}"}
 
 
 def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
@@ -43,9 +42,7 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
-    async def run_db_wrapper(
-        fn: Callable[..., Any], *args: Any, **kwargs: Any
-    ) -> Any:
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)

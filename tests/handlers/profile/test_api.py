@@ -1,16 +1,17 @@
-import pytest
+import importlib
 from collections.abc import Generator
-from sqlalchemy import create_engine
-from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import Session, sessionmaker
 from unittest.mock import MagicMock
 
-import importlib
-
-from services.api.app.diabetes.services.db import Base, User, Profile
-from services.api.app import main
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from services.api.app import main
+from services.api.app.diabetes.services.db import Base, User, Profile
+from services.api.app.telegram_auth import check_token
 
 profile_api = importlib.import_module("services.api.app.diabetes.handlers.profile.api")
 
@@ -308,9 +309,7 @@ def test_patch_user_settings_keeps_user_timezone(
         existed, ok = profile_api.patch_user_settings(
             session,
             1,
-            profile_api.ProfileSettingsIn(
-                timezone="Asia/Tbilisi", timezoneAuto=True
-            ),
+            profile_api.ProfileSettingsIn(timezone="Asia/Tbilisi", timezoneAuto=True),
             device_tz="Europe/Moscow",
         )
         assert (existed, ok) == (True, True)
@@ -327,7 +326,7 @@ def _build_app(
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(main.api_router, prefix="/api")
-    app.dependency_overrides[main.require_tg_user] = lambda: {"id": 1}
+    app.dependency_overrides[check_token] = lambda: {"id": 1}
     import services.api.app.diabetes.services.db as db
     import services.api.app.legacy as legacy
 

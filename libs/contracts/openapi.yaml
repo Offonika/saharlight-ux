@@ -1195,6 +1195,6 @@ components:
     telegramInitData:
       type: apiKey
       in: header
-      name: X-Telegram-Init-Data
+      name: Authorization
 security:
 - telegramInitData: []
