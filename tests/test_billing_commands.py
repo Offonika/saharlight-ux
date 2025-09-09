@@ -4,6 +4,7 @@ from typing import Any, cast
 import httpx
 import logging
 import pytest
+from pydantic import ValidationError
 from telegram import Update
 from telegram.ext import CallbackContext
 
@@ -126,6 +127,59 @@ async def test_subscription_button_json_parse_error(
 
     assert message.texts == ["❌ Ошибка сервера."]
     assert any("invalid billing status response" in r.message for r in caplog.records)
+    monkeypatch.delenv("API_URL")
+    monkeypatch.delenv("PUBLIC_ORIGIN")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    config.reload_settings()
+
+
+@pytest.mark.asyncio
+async def test_subscription_button_validation_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("API_URL", "http://api.test/api")
+    monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
+    config.reload_settings()
+
+    class DummyClient:
+        async def __aenter__(self) -> "DummyClient":
+            return self
+
+        async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+            pass
+
+        async def get(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
+            req = httpx.Request("GET", url)
+            return httpx.Response(200, request=req, json={"featureFlags": {}})
+
+    monkeypatch.setattr(billing_handlers.httpx, "AsyncClient", lambda: DummyClient())
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message,
+            effective_user=SimpleNamespace(id=1),
+            callback_query=None,
+        ),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await billing_handlers.subscription_button(update, context)
+
+    assert message.texts == ["❌ Ошибка сервера."]
+    record = next(
+        r for r in caplog.records if "invalid billing status payload" in r.message
+    )
+    assert isinstance(record.exc_info[1], ValidationError)
+    assert "Field required" in record.message
     monkeypatch.delenv("API_URL")
     monkeypatch.delenv("PUBLIC_ORIGIN")
     monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
@@ -376,9 +430,7 @@ async def test_trial_command_status_http_error_logs(
         await billing_handlers.trial_command(update, context)
 
     assert message.texts == ["🎁 Пробный период уже активен"]
-    assert any(
-        "failed to fetch trial status" in r.message for r in caplog.records
-    )
+    assert any("failed to fetch trial status" in r.message for r in caplog.records)
     monkeypatch.delenv("API_URL")
     monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
     config.reload_settings()
