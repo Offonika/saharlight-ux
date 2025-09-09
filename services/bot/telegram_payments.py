@@ -36,7 +36,8 @@ class TelegramPaymentsAdapter:
         """Send an invoice to the user."""
 
         chat = update.effective_chat
-        assert chat is not None
+        if chat is None:
+            raise ValueError("update.effective_chat is required")
         chat_id = chat.id
         prices = [LabeledPrice(label="Subscription", amount=100)]
         await context.bot.send_invoice(
@@ -53,7 +54,8 @@ class TelegramPaymentsAdapter:
         """Confirm pre checkout query."""
 
         query = update.pre_checkout_query
-        assert query is not None
+        if query is None:
+            raise ValueError("update.pre_checkout_query is required")
         await query.answer(ok=True)
 
     async def handle_successful_payment(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -62,7 +64,9 @@ class TelegramPaymentsAdapter:
         msg = update.message
         assert msg is not None
         payment = msg.successful_payment
-        assert payment is not None
+        if payment is None:
+            await msg.reply_text("⚠️ Платёж не найден")
+            return
 
         api_url = settings.api_url or "http://localhost:8000"
         event_id = payment.telegram_payment_charge_id
