@@ -4,6 +4,7 @@ from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 import pytest
+import httpx
 from openai import OpenAIError
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -57,6 +58,29 @@ async def test_chat_with_gpt_handles_openai_error(
 ) -> None:
     async def fail(*args: object, **kwargs: object) -> Any:
         raise OpenAIError("oops")
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fail)
+
+    message = DummyMessage("hi")
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    await gpt_handlers.chat_with_gpt(update, context)
+    assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
+    history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
+    assert history and history[0].endswith(
+        "assistant: ⚠️ Не удалось получить ответ. Попробуйте позже."
+    )
+
+
+@pytest.mark.asyncio
+async def test_chat_with_gpt_handles_http_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fail(*args: object, **kwargs: object) -> Any:
+        raise httpx.HTTPError("oops")
 
     monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fail)
 
