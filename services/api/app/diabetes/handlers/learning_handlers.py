@@ -20,8 +20,13 @@ from telegram.ext import (
 )
 
 from services.api.app.config import settings
+
 # Re-export the curriculum engine for tests and other modules.
 from services.api.app.diabetes import curriculum_engine as curriculum_engine
+from services.api.app.diabetes.curriculum_engine import (
+    LessonNotFoundError,
+    ProgressNotFoundError,
+)
 from services.api.app.diabetes.learning_state import (
     LearnState,
     clear_state,
@@ -51,6 +56,7 @@ logger = logging.getLogger(__name__)
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
+LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -87,7 +93,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await message.reply_text(f"🚫 {LEARN_BUTTON_TEXT} недоступен.")
         return
     if settings.learning_content_mode == "dynamic":
-        from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+        from services.api.app.diabetes import (
+            learning_handlers as dynamic_learning_handlers,
+        )
 
         await dynamic_learning_handlers.learn_command(update, context)
         return
@@ -96,12 +104,16 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     model = settings.learning_command_model
 
     def _list(session: Session) -> list[tuple[str, str]]:
-        lessons = session.scalars(sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)).all()
+        lessons = session.scalars(
+            sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)
+        ).all()
         return [(lesson.title, lesson.slug) for lesson in lessons]
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
     if not lessons:
-        from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+        from services.api.app.diabetes import (
+            learning_handlers as dynamic_learning_handlers,
+        )
 
         logger.info(
             "learn_fallback",
@@ -150,7 +162,13 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
-    text, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    try:
+        text, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    except (LessonNotFoundError, ProgressNotFoundError):
+        await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
+        user_data.pop("lesson_id", None)
+        clear_state(user_data)
+        return
     if text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE)
         user_data.pop("lesson_id", None)
@@ -202,9 +220,19 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if state is not None:
             state.awaiting = False
             set_state(user_data, state)
-        _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
+        _correct, feedback = await curriculum_engine.check_answer(
+            user.id, lesson_id, {}, answer
+        )
         await message.reply_text(feedback)
-        question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+        try:
+            question, completed = await curriculum_engine.next_step(
+                user.id, lesson_id, {}
+            )
+        except (LessonNotFoundError, ProgressNotFoundError):
+            await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
+            user_data.pop("lesson_id", None)
+            clear_state(user_data)
+            return
         if question == BUSY_MESSAGE:
             await message.reply_text(BUSY_MESSAGE)
             return
@@ -220,7 +248,13 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             state.awaiting = True
             set_state(user_data, state)
         return
-    question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    try:
+        question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    except (LessonNotFoundError, ProgressNotFoundError):
+        await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
+        user_data.pop("lesson_id", None)
+        clear_state(user_data)
+        return
     if question == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE)
         return
@@ -237,7 +271,9 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         set_state(user_data, state)
 
 
-async def quiz_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def quiz_answer_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Treat plain text as an answer when awaiting a quiz response."""
 
     message = update.message
@@ -259,9 +295,17 @@ async def quiz_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         raise ApplicationHandlerStop
     state.awaiting = False
     set_state(user_data, state)
-    _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
+    _correct, feedback = await curriculum_engine.check_answer(
+        user.id, lesson_id, {}, answer
+    )
     await message.reply_text(feedback)
-    question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    try:
+        question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
+    except (LessonNotFoundError, ProgressNotFoundError):
+        await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
+        user_data.pop("lesson_id", None)
+        clear_state(user_data)
+        return
     if question == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE)
         return
@@ -285,7 +329,9 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     user_id = user.id
 
-    def _load_progress(session: Session, user_id: int) -> tuple[str, int, bool, int | None] | None:
+    def _load_progress(
+        session: Session, user_id: int
+    ) -> tuple[str, int, bool, int | None] | None:
         progress = session.scalars(
             sa.select(LessonProgress)
             .join(Lesson)
@@ -326,7 +372,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     user_data = cast(dict[str, object], context.user_data)
     lesson_id = cast(int | None, user_data.get("lesson_id"))
-    logger.info("exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id})
+    logger.info(
+        "exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id}
+    )
     lesson_id = cast(int | None, user_data.pop("lesson_id", None))
     user_data.pop("lesson_slug", None)
     user_data.pop("lesson_step", None)
@@ -335,7 +383,9 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         def _complete(session: Session, user_id: int, lesson_id: int) -> None:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+                sa.select(LessonProgress).filter_by(
+                    user_id=user_id, lesson_id=lesson_id
+                )
             ).scalar_one_or_none()
             if progress is not None and not progress.completed:
                 progress.completed = True
@@ -374,16 +424,26 @@ def register_handlers(app: App) -> None:
     app.add_handler(CommandHandler("skip", skip_command))
     app.add_handler(CommandHandler("exit", exit_command))
     app.add_handler(CommandHandler("learn_reset", onboarding.learn_reset))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply))
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding.onboarding_reply)
+    )
     app.add_handler(
         CallbackQueryHandler(
             onboarding.onboarding_callback,
             pattern=f"^{onboarding.CB_PREFIX}",
         )
     )
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False))
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False
+        )
+    )
     app.add_handler(CallbackQueryHandler(lesson_callback, pattern="^lesson:"))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False))
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False
+        )
+    )
 
 
 __all__ = [

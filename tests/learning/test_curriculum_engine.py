@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import pytest
+from types import SimpleNamespace
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.config import settings
 from services.api.app.diabetes import curriculum_engine
 from services.api.app.diabetes.curriculum_engine import (
+    LessonNotFoundError,
+    ProgressNotFoundError,
     check_answer,
     next_step,
     start_lesson,
@@ -318,6 +321,62 @@ async def test_next_step_dynamic_busy_does_not_increment(
             .one()
         )
         assert progress.current_step == 0
+
+
+@pytest.mark.asyncio()
+async def test_next_step_progress_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    async def fake_run_db(fn, *args: object, **kwargs: object) -> object:
+        class DummySession:
+            def execute(
+                self, *args: object, **kwargs: object
+            ) -> object:  # pragma: no cover - helper
+                class DummyResult:
+                    def scalar_one_or_none(self) -> None:
+                        return None
+
+                return DummyResult()
+
+        return fn(DummySession())
+
+    monkeypatch.setattr(db, "run_db", fake_run_db)
+
+    with pytest.raises(ProgressNotFoundError):
+        await next_step(1, 1, {})
+
+
+@pytest.mark.asyncio()
+async def test_next_step_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    progress = SimpleNamespace(current_step=0)
+
+    async def fake_run_db(fn, *args: object, **kwargs: object) -> object:
+        class DummySession:
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def execute(
+                self, *args: object, **kwargs: object
+            ) -> object:  # pragma: no cover - helper
+                self.calls += 1
+                call = self.calls
+
+                class DummyResult:
+                    def scalar_one_or_none(self) -> object | None:
+                        if call == 1:
+                            return progress
+                        return None
+
+                return DummyResult()
+
+        return fn(DummySession())
+
+    monkeypatch.setattr(db, "run_db", fake_run_db)
+
+    with pytest.raises(LessonNotFoundError):
+        await next_step(1, 1, {})
 
 
 @pytest.mark.asyncio()

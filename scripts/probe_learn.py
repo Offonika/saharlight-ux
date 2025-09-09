@@ -11,6 +11,10 @@ from sqlalchemy.orm import Session
 
 from services.api.app import config
 from services.api.app.diabetes import curriculum_engine
+from services.api.app.diabetes.curriculum_engine import (
+    LessonNotFoundError,
+    ProgressNotFoundError,
+)
 from services.api.app.diabetes.dynamic_tutor import BUSY_MESSAGE
 from services.api.app.diabetes.models_learning import (
     LessonProgress,
@@ -27,10 +31,14 @@ async def _fetch_lesson_data(
 
     def _query(session: Session) -> tuple[int, list[QuizQuestion]]:
         step_count = session.execute(
-            sa.select(sa.func.count()).select_from(LessonStep).filter_by(lesson_id=lesson_id)
+            sa.select(sa.func.count())
+            .select_from(LessonStep)
+            .filter_by(lesson_id=lesson_id)
         ).scalar_one()
         questions = session.scalars(
-            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+            sa.select(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
         ).all()
         return step_count, list(questions)
 
@@ -41,7 +49,9 @@ async def _get_progress(user_id: int, lesson_id: int) -> LessonProgress:
     """Fetch lesson progress for a user."""
 
     def _query(session: Session) -> LessonProgress:
-        return session.execute(sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)).scalar_one()
+        return session.execute(
+            sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+        ).scalar_one()
 
     return await db.run_db(_query)
 
@@ -60,7 +70,11 @@ async def main(user_id: int, lesson_slug: str) -> None:
     quiz_index = 0
 
     while True:
-        text, completed = await curriculum_engine.next_step(user_id, lesson_id, {})
+        try:
+            text, completed = await curriculum_engine.next_step(user_id, lesson_id, {})
+        except (LessonNotFoundError, ProgressNotFoundError) as exc:
+            print(str(exc))
+            break
         if text == BUSY_MESSAGE:
             print(text)
             break
@@ -69,7 +83,9 @@ async def main(user_id: int, lesson_slug: str) -> None:
         print(text)
         if steps_done >= step_total and quiz_index < len(questions):
             answer = questions[quiz_index].correct_option
-            _, feedback = await curriculum_engine.check_answer(user_id, lesson_id, {}, answer)
+            _, feedback = await curriculum_engine.check_answer(
+                user_id, lesson_id, {}, answer
+            )
             print(feedback)
             quiz_index += 1
         else:
