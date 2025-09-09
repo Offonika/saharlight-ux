@@ -24,6 +24,17 @@ def build_init_data(user_id: int = 1) -> str:
 
 def test_profile_self_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    async def fake_get_learning_profile(_id: int) -> None:
+        return None
+
+    monkeypatch.setattr(
+        "services.api.app.routers.profile.get_learning_profile", fake_get_learning_profile
+    )
+
+    async def fake_run_db(*args: object, **kwargs: object) -> int:
+        return 0
+
+    monkeypatch.setattr("services.api.app.main.run_db", fake_run_db)
     init_data = build_init_data(42)
     with TestClient(app) as client:
 

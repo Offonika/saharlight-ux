@@ -73,6 +73,7 @@ async def test_dynamic_learn_command_busy(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert msg.replies == [BUSY_MESSAGE]
     assert get_state(context.user_data) is None
+    assert context.user_data.get("lesson_id") is None
 
 
 @pytest.mark.asyncio

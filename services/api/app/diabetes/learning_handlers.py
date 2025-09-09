@@ -241,45 +241,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
-    try:
-        await curriculum_engine.start_lesson(user.id, slug)
-    except LessonNotFoundError:
-        logger.warning(
-            "no_static_lessons; run dynamic",
-            extra={"hint": "make load-lessons"},
-        )
-        await message.reply_text(
-            "Не нашёл учебные записи, пробую динамический режим…",
-            reply_markup=build_main_keyboard(),
-        )
-    text = await generate_step_text(profile, slug, 1, None)
-    if text == BUSY_MESSAGE:
-        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-        return
-    plan = generate_learning_plan(text)
-    user_data["learning_plan"] = plan
-    user_data["learning_plan_index"] = 0
-    text = format_reply(plan[0])
-    await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
-        user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
-    state = LearnState(
-        topic=slug,
-        step=1,
-        last_step_text=text,
-        awaiting=True,
-    )
-    set_state(user_data, state)
-    await _persist(user.id, user_data, context.bot_data)
+    await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
 async def _start_lesson(
@@ -297,28 +259,39 @@ async def _start_lesson(
     logger.info(
         "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
     )
+    lesson_id: int | None = None
+    text: str | None
     try:
-        await curriculum_engine.start_lesson(from_user.id, topic_slug)
+        progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
+        lesson_id = progress.lesson_id
+        user_data["lesson_id"] = lesson_id
+        text, _completed = await curriculum_engine.next_step(
+            from_user.id, lesson_id, profile
+        )
     except LessonNotFoundError:
         logger.warning(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
-        await message.reply_text(
-            "Не нашёл учебные записи, пробую динамический режим…",
-            reply_markup=build_main_keyboard(),
-        )
-    text = await generate_step_text(profile, topic_slug, 1, None)
-    if text == BUSY_MESSAGE:
+        text = await generate_step_text(profile, topic_slug, 1, None)
+        lesson_id = None
+    except (OpenAIError, httpx.HTTPError, SQLAlchemyError, RuntimeError) as exc:
+        logger.exception("lesson start failed: %s", exc)
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        user_data.pop("lesson_id", None)
         return
-    if not text.startswith(disclaimer()):
+    if text in (None, BUSY_MESSAGE):
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        user_data.pop("lesson_id", None)
+        return
+    assert text is not None
+    if lesson_id is None and not text.startswith(disclaimer()):
         text = f"{disclaimer()}\n\n{text}"
     plan = generate_learning_plan(text)
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
-    text = format_reply(plan[0])
-    await message.reply_text(text, reply_markup=build_main_keyboard())
+    first_text = format_reply(plan[0])
+    await message.reply_text(first_text, reply_markup=build_main_keyboard())
     await add_lesson_log(
         from_user.id,
         0,
@@ -330,7 +303,7 @@ async def _start_lesson(
     state = LearnState(
         topic=topic_slug,
         step=1,
-        last_step_text=text,
+        last_step_text=first_text,
         awaiting=True,
     )
     set_state(user_data, state)
@@ -479,12 +452,32 @@ async def lesson_answer_handler(
                     BUSY_MESSAGE, reply_markup=build_main_keyboard()
                 )
                 return
-        next_text = await generate_step_text(
-            profile, state.topic, state.step + 1, feedback
-        )
-        if next_text == BUSY_MESSAGE:
-            await message.reply_text(next_text, reply_markup=build_main_keyboard())
+        lesson_id = cast(int | None, user_data.get("lesson_id"))
+        if lesson_id is not None and telegram_id is not None:
+            try:
+                next_text, _completed = await curriculum_engine.next_step(
+                    telegram_id, lesson_id, profile, feedback
+                )
+            except (
+                OpenAIError,
+                httpx.HTTPError,
+                SQLAlchemyError,
+                RuntimeError,
+            ) as exc:
+                logger.exception("lesson start failed: %s", exc)
+                await message.reply_text(
+                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
+                )
+                user_data.pop("lesson_id", None)
+                return
+        else:
+            next_text = await generate_step_text(
+                profile, state.topic, state.step + 1, feedback
+            )
+        if next_text in (None, BUSY_MESSAGE):
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return
+        assert next_text is not None
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:

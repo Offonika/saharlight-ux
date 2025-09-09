@@ -10,6 +10,7 @@ from telegram.ext import Application, CommandHandler
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers as dynamic_handlers
 from services.api.app.diabetes.handlers import learning_handlers
+from services.api.app.diabetes.curriculum_engine import LessonNotFoundError
 
 
 class DummyBot(Bot):
@@ -60,6 +61,18 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
         return "step1"
 
     monkeypatch.setattr(dynamic_handlers, "generate_step_text", fake_generate_step_text)
+
+    async def raise_start_lesson(user_id: int, slug: str) -> object:
+        raise LessonNotFoundError(slug)
+
+    monkeypatch.setattr(
+        dynamic_handlers.curriculum_engine, "start_lesson", raise_start_lesson
+    )
+
+    async def fail_next_step(*args: object, **kwargs: object) -> tuple[str, bool]:
+        raise AssertionError("should not be called")
+
+    monkeypatch.setattr(dynamic_handlers.curriculum_engine, "next_step", fail_next_step)
     monkeypatch.setattr(
         dynamic_handlers,
         "generate_learning_plan",

@@ -101,10 +101,17 @@ async def test_hydrate_generates_snapshot_and_persists(
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
+    step = 0
+
     async def fake_next_step(
-        user_id: int, lesson_id: int, profile: Any
+        user_id: int,
+        lesson_id: int,
+        profile: Any,
+        prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        return "Шаг 1", False
+        nonlocal step
+        step += 1
+        return f"Шаг {step}", False
 
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
@@ -113,20 +120,17 @@ async def test_hydrate_generates_snapshot_and_persists(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
 
-    gen_calls: list[int] = []
-
     async def fake_generate_step_text(
         _profile: Any, _topic: str, step_idx: int, _prev: str | None
     ) -> str:
-        gen_calls.append(step_idx)
         return f"Шаг {step_idx}"
-
-    async def fake_assistant_chat(_profile: Any, _text: str) -> str:
-        return "feedback"
 
     monkeypatch.setattr(
         learning_handlers, "generate_step_text", fake_generate_step_text
     )
+
+    async def fake_assistant_chat(_profile: Any, _text: str) -> str:
+        return "feedback"
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
 
     async def fake_add_log(*_a: object, **_k: object) -> None:
@@ -157,7 +161,6 @@ async def test_hydrate_generates_snapshot_and_persists(
     await learning_handlers.lesson_answer_handler(upd_ans, context)
     assert msg_ans.sent == ["feedback", "Шаг 2"]
     assert len(calls) == 2
-    assert gen_calls == [1, 2]
 
     with setup_db() as session:  # type: ignore[misc]
         progress = session.query(LearningProgress).one()
@@ -172,7 +175,6 @@ async def test_hydrate_generates_snapshot_and_persists(
 
     assert context2.user_data.get("learning_plan_index") == 1
     assert len(calls) == 3
-    assert gen_calls == [1, 2, 2]
 
     msg_learn2 = DummyMessage(text="/learn")
     upd_learn2 = SimpleNamespace(

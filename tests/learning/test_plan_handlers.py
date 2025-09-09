@@ -13,6 +13,7 @@ from services.api.app.diabetes.planner import generate_learning_plan, pretty_pla
 class DummyMessage:
     def __init__(self) -> None:
         self.replies: list[str] = []
+        self.from_user = SimpleNamespace(id=1)
 
     async def reply_text(self, text: str, **kwargs: object) -> None:
         self.replies.append(text)
@@ -50,6 +51,7 @@ def test_generate_and_pretty_plan() -> None:
 async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_ui_show_topics", False)
 
     async def fake_ensure_overrides(*args: object, **kwargs: object) -> bool:
         return True
@@ -77,6 +79,18 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    async def _none(*args: object, **kwargs: object) -> None:
+        return None
+
+    async def _one(*args: object, **kwargs: object) -> int:
+        return 1
+
+    monkeypatch.setattr(learning_handlers.plans_repo, "get_active_plan", _none)
+    monkeypatch.setattr(learning_handlers.plans_repo, "create_plan", _one)
+    monkeypatch.setattr(learning_handlers.plans_repo, "update_plan", _none)
+    monkeypatch.setattr(
+        learning_handlers.progress_service, "upsert_progress", _none
+    )
 
     message = DummyMessage()
     update = make_update(message=message)
