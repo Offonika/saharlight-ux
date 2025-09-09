@@ -73,3 +73,32 @@ export function getTelegramAuthHeaders(): Record<string, string> {
 }
 
 export { LS_KEY as TELEGRAM_INIT_DATA_KEY };
+
+// Initialize stored init data on module load so that API calls can immediately
+// include the Telegram authentication header. In a real Telegram WebApp the
+// init data may be provided either via the global `Telegram.WebApp.initData`
+// object or through the `tgWebAppData` hash parameter. We try both sources and
+// silently ignore any errors (for example when running in non-browser
+// environments).
+try {
+  if (typeof window !== 'undefined') {
+    const globalData = (window as any)?.Telegram?.WebApp?.initData;
+    if (globalData) {
+      setTelegramInitData(globalData);
+    } else {
+      try {
+        const hash = window.location.hash.startsWith('#')
+          ? window.location.hash.slice(1)
+          : window.location.hash;
+        const tgWebAppData = new URLSearchParams(hash).get('tgWebAppData');
+        if (tgWebAppData) {
+          setTelegramInitData(tgWebAppData);
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+} catch {
+  /* ignore */
+}
