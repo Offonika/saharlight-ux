@@ -12,6 +12,13 @@ import pytest
 import sqlalchemy
 from sqlalchemy.orm import Session, sessionmaker
 
+from services.api.app.diabetes import curriculum_engine
+from services.api.app.diabetes import learning_handlers as _dynamic_learning_handlers
+
+# Ensure dynamic learning handlers expose ``curriculum_engine`` for tests that
+# monkeypatch it.
+setattr(_dynamic_learning_handlers, "curriculum_engine", curriculum_engine)
+
 dummy = ModuleType("telegram.ext._basehandler")
 
 
