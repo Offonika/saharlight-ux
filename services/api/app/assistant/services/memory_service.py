@@ -94,11 +94,10 @@ async def record_turn(
             sa.update(AssistantMemory)
             .where(AssistantMemory.user_id == user_id)
             .values(**values)
-            .returning(AssistantMemory.turn_count)
         )
 
-        result = session.execute(stmt).scalar_one_or_none()
-        if result is None:
+        result = session.execute(stmt)
+        if result.rowcount == 0:
             repo_upsert_memory(
                 session,
                 user_id=user_id,
