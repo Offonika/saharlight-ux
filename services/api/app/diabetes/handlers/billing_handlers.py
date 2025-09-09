@@ -40,7 +40,12 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 trial_url, params={"user_id": user.id}, timeout=10.0
             )
             resp.raise_for_status()
-            data = resp.json()
+            try:
+                data = resp.json()
+            except ValueError:
+                logger.exception("invalid trial response")
+                await message.reply_text("❌ Ошибка сервера.")
+                return
     except httpx.HTTPStatusError as exc:
         detail = exc.response.text
         logger.error("billing trial failed: %s %s", exc.response.status_code, detail)
@@ -58,7 +63,12 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                         status_url, params={"user_id": user.id}, timeout=10.0
                     )
                     stat.raise_for_status()
-                    payload: dict[str, object] = stat.json()
+                    try:
+                        payload = stat.json()
+                    except ValueError:
+                        logger.exception("invalid trial status response")
+                        await message.reply_text("❌ Ошибка сервера.")
+                        return
                     sub = payload.get("subscription")
                     if isinstance(sub, dict):
                         end_raw = sub.get("endDate")
@@ -159,7 +169,12 @@ async def subscription_button(
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, params={"user_id": user.id}, timeout=10.0)
             resp.raise_for_status()
-            data = resp.json()
+            try:
+                data = resp.json()
+            except ValueError:
+                logger.exception("invalid billing status response")
+                await message.reply_text("❌ Ошибка сервера.")
+                return
     except httpx.HTTPStatusError as exc:
         detail = exc.response.text
         logger.error("billing status failed: %s %s", exc.response.status_code, detail)
