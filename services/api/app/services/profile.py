@@ -18,6 +18,7 @@ from ..diabetes.schemas.profile import (
     GlucoseUnits,
     ProfileSettingsIn,
     RapidInsulinType,
+    TherapyType,
 )
 from ..types import SessionProtocol
 
@@ -136,7 +137,7 @@ async def patch_user_settings(
             sosAlertsEnabled=profile.sos_alerts_enabled,
             timezone=profile.timezone,
             timezoneAuto=profile.timezone_auto,
-            therapyType=profile.therapy_type,
+            therapyType=(TherapyType(profile.therapy_type) if profile.therapy_type else None),
             dia=profile.dia,
             roundStep=profile.round_step,
             carbUnits=CarbUnits(profile.carb_units),
@@ -168,7 +169,7 @@ async def get_profile_settings(telegram_id: int) -> ProfileSchema:
         sosAlertsEnabled=profile.sos_alerts_enabled,
         timezone=profile.timezone,
         timezoneAuto=profile.timezone_auto,
-        therapyType=profile.therapy_type,
+        therapyType=(TherapyType(profile.therapy_type) if profile.therapy_type else None),
         dia=profile.dia,
         roundStep=profile.round_step,
         carbUnits=CarbUnits(profile.carb_units),
@@ -201,7 +202,7 @@ def _validate_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
         "low": data.low,
         "high": data.high,
     }
-    if data.therapyType in {"insulin", "mixed"}:
+    if data.therapyType in {TherapyType.INSULIN, TherapyType.MIXED}:
         required["icr"] = data.icr
         required["cf"] = data.cf
     for name, value in required.items():
@@ -260,7 +261,10 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
                 else:
                     value = getattr(data, field)
             if value is not None:
-                profile_data[column] = value
+                if field == "therapyType" and isinstance(value, TherapyType):
+                    profile_data[column] = value.value
+                else:
+                    profile_data[column] = value
 
         stmt = insert(Profile).values(**profile_data)
         update_values = {key: getattr(stmt.excluded, key) for key in profile_data.keys() if key != "telegram_id"}
