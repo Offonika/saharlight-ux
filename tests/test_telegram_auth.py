@@ -132,6 +132,15 @@ def test_parse_and_verify_init_data_expired() -> None:
     assert exc.value.detail == "expired auth data"
 
 
+def test_parse_and_verify_init_data_future() -> None:
+    future = int(time.time()) + 61
+    init_data = build_init_data(auth_date=future)
+    with pytest.raises(HTTPException) as exc:
+        parse_and_verify_init_data(init_data, TOKEN)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "invalid auth date"
+
+
 def test_require_tg_user_expired(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     past = int(time.time()) - (AUTH_DATE_MAX_AGE + 1)
@@ -140,3 +149,13 @@ def test_require_tg_user_expired(monkeypatch: pytest.MonkeyPatch) -> None:
         require_tg_user(init_data)
     assert exc.value.status_code == 401
     assert exc.value.detail == "expired auth data"
+
+
+def test_require_tg_user_future(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    future = int(time.time()) + 61
+    init_data = build_init_data(auth_date=future)
+    with pytest.raises(HTTPException) as exc:
+        require_tg_user(init_data)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "invalid auth date"

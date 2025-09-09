@@ -59,6 +59,8 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
         auth_date = int(auth_date_raw)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="invalid auth date") from exc
+    if auth_date > time.time() + 60:
+        raise HTTPException(status_code=401, detail="invalid auth date")
     if time.time() - auth_date > AUTH_DATE_MAX_AGE:
         raise HTTPException(status_code=401, detail="expired auth data")
     params["auth_date"] = auth_date
