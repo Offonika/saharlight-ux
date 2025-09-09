@@ -132,3 +132,79 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     }
 
     await app.shutdown()
+
+
+@pytest.mark.asyncio()
+async def test_restart_skips_onboarding(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Hydration should restore profile and skip onboarding prompts."""
+
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    plan = ["шаг1", "шаг2"]
+    progress_json: dict[str, Any] = {
+        "topic": "t",
+        "module_idx": 0,
+        "step_idx": 1,
+        "snapshot": "шаг1",
+        "prev_summary": None,
+    }
+
+    async def fake_get_active_plan(user_id: int) -> SimpleNamespace:
+        return SimpleNamespace(id=1, plan_json=plan)
+
+    async def fake_get_progress(user_id: int, plan_id: int) -> SimpleNamespace:
+        return SimpleNamespace(progress_json=progress_json)
+
+    async def fake_get_learning_profile(user_id: int) -> Mapping[str, str | None]:
+        return {"age_group": "adult", "learning_level": "novice"}
+
+    monkeypatch.setattr(
+        learning_handlers.plans_repo, "get_active_plan", fake_get_active_plan
+    )
+    monkeypatch.setattr(
+        learning_handlers.progress_service, "get_progress", fake_get_progress
+    )
+    monkeypatch.setattr(
+        learning_handlers.learning_profile_repo,
+        "get_learning_profile",
+        fake_get_learning_profile,
+    )
+
+    bot = DummyBot()
+    app = Application.builder().bot(bot).build()
+    app.add_handler(CommandHandler("learn", learning_handlers.learn_command))
+    await app.initialize()
+
+    user = User(id=1, is_bot=False, first_name="T")
+    chat = Chat(id=1, type="private")
+
+    def _msg(
+        mid: int, text: str, *, entities: list[MessageEntity] | None = None
+    ) -> Message:
+        msg = Message(
+            message_id=mid,
+            date=datetime.now(),
+            chat=chat,
+            from_user=user,
+            text=text,
+            entities=entities,
+        )
+        msg._bot = bot
+        return msg
+
+    await app.process_update(
+        Update(
+            update_id=1,
+            message=_msg(1, "/learn", entities=[MessageEntity("bot_command", 0, 6)]),
+        )
+    )
+
+    assert bot.sent == ["шаг1"]
+    data = app.user_data[1]
+    assert data["learn_profile_overrides"] == {
+        "age_group": "adult",
+        "learning_level": "novice",
+    }
+    assert data["learning_onboarded"] is True
+
+    await app.shutdown()
