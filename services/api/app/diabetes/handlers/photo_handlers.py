@@ -32,6 +32,7 @@ PHOTO_SUGAR = 7
 WAITING_GPT_FLAG = "waiting_gpt_response"
 WAITING_GPT_TIMESTAMP = "waiting_gpt_response_ts"
 WAITING_GPT_TIMEOUT = datetime.timedelta(minutes=5)
+RUN_RETRIEVE_TIMEOUT = 10  # seconds
 END = ConversationHandler.END
 
 
@@ -45,7 +46,9 @@ async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = update.message
     if message is None:
         return
-    await message.reply_text("📸 Пришлите фото блюда для анализа.", reply_markup=build_main_keyboard())
+    await message.reply_text(
+        "📸 Пришлите фото блюда для анализа.", reply_markup=build_main_keyboard()
+    )
 
 
 async def photo_handler(
@@ -73,7 +76,10 @@ async def photo_handler(
     flag_ts = user_data.get(WAITING_GPT_TIMESTAMP)
     now = datetime.datetime.now(datetime.timezone.utc)
     if user_data.get(WAITING_GPT_FLAG):
-        if isinstance(flag_ts, datetime.datetime) and now - flag_ts > WAITING_GPT_TIMEOUT:
+        if (
+            isinstance(flag_ts, datetime.datetime)
+            and now - flag_ts > WAITING_GPT_TIMEOUT
+        ):
             _clear_waiting_gpt(user_data)
         else:
             await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
@@ -119,7 +125,9 @@ async def photo_handler(
                         commit(session)
                     except CommitError:
                         logger.exception("[PHOTO] Failed to commit user %s", user_id)
-                        await message.reply_text("⚠️ Не удалось сохранить данные пользователя.")
+                        await message.reply_text(
+                            "⚠️ Не удалось сохранить данные пользователя."
+                        )
                         return END
             user_data["thread_id"] = thread_id
 
@@ -143,17 +151,23 @@ async def photo_handler(
             )
         except asyncio.TimeoutError:
             logger.warning("[PHOTO] GPT request timed out")
-            await message.reply_text("⚠️ Превышено время ожидания ответа. Попробуйте ещё раз.")
+            await message.reply_text(
+                "⚠️ Превышено время ожидания ответа. Попробуйте ещё раз."
+            )
             _clear_waiting_gpt(user_data)
             return END
-        status_message = await message.reply_text("🔍 Анализирую фото (это займёт 5‑10 с)…")
+        status_message = await message.reply_text(
+            "🔍 Анализирую фото (это займёт 5‑10 с)…"
+        )
         chat_id = getattr(message, "chat_id", None)
 
         async def send_typing_action() -> None:
             if not chat_id:
                 return
             try:
-                await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+                await context.bot.send_chat_action(
+                    chat_id=chat_id, action=ChatAction.TYPING
+                )
             except TelegramError as exc:
                 logger.warning(
                     "[PHOTO][TYPING_ACTION] Failed to send typing action: %s",
@@ -175,13 +189,39 @@ async def photo_handler(
                 break
             await asyncio.sleep(2)
             try:
-                run = await asyncio.to_thread(
-                    _get_client().beta.threads.runs.retrieve,
-                    thread_id=run.thread_id,
-                    run_id=run.id,
+                run = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        _get_client().beta.threads.runs.retrieve,
+                        thread_id=run.thread_id,
+                        run_id=run.id,
+                    ),
+                    timeout=RUN_RETRIEVE_TIMEOUT,
                 )
+            except asyncio.TimeoutError:
+                logger.warning("[PHOTO][RUN_RETRIEVE] Timed out retrieving run")
+                if status_message and hasattr(status_message, "delete"):
+                    try:
+                        await status_message.delete()
+                    except TelegramError as exc_del:
+                        logger.warning(
+                            "[PHOTO][RUN_RETRIEVE_DELETE] Failed to delete status message: %s",
+                            exc_del,
+                        )
+                    except OSError as exc_os:
+                        logger.exception(
+                            "[PHOTO][RUN_RETRIEVE_DELETE] OS error: %s",
+                            exc_os,
+                        )
+                        raise
+                await message.reply_text(
+                    "⚠️ Превышено время ожидания Vision. Попробуйте ещё раз."
+                )
+                _clear_waiting_gpt(user_data)
+                return END
             except (OpenAIError, httpx.HTTPError) as exc:
-                logger.exception("[PHOTO][RUN_RETRIEVE] Failed to retrieve run: %s", exc)
+                logger.exception(
+                    "[PHOTO][RUN_RETRIEVE] Failed to retrieve run: %s", exc
+                )
                 if status_message and hasattr(status_message, "delete"):
                     try:
                         await status_message.delete()
@@ -218,14 +258,18 @@ async def photo_handler(
                         exc,
                     )
                     raise
-            await message.reply_text("⚠️ Время ожидания Vision истекло. Попробуйте позже.")
+            await message.reply_text(
+                "⚠️ Время ожидания Vision истекло. Попробуйте позже."
+            )
             return END
 
         if run.status != "completed":
             logger.error("[VISION][RUN_FAILED] run.status=%s", run.status)
             if status_message and hasattr(status_message, "edit_text"):
                 try:
-                    await status_message.edit_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
+                    await status_message.edit_text(
+                        "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+                    )
                 except TelegramError as exc:
                     logger.warning(
                         "[PHOTO][RUN_FAILED_EDIT] Failed to send Vision failure notice: %s",
@@ -238,7 +282,9 @@ async def photo_handler(
                     )
                     raise
             else:
-                await message.reply_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
+                await message.reply_text(
+                    "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+                )
             return END
 
         try:
@@ -341,7 +387,13 @@ async def photo_handler(
             notice = "⚠️ Ответ Vision слишком длинный, полный текст во вложении."
             max_len = max(
                 0,
-                MessageLimit.MAX_TEXT_LENGTH - len(prefix) - len("\n\n") - len(notice) - len("\n\n") - len(suffix) - 3,
+                MessageLimit.MAX_TEXT_LENGTH
+                - len(prefix)
+                - len("\n\n")
+                - len(notice)
+                - len("\n\n")
+                - len(suffix)
+                - 3,
             )
             truncated = vision_text[:max_len] + "..."
             await message.reply_document(
@@ -354,11 +406,15 @@ async def photo_handler(
 
     except OSError as exc:
         logger.exception("[PHOTO] File processing error: %s", exc)
-        await message.reply_text("⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
+        )
         return END
     except OpenAIError as exc:
         logger.exception("[PHOTO] Vision API error: %s", exc)
-        await message.reply_text("⚠️ Vision не смог обработать фото. Попробуйте ещё раз.")
+        await message.reply_text(
+            "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+        )
         return END
     except ValueError as exc:
         logger.exception("[PHOTO] Parsing error: %s", exc)
