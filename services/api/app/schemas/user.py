@@ -12,3 +12,6 @@ class UserContext(TypedDict):
     username: NotRequired[str]
     language_code: NotRequired[str]
     is_premium: NotRequired[bool]
+    age_group: NotRequired[str | None]
+    learning_level: NotRequired[str | None]
+    diabetes_type: NotRequired[str | None]
