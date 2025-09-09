@@ -107,7 +107,31 @@ async def test_plan_and_skip_commands() -> None:
 
     await learning_handlers.skip_command(update, context)
     assert message.replies[-1] == "План завершён."
-    assert user_data["learning_plan_index"] == 2
+    assert user_data["learning_plan_index"] == 1
+
+
+@pytest.mark.asyncio
+async def test_skip_command_does_not_grow_after_completion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    plan = ["step1", "step2"]
+    user_data = {"learning_plan": plan, "learning_plan_index": 1}
+    message = DummyMessage()
+    update = make_update(message=message)
+    context = make_context(user_data=user_data)
+
+    async def fail_persist(*args: object, **kwargs: object) -> None:
+        raise AssertionError("should not persist")
+
+    monkeypatch.setattr(learning_handlers, "_persist", fail_persist)
+
+    await learning_handlers.skip_command(update, context)
+    assert message.replies[-1] == "План завершён."
+    assert user_data["learning_plan_index"] == 1
+
+    await learning_handlers.skip_command(update, context)
+    assert message.replies[-1] == "План завершён."
+    assert user_data["learning_plan_index"] == 1
 
 
 @pytest.mark.asyncio
