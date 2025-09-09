@@ -37,6 +37,7 @@ from .routers import metrics
 from .routers.billing import router as billing_router
 from .routers.health import router as health_router
 from .routers.history import router as history_router
+from .routers.learning_profile import router as learning_profile_router
 from .routers.internal_reminders import router as internal_reminders_router
 from .routers.onboarding import router as onboarding_router
 from .routers.profile import router as profile_router
@@ -114,6 +115,7 @@ api_router.include_router(stats_router)
 api_router.include_router(legacy_router)
 api_router.include_router(metrics.router)  # metrics available under /api/metrics
 api_router.include_router(billing_router)
+api_router.include_router(learning_profile_router)
 api_router.include_router(profile_router)
 api_router.include_router(timezones_router)
 api_router.include_router(health_router)

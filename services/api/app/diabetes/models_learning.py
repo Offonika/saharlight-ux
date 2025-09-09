@@ -124,3 +124,25 @@ class LessonProgress(Base):
     lesson: Mapped[Lesson] = relationship("Lesson", back_populates="progresses")
 
 
+
+
+class LearningUserProfile(Base):
+    __tablename__ = "learning_user_profile"
+    __table_args__ = (sa.UniqueConstraint("user_id"),)
+
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    age_group: Mapped[str | None] = mapped_column(String)
+    learning_level: Mapped[str | None] = mapped_column(String)
+    diabetes_type: Mapped[str | None] = mapped_column(String)
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        server_default=sa.func.now(),
+        onupdate=sa.func.now(),
+        nullable=False,
+    )
+
+    user: Mapped[User] = relationship("User")

@@ -19,6 +19,7 @@ from ..services.profile import (
     save_profile,
 )
 from ..telegram_auth import check_token
+from ..assistant.repositories.learning_profile import get_learning_profile
 
 
 logger = logging.getLogger(__name__)
@@ -28,8 +29,16 @@ router = APIRouter()
 
 @router.get("/profile/self")
 async def profile_self(user: UserContext = Depends(check_token)) -> UserContext:
-    """Return current user context."""
+    """Return current user context including learning profile fields."""
 
+    profile = await get_learning_profile(user["id"])
+    if profile is not None:
+        user = {
+            **user,
+            "age_group": profile.age_group,
+            "learning_level": profile.learning_level,
+            "diabetes_type": profile.diabetes_type,
+        }
     return user
 
 
