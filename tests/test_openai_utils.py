@@ -9,6 +9,17 @@ import pytest
 from services.api.app import config
 from services.api.app.diabetes.utils import openai_utils
 
+_original_get_openai_client = openai_utils.get_openai_client
+_original_get_async_openai_client = openai_utils.get_async_openai_client
+
+
+@pytest.fixture(autouse=True)
+def _restore_openai_utils(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(openai_utils, "get_openai_client", _original_get_openai_client)
+    monkeypatch.setattr(
+        openai_utils, "get_async_openai_client", _original_get_async_openai_client
+    )
+
 
 def test_get_openai_client_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(openai_utils, "_http_client", None)
