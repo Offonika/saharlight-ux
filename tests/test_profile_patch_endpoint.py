@@ -18,6 +18,7 @@ from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
 
+
 def build_init_data(user_id: int = 1) -> str:
     user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
     params = {"auth_date": str(int(time.time())), "query_id": "abc", "user": user}
@@ -43,12 +44,10 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     db.Base.metadata.create_all(bind=engine)
 
     with SessionLocal() as session:
-        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.add(db.User(telegram_id=1, thread_id="t", onboarding_complete=True))
         session.commit()
 
-    async def run_db_wrapper(
-        fn: Callable[..., Any], *args: Any, **kwargs: Any
-    ) -> Any:
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
@@ -122,9 +121,7 @@ def test_profile_patch_partial_update(
 ) -> None:
     SessionLocal = setup_db(monkeypatch)
     with TestClient(server.app) as client:
-        resp = client.patch(
-            "/api/profile", json={"dia": 5}, headers=auth_headers
-        )
+        resp = client.patch("/api/profile", json={"dia": 5}, headers=auth_headers)
         assert resp.status_code == 200
         data = resp.json()
         assert data["dia"] == 5

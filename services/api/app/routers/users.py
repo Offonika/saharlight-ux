@@ -26,11 +26,8 @@ class WebUser(BaseModel):
     )
 
 
-@router.post("/user")
-async def create_user(
-    data: WebUser, user: UserContext = Depends(require_tg_user)
-) -> dict[str, str]:
-    """Create a user record if it does not exist."""
+async def _create_user_impl(data: WebUser, user: UserContext) -> dict[str, str]:
+    """Ensure a user row exists for the provided Telegram identifier."""
 
     if data.telegramId != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
@@ -40,6 +37,24 @@ async def create_user(
     )
     logger.info("Ensured user %s via API", data.telegramId)
     return {"status": "ok"}
+
+
+@router.post("/user")
+async def create_user(
+    data: WebUser, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
+    """Create a user record if it does not exist (legacy endpoint)."""
+
+    return await _create_user_impl(data, user)
+
+
+@router.post("/users")
+async def create_user_plural(
+    data: WebUser, user: UserContext = Depends(require_tg_user)
+) -> dict[str, str]:
+    """Create a user record if it does not exist."""
+
+    return await _create_user_impl(data, user)
 
 
 @router.get("/user/{user_id}/role")
@@ -67,4 +82,3 @@ async def put_role(
 
     await set_user_role(user_id, data.role)
     return RoleSchema(role=data.role)
-

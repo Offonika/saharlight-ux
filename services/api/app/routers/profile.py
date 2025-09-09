@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
 from ..diabetes.schemas.profile import ProfileSettingsIn
+from ..diabetes.services import db as db_module
+from ..diabetes.services.db import User
 from ..schemas.profile import ProfileSchema
 from ..schemas.user import UserContext
 from ..services.profile import (
@@ -32,6 +36,15 @@ async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserCont
 @router.get("/profile", response_model=ProfileSchema)
 async def profile(user: UserContext = Depends(require_tg_user)) -> ProfileSchema:
     """Return current profile settings."""
+
+    def _get(session: Session) -> User | None:
+        return cast(User | None, session.get(User, user["id"]))
+
+    db_user = await db_module.run_db(_get, sessionmaker=db_module.SessionLocal)
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="user not found")
+    if not db_user.onboarding_complete:
+        raise HTTPException(status_code=422, detail="onboarding incomplete")
 
     return await get_profile_settings(user["id"])
 
@@ -61,4 +74,3 @@ async def profile_post(
     except ValueError as exc:  # pragma: no cover - conversion to HTTP 422
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"status": "ok"}
-

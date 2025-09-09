@@ -243,6 +243,10 @@ async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
     monkeypatch.setattr(handlers, "post_profile", lambda *a, **kw: (True, None))
 
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t", onboarding_complete=True))
+        session.commit()
+
     msg = DummyMessage()
     payload = {
         "icr": 8,
