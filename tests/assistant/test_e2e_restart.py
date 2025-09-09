@@ -67,8 +67,10 @@ async def test_restart_restores_step(
     monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
 
     await learning_handlers.plan_command(update, context)
-
-    assert context.user_data.get("learning_plan_index") == 0
+    state = learning_handlers.get_state(context.user_data)
+    assert state is not None
+    assert state.step == 2
+    assert context.user_data.get("learning_plan_index") == 1
     assert update.message.sent
     assert "Шаг 2" in update.message.sent[0]
 
