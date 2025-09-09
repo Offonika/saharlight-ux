@@ -46,6 +46,7 @@ export const parseProfile = (
 ): { data: ParsedProfile; errors: FieldErrors } => {
   const errors: FieldErrors = {};
   const isNonInsulin = therapyType === 'tablets' || therapyType === 'none';
+  const isInsulinTherapy = therapyType === 'insulin' || therapyType === 'mixed';
 
   const parseNumber = (
     field: keyof ProfileForm,
@@ -82,8 +83,8 @@ export const parseProfile = (
     return num;
   };
 
-  const icr = isNonInsulin ? 0 : parseNumber('icr', profile.icr);
-  const cf = isNonInsulin ? 0 : parseNumber('cf', profile.cf);
+  const icr = isInsulinTherapy ? parseNumber('icr', profile.icr) : 0;
+  const cf = isInsulinTherapy ? parseNumber('cf', profile.cf) : 0;
   const target = parseNumber('target', profile.target);
   const low = parseNumber('low', profile.low);
   const high = parseNumber('high', profile.high);
@@ -125,6 +126,14 @@ export const parseProfile = (
     !/^\d+$/.test(profile.sosContact)
   ) {
     errors.sosContact = 'invalid';
+  }
+
+  if (target === undefined && !errors.target) errors.target = 'required';
+  if (low === undefined && !errors.low) errors.low = 'required';
+  if (high === undefined && !errors.high) errors.high = 'required';
+  if (isInsulinTherapy) {
+    if (icr === undefined && !errors.icr) errors.icr = 'required';
+    if (cf === undefined && !errors.cf) errors.cf = 'required';
   }
 
   if (
