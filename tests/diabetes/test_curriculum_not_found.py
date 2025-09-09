@@ -66,6 +66,13 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
         dynamic_handlers, "choose_initial_topic", lambda _p: ("slug", "t")
     )
     monkeypatch.setattr(dynamic_handlers, "build_main_keyboard", lambda: None)
+    async def fake_step_text(
+        profile: Mapping[str, str | None], slug: str, step: int, prev: str | None
+    ) -> str:
+        return "intro"
+
+    monkeypatch.setattr(dynamic_handlers, "generate_step_text", fake_step_text)
+    monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
 
     async def fail_next_step(
         user_id: int,
@@ -84,17 +91,35 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
         dynamic_handlers.curriculum_engine, "start_lesson", raise_start_lesson
     )
 
-    def fail_generate_learning_plan(_text: str) -> list[str]:
-        raise AssertionError("should not be called")
+    monkeypatch.setattr(dynamic_handlers, "generate_learning_plan", lambda _t: ["step1"])
 
+    async def ok_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", ok_add_log)
+
+    async def fake_get_active_plan(user_id: int) -> None:
+        return None
+
+    async def fake_create_plan(
+        user_id: int, version: int, plan: list[str]
+    ) -> int:
+        return 1
+
+    async def fake_update_plan(plan_id: int, plan_json: list[str]) -> None:
+        return None
+
+    async def fake_upsert_progress(
+        user_id: int, plan_id: int, data: Mapping[str, Any]
+    ) -> None:
+        return None
+
+    monkeypatch.setattr(dynamic_handlers.plans_repo, "get_active_plan", fake_get_active_plan)
+    monkeypatch.setattr(dynamic_handlers.plans_repo, "create_plan", fake_create_plan)
+    monkeypatch.setattr(dynamic_handlers.plans_repo, "update_plan", fake_update_plan)
     monkeypatch.setattr(
-        dynamic_handlers, "generate_learning_plan", fail_generate_learning_plan
+        dynamic_handlers.progress_service, "upsert_progress", fake_upsert_progress
     )
-
-    async def fail_add_log(*args: object, **kwargs: object) -> None:
-        raise AssertionError("should not be called")
-
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -102,8 +127,11 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
 
     await dynamic_handlers.learn_command(update, context)
 
-    assert msg.replies == [dynamic_handlers.LESSON_NOT_FOUND_MESSAGE]
-    assert get_state(context.user_data) is None
+    assert msg.replies == [
+        "Не нашёл учебные записи, пробую динамический режим…",
+        "step1",
+    ]
+    assert get_state(context.user_data) is not None
 
 
 @pytest.mark.asyncio
@@ -117,6 +145,13 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(dynamic_handlers, "TOPICS_RU", {"slug": "Topic"})
     monkeypatch.setattr(dynamic_handlers, "build_main_keyboard", lambda: None)
     monkeypatch.setattr(dynamic_handlers, "disclaimer", lambda: "")
+    async def fake_step_text(
+        profile: Mapping[str, str | None], slug: str, step: int, prev: str | None
+    ) -> str:
+        return "intro"
+
+    monkeypatch.setattr(dynamic_handlers, "generate_step_text", fake_step_text)
+    monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
 
     async def raise_start_lesson(user_id: int, slug: str) -> object:
         raise LessonNotFoundError(slug)
@@ -135,17 +170,35 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(dynamic_handlers.curriculum_engine, "next_step", fail_next_step)
 
-    def fail_generate_learning_plan(_text: str) -> list[str]:
-        raise AssertionError("should not be called")
+    monkeypatch.setattr(dynamic_handlers, "generate_learning_plan", lambda _t: ["step1"])
 
+    async def ok_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", ok_add_log)
+
+    async def fake_get_active_plan(user_id: int) -> None:
+        return None
+
+    async def fake_create_plan(
+        user_id: int, version: int, plan: list[str]
+    ) -> int:
+        return 1
+
+    async def fake_update_plan(plan_id: int, plan_json: list[str]) -> None:
+        return None
+
+    async def fake_upsert_progress(
+        user_id: int, plan_id: int, data: Mapping[str, Any]
+    ) -> None:
+        return None
+
+    monkeypatch.setattr(dynamic_handlers.plans_repo, "get_active_plan", fake_get_active_plan)
+    monkeypatch.setattr(dynamic_handlers.plans_repo, "create_plan", fake_create_plan)
+    monkeypatch.setattr(dynamic_handlers.plans_repo, "update_plan", fake_update_plan)
     monkeypatch.setattr(
-        dynamic_handlers, "generate_learning_plan", fail_generate_learning_plan
+        dynamic_handlers.progress_service, "upsert_progress", fake_upsert_progress
     )
-
-    async def fail_add_log(*args: object, **kwargs: object) -> None:
-        raise AssertionError("should not be called")
-
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -153,8 +206,11 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
 
     await dynamic_handlers.lesson_command(update, context)
 
-    assert msg.replies == [dynamic_handlers.LESSON_NOT_FOUND_MESSAGE]
-    assert get_state(context.user_data) is None
+    assert msg.replies == [
+        "Не нашёл учебные записи, пробую динамический режим…",
+        "step1",
+    ]
+    assert get_state(context.user_data) is not None
 
 
 @pytest.mark.asyncio
