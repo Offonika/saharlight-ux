@@ -34,3 +34,18 @@ def test_validate_tokens_env_not_declared(monkeypatch: pytest.MonkeyPatch) -> No
     assert not hasattr(config, "UNDECLARED_TOKEN")
 
     config.validate_tokens(["UNDECLARED_TOKEN"])
+
+
+def test_validate_tokens_reflects_runtime_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``validate_tokens`` checks the current ``TELEGRAM_TOKEN`` value."""
+
+    monkeypatch.setenv("TELEGRAM_TOKEN", "initial")
+    config = _reload("config")
+    config.validate_tokens(["TELEGRAM_TOKEN"])
+
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+    with pytest.raises(RuntimeError):
+        config.validate_tokens(["TELEGRAM_TOKEN"])
+
+    monkeypatch.setenv("TELEGRAM_TOKEN", "updated")
+    config.validate_tokens(["TELEGRAM_TOKEN"])
