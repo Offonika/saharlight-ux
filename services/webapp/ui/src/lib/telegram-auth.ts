@@ -39,11 +39,35 @@ function getStoredInitData(): string | null {
   return null;
 }
 
+export function isInitDataFresh(initData: string): boolean {
+  try {
+    const authDateStr = new URLSearchParams(initData).get('auth_date');
+    if (!authDateStr) return false;
+    const authDate = Number(authDateStr);
+    if (!Number.isFinite(authDate)) return false;
+    const now = Math.floor(Date.now() / 1000);
+    if (authDate > now + 60) return false;
+    if (now - authDate > 60 * 60 * 24) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function getTelegramAuthHeaders(): Record<string, string> {
   const headers: Record<string, string> = {};
   const initData = getStoredInitData();
   if (initData) {
-    headers[HEADER] = `tg ${initData}`;
+    if (isInitDataFresh(initData)) {
+      headers[HEADER] = `tg ${initData}`;
+    } else {
+      storedInitData = null;
+      try {
+        localStorage.removeItem(LS_KEY);
+      } catch {
+        /* ignore */
+      }
+    }
   }
   return headers;
 }
