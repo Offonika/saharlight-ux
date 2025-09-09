@@ -13,10 +13,10 @@ from services.api.app import config
 
 logger = logging.getLogger(__name__)
 
-_http_client: httpx.Client | None = None
+_http_client: dict[str, httpx.Client] = {}
 _http_client_lock = threading.Lock()
 
-_async_http_client: httpx.AsyncClient | None = None
+_async_http_client: dict[str, httpx.AsyncClient] = {}
 _async_http_client_lock = threading.Lock()
 
 
@@ -43,15 +43,19 @@ def _build_http_client(
     if async_:
         global _async_http_client
         with _async_http_client_lock:
-            if _async_http_client is None:
-                _async_http_client = httpx.AsyncClient(proxies=proxy)
-            return _async_http_client
+            async_client = _async_http_client.get(proxy)
+            if async_client is None:
+                async_client = httpx.AsyncClient(proxies=proxy)
+                _async_http_client[proxy] = async_client
+            return async_client
 
     global _http_client
     with _http_client_lock:
-        if _http_client is None:
-            _http_client = httpx.Client(proxies=proxy)
-        return _http_client
+        sync_client = _http_client.get(proxy)
+        if sync_client is None:
+            sync_client = httpx.Client(proxies=proxy)
+            _http_client[proxy] = sync_client
+        return sync_client
 
 
 def get_openai_client() -> OpenAI:
@@ -97,13 +101,13 @@ async def dispose_http_client() -> None:
     """Close and reset the HTTP client used by OpenAI."""
     global _http_client, _async_http_client
     with _http_client_lock:
-        if _http_client is not None:
-            _http_client.close()
-            _http_client = None
+        for sync_client in _http_client.values():
+            sync_client.close()
+        _http_client.clear()
     with _async_http_client_lock:
-        if _async_http_client is not None:
-            await _async_http_client.aclose()
-            _async_http_client = None
+        for async_client in _async_http_client.values():
+            await async_client.aclose()
+        _async_http_client.clear()
 
 
 @contextmanager
