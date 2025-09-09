@@ -256,3 +256,44 @@ def test_schedule_daily_adds_id_to_job_kwargs(queue_cls: type[object]) -> None:
         assert jq.args.timezone == jq.timezone
     else:
         assert jq.args.timezone is None
+
+
+class QueueDailyTypeError:
+    timezone = ZoneInfo("Europe/Moscow")
+
+    def run_daily(
+        self,
+        callback: Callable[..., object],
+        *,
+        time: dt_time,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        timezone: ZoneInfo | None = None,
+    ) -> Job:
+        raise TypeError("boom")
+
+
+class QueueDailyNoTimezoneTypeError:
+    def run_daily(
+        self,
+        callback: Callable[..., object],
+        *,
+        time: dt_time,
+        days: tuple[int, ...] = (0, 1, 2, 3, 4, 5, 6),
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+    ) -> Job:
+        raise TypeError("boom")
+
+
+def test_schedule_daily_propagates_internal_type_error() -> None:
+    jq = QueueDailyTypeError()
+    with pytest.raises(TypeError):
+        schedule_daily(jq, dummy_cb, time=dt_time(1, 0))
+
+
+def test_schedule_daily_propagates_internal_type_error_without_timezone() -> None:
+    jq = QueueDailyNoTimezoneTypeError()
+    with pytest.raises(TypeError):
+        schedule_daily(jq, dummy_cb, time=dt_time(1, 0))

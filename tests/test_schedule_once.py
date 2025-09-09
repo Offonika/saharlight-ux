@@ -208,3 +208,42 @@ def test_schedule_once_adds_id_to_job_kwargs(queue_cls: type[object]) -> None:
         assert jq.args.timezone == jq.timezone
     else:
         assert jq.args.timezone is None
+
+
+class QueueWithTimezoneTypeError:
+    timezone = "TZ"
+
+    def run_once(
+        self,
+        callback: Callable[..., object],
+        *,
+        when: timedelta,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+        timezone: object | None = None,
+    ) -> Job:
+        raise TypeError("boom")
+
+
+class QueueNoTimezoneTypeError:
+    def run_once(
+        self,
+        callback: Callable[..., object],
+        *,
+        when: timedelta,
+        data: dict[str, object] | None = None,
+        name: str | None = None,
+    ) -> Job:
+        raise TypeError("boom")
+
+
+def test_schedule_once_propagates_internal_type_error() -> None:
+    jq = QueueWithTimezoneTypeError()
+    with pytest.raises(TypeError):
+        schedule_once(jq, dummy_cb, when=timedelta(seconds=1))
+
+
+def test_schedule_once_propagates_internal_type_error_without_timezone() -> None:
+    jq = QueueNoTimezoneTypeError()
+    with pytest.raises(TypeError):
+        schedule_once(jq, dummy_cb, when=timedelta(seconds=1))

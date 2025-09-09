@@ -84,6 +84,7 @@ def schedule_once(
     sig = inspect.signature(job_queue.run_once)
     supports_job_kwargs = "job_kwargs" in sig.parameters
     supports_name = "name" in sig.parameters
+    supports_timezone = "timezone" in sig.parameters
 
     call_kwargs: dict[str, Any] = {"when": when, "data": data}
     jk: dict[str, object] = dict(job_kwargs or {})
@@ -103,9 +104,9 @@ def schedule_once(
         call_kwargs["job_kwargs"] = jk
 
     run_once = cast(Any, job_queue.run_once)
-    try:
+    if supports_timezone:
         result = run_once(callback, timezone=tz, **call_kwargs)
-    except TypeError:
+    else:
         result = run_once(callback, **call_kwargs)
     return cast(Job[CustomContext], result)
 
@@ -142,6 +143,7 @@ def schedule_daily(
     supports_job_kwargs = "job_kwargs" in sig.parameters
     supports_name = "name" in sig.parameters
     supports_days = "days" in sig.parameters
+    supports_timezone = "timezone" in sig.parameters
 
     call_kwargs: dict[str, Any] = {"time": time, "data": data}
     jk: dict[str, object] = dict(job_kwargs or {})
@@ -164,9 +166,9 @@ def schedule_daily(
         call_kwargs["job_kwargs"] = jk
 
     run_daily = cast(Any, job_queue.run_daily)
-    try:
+    if supports_timezone:
         result = run_daily(callback, timezone=tz, **call_kwargs)
-    except TypeError:
+    else:
         result = run_daily(callback, **call_kwargs)
     return cast(Job[CustomContext], result)
 
