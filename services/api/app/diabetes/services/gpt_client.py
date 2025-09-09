@@ -190,6 +190,10 @@ async def create_chat_completion(
                 timeout=timeout_param,
                 stream=False,
             )
+        except AttributeError as exc:
+            message = "OpenAI client misconfigured"
+            logger.exception("[OpenAI] %s", message)
+            raise RuntimeError(message) from exc
         except httpx.TimeoutException as exc:
             message = "Chat completion request timed out"
             logger.exception("[OpenAI] %s", message)

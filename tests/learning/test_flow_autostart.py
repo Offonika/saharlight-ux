@@ -132,3 +132,97 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     }
 
     await app.shutdown()
+
+
+@pytest.mark.asyncio()
+async def test_restart_skips_onboarding(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Restarting service should not trigger onboarding again."""
+
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    monkeypatch.setattr(settings, "learning_ui_show_topics", False)
+
+    async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
+        return SimpleNamespace(lesson_id=1)
+
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Mapping[str, str | None],
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
+        return "шаг1", False
+
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", lambda *a, **k: None)
+    monkeypatch.setattr(learning_handlers, "generate_learning_plan", lambda *_, **__: ["шаг1"])
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
+    async def fake_generate_step_text(*_a: object, **_k: object) -> str:
+        return "шаг1"
+
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(
+        learning_handlers, "choose_initial_topic", lambda _p: ("intro", "Intro")
+    )
+    async def _none(*_a: object, **_k: object) -> None:
+        return None
+
+    async def _one(*_a: object, **_k: object) -> int:
+        return 1
+
+    monkeypatch.setattr(learning_handlers.plans_repo, "get_active_plan", _none)
+    monkeypatch.setattr(learning_handlers.progress_service, "get_progress", _none)
+    monkeypatch.setattr(learning_handlers.plans_repo, "create_plan", _one)
+    monkeypatch.setattr(learning_handlers.plans_repo, "update_plan", _none)
+    monkeypatch.setattr(learning_handlers.progress_service, "upsert_progress", _none)
+
+    called = {"ensure": 0, "profile": 0}
+
+    async def fake_get_profile(_user_id: int) -> SimpleNamespace:
+        called["profile"] += 1
+        return SimpleNamespace(age_group="adult", learning_level="novice", diabetes_type="T2")
+
+    async def spy_ensure_overrides(update: object, context: object) -> bool:
+        called["ensure"] += 1
+        return True
+
+    monkeypatch.setattr(learning_handlers, "get_learning_profile", fake_get_profile)
+    monkeypatch.setattr(learning_handlers, "ensure_overrides", spy_ensure_overrides)
+
+    bot = DummyBot()
+    app = Application.builder().bot(bot).build()
+    app.add_handler(CommandHandler("learn", learning_handlers.learn_command))
+    await app.initialize()
+
+    user = User(id=1, is_bot=False, first_name="T")
+    chat = Chat(id=1, type="private")
+
+    def _msg(mid: int, text: str, *, entities: list[MessageEntity] | None = None) -> Message:
+        msg = Message(
+            message_id=mid,
+            date=datetime.now(),
+            chat=chat,
+            from_user=user,
+            text=text,
+            entities=entities,
+        )
+        msg._bot = bot
+        return msg
+
+    await app.process_update(
+        Update(
+            update_id=1,
+            message=_msg(1, "/learn", entities=[MessageEntity("bot_command", 0, 6)]),
+        )
+    )
+
+    assert bot.sent == ["шаг1"]
+    assert called["profile"] == 1
+    assert called["ensure"] == 0
+
+    await app.shutdown()

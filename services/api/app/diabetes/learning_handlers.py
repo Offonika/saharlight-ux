@@ -28,6 +28,9 @@ from .services.gpt_client import (
     create_learning_chat_completion,
     format_reply,
 )
+from services.api.app.assistant.repositories.learning_profile import (
+    get_learning_profile,
+)
 from services.api.app.assistant.repositories.logs import add_lesson_log
 from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.services import progress_service
@@ -114,6 +117,23 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     if user is None:
         return True
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    if "learn_profile_overrides" not in user_data:
+        try:
+            profile_db = await get_learning_profile(user.id)
+        except (SQLAlchemyError, RuntimeError) as exc:  # pragma: no cover - logging only
+            logger.exception("hydrate profile failed: %s", exc)
+            profile_db = None
+        overrides: dict[str, str] = {}
+        if profile_db is not None:
+            if profile_db.age_group is not None:
+                overrides["age_group"] = profile_db.age_group
+            if profile_db.learning_level is not None:
+                overrides["learning_level"] = profile_db.learning_level
+            if profile_db.diabetes_type is not None:
+                overrides["diabetes_type"] = profile_db.diabetes_type
+        user_data["learn_profile_overrides"] = overrides
+        if overrides.get("age_group") and overrides.get("learning_level"):
+            user_data["learning_onboarded"] = True
     if get_state(user_data) is not None:
         return True
     if "learning_plan" in user_data and "learning_plan_index" in user_data:
@@ -198,7 +218,8 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if settings.learning_content_mode == "static":
         await legacy_handlers.learn_command(update, context)
         return
-    if not await ensure_overrides(update, context):
+    user_data = cast(MutableMapping[str, Any], context.user_data)
+    if not user_data.get("learning_onboarded") and not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
         [
@@ -237,7 +258,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             state.last_step_text, reply_markup=build_main_keyboard()
         )
         return
-    if not await ensure_overrides(update, context):
+    if not user_data.get("learning_onboarded") and not await ensure_overrides(
+        update, context
+    ):
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
@@ -349,9 +372,11 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if settings.learning_content_mode == "static":
         await legacy_handlers.lesson_command(update, context)
         return
-    if not await ensure_overrides(update, context):
-        return
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    if not user_data.get("learning_onboarded") and not await ensure_overrides(
+        update, context
+    ):
+        return
     if _rate_limited(user_data, "_lesson_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
         return
