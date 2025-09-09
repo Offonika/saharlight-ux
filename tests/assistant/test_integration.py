@@ -46,26 +46,18 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
+    steps_iter = iter(["step1?", "step2?", "step3?", "step4?"])
+
     async def fake_next_step(
         user_id: int,
         lesson_id: int,
         profile: Mapping[str, str | None],
         prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        return "step1?", False
+        return next(steps_iter), False
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
     monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
-
-    async def fake_generate_step_text(
-        profile: Mapping[str, str | None],
-        topic: str,
-        step_idx: int,
-        prev: Any,
-    ) -> str:
-        return f"step{step_idx}?"
-
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
 
     async def fake_check_user_answer(
         profile: Mapping[str, str | None],

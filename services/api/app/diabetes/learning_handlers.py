@@ -23,7 +23,7 @@ from .learning_utils import choose_initial_topic
 # Re-export the curriculum engine so tests and callers can patch it easily.
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
-from .curriculum_engine import LessonNotFoundError
+from .curriculum_engine import LessonNotFoundError, ProgressNotFoundError
 from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
 from .services.gpt_client import (
@@ -274,19 +274,32 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
     logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
+    lesson_id: int | None = None
     try:
-        await curriculum_engine.start_lesson(user.id, slug)
+        progress = await curriculum_engine.start_lesson(user.id, slug)
+        lesson_id = progress.lesson_id
+        user_data["lesson_id"] = lesson_id
+        text, _ = await curriculum_engine.next_step(
+            user.id, lesson_id, profile, None
+        )
     except LessonNotFoundError:
         logger.warning(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
-        await message.reply_text(
-            "Не нашёл учебные записи, пробую динамический режим…",
-            reply_markup=build_main_keyboard(),
-        )
-    text = await generate_step_text(profile, slug, 1, None)
-    if text == BUSY_MESSAGE:
+        text = await generate_step_text(profile, slug, 1, None)
+    except (
+        SQLAlchemyError,
+        OpenAIError,
+        httpx.HTTPError,
+        RuntimeError,
+    ) as exc:
+        logger.exception("lesson start failed: %s", exc)
+        user_data.pop("lesson_id", None)
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
+    if text == BUSY_MESSAGE or not text:
+        user_data.pop("lesson_id", None)
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
     plan = generate_learning_plan(text)
@@ -306,6 +319,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         topic=slug,
         step=1,
         last_step_text=text,
+        prev_summary=None,
         awaiting=True,
         last_step_at=time.monotonic(),
     )
@@ -326,23 +340,36 @@ async def _start_lesson(
     if from_user is None:
         return
     logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
+    lesson_id: int | None = None
     try:
-        await curriculum_engine.start_lesson(from_user.id, topic_slug)
+        progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
+        lesson_id = progress.lesson_id
+        user_data["lesson_id"] = lesson_id
+        text, _ = await curriculum_engine.next_step(
+            from_user.id, lesson_id, profile, None
+        )
     except LessonNotFoundError:
         logger.warning(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
-        await message.reply_text(
-            "Не нашёл учебные записи, пробую динамический режим…",
-            reply_markup=build_main_keyboard(),
-        )
-    text = await generate_step_text(profile, topic_slug, 1, None)
-    if text == BUSY_MESSAGE:
+        text = await generate_step_text(profile, topic_slug, 1, None)
+        if not text.startswith(disclaimer()):
+            text = f"{disclaimer()}\n\n{text}"
+    except (
+        SQLAlchemyError,
+        OpenAIError,
+        httpx.HTTPError,
+        RuntimeError,
+    ) as exc:
+        logger.exception("lesson start failed: %s", exc)
+        user_data.pop("lesson_id", None)
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
-    if not text.startswith(disclaimer()):
-        text = f"{disclaimer()}\n\n{text}"
+    if text == BUSY_MESSAGE or not text:
+        user_data.pop("lesson_id", None)
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
     plan = generate_learning_plan(text)
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
@@ -360,6 +387,7 @@ async def _start_lesson(
         topic=topic_slug,
         step=1,
         last_step_text=text,
+        prev_summary=None,
         awaiting=True,
         last_step_at=time.monotonic(),
     )
@@ -512,11 +540,33 @@ async def lesson_answer_handler(
                     BUSY_MESSAGE, reply_markup=build_main_keyboard()
                 )
                 return
-        next_text = await generate_step_text(
-            profile, state.topic, state.step + 1, feedback
-        )
-        if next_text == BUSY_MESSAGE:
-            await message.reply_text(next_text, reply_markup=build_main_keyboard())
+        lesson_id = user_data.get("lesson_id")
+        try:
+            if isinstance(lesson_id, int):
+                next_text, _ = await curriculum_engine.next_step(
+                    telegram_id or 0,
+                    lesson_id,
+                    profile,
+                    feedback,
+                )
+            else:
+                next_text = await generate_step_text(
+                    profile, state.topic, state.step + 1, feedback
+                )
+        except (
+            LessonNotFoundError,
+            ProgressNotFoundError,
+            SQLAlchemyError,
+            OpenAIError,
+            httpx.HTTPError,
+            RuntimeError,
+        ) as exc:
+            logger.exception("next step failed: %s", exc)
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+            user_data.pop("lesson_id", None)
+            return
+        if next_text == BUSY_MESSAGE or not next_text:
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())

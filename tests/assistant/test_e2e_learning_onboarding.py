@@ -69,10 +69,15 @@ async def test_first_run_restart_and_type_questions(
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
-    async def fake_generate_step_text(
-        _profile: Any, _topic: str, step_idx: int, _prev: str | None
-    ) -> str:
-        return f"Шаг {step_idx}"
+    steps = iter(["Шаг 1", "Шаг 2"])
+
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Any,
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
+        return next(steps), False
 
     async def fake_assistant_chat(_profile: Any, _text: str) -> str:
         return "feedback"
@@ -83,7 +88,7 @@ async def test_first_run_restart_and_type_questions(
         return False, "feedback"
 
     monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
     monkeypatch.setattr(
