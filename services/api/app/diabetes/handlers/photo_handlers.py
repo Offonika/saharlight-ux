@@ -8,6 +8,7 @@ import logging
 from typing import cast
 
 from openai import OpenAIError
+import httpx
 from telegram import Message, Update
 from telegram.constants import ChatAction, MessageLimit
 from telegram.error import TelegramError
@@ -173,11 +174,33 @@ async def photo_handler(
             if run.status in ("completed", "failed", "cancelled", "expired"):
                 break
             await asyncio.sleep(2)
-            run = await asyncio.to_thread(
-                _get_client().beta.threads.runs.retrieve,
-                thread_id=run.thread_id,
-                run_id=run.id,
-            )
+            try:
+                run = await asyncio.to_thread(
+                    _get_client().beta.threads.runs.retrieve,
+                    thread_id=run.thread_id,
+                    run_id=run.id,
+                )
+            except (OpenAIError, httpx.HTTPError) as exc:
+                logger.exception("[PHOTO][RUN_RETRIEVE] Failed to retrieve run: %s", exc)
+                if status_message and hasattr(status_message, "delete"):
+                    try:
+                        await status_message.delete()
+                    except TelegramError as exc_del:
+                        logger.warning(
+                            "[PHOTO][RUN_RETRIEVE_DELETE] Failed to delete status message: %s",
+                            exc_del,
+                        )
+                    except OSError as exc_os:
+                        logger.exception(
+                            "[PHOTO][RUN_RETRIEVE_DELETE] OS error: %s",
+                            exc_os,
+                        )
+                        raise
+                await message.reply_text(
+                    "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
+                )
+                _clear_waiting_gpt(user_data)
+                return END
             if attempt == warn_after:
                 await send_typing_action()
         else:
