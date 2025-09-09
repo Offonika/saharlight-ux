@@ -21,6 +21,7 @@ from .learning_utils import choose_initial_topic
 # Re-export the curriculum engine so tests and callers can patch it easily.
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
+from .curriculum_engine import LessonNotFoundError
 from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
 from .services.gpt_client import (
@@ -40,8 +41,6 @@ BUSY_KEY = "learn_busy"
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
-
-LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -245,6 +244,17 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.info(
         "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
     )
+    try:
+        await curriculum_engine.start_lesson(user.id, slug)
+    except LessonNotFoundError:
+        logger.warning(
+            "no_static_lessons; run dynamic",
+            extra={"hint": "make load-lessons"},
+        )
+        await message.reply_text(
+            "Не нашёл учебные записи, пробую динамический режим…",
+            reply_markup=build_main_keyboard(),
+        )
     text = await generate_step_text(profile, slug, 1, None)
     if text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
@@ -287,6 +297,17 @@ async def _start_lesson(
     logger.info(
         "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
     )
+    try:
+        await curriculum_engine.start_lesson(from_user.id, topic_slug)
+    except LessonNotFoundError:
+        logger.warning(
+            "no_static_lessons; run dynamic",
+            extra={"hint": "make load-lessons"},
+        )
+        await message.reply_text(
+            "Не нашёл учебные записи, пробую динамический режим…",
+            reply_markup=build_main_keyboard(),
+        )
     text = await generate_step_text(profile, topic_slug, 1, None)
     if text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
