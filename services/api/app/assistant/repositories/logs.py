@@ -43,29 +43,31 @@ _FLUSH_INTERVAL = 5.0
 
 async def flush_pending_logs() -> None:
     """Flush accumulated logs to the database."""
-
     async with pending_logs_lock:
         if not pending_logs:
             return
 
-        entries = [LessonLog(**asdict(log)) for log in pending_logs]
-
-        def _flush(session: Session) -> None:
-            session.add_all(entries)
-            commit(session)
-
-        try:
-            await run_db(_flush, sessionmaker=SessionLocal)
-        except Exception as exc:  # pragma: no cover - logging only
-            logger.warning(
-                "Failed to flush %s lesson logs", len(entries), exc_info=exc
-            )
-            lesson_log_failures.inc(len(entries))
-            if settings.learning_logging_required:
-                raise
-            return
-
+        queued = pending_logs.copy()
         pending_logs.clear()
+
+    entries = [LessonLog(**asdict(log)) for log in queued]
+
+    def _flush(session: Session) -> None:
+        session.add_all(entries)
+        commit(session)
+
+    try:
+        await run_db(_flush, sessionmaker=SessionLocal)
+    except Exception as exc:  # pragma: no cover - logging only
+        logger.warning(
+            "Failed to flush %s lesson logs", len(entries), exc_info=exc
+        )
+        lesson_log_failures.inc(len(entries))
+        if settings.learning_logging_required:
+            raise
+        async with pending_logs_lock:
+            pending_logs.extend(queued)
+        return
 
 
 async def add_lesson_log(

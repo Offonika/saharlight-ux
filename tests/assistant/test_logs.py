@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Callable
 
@@ -78,6 +79,57 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
     await add_lesson_log(1, 1, 0, 3, "assistant", "hi")
 
     assert len(inserted) == 3
+    assert not logs.pending_logs
+
+
+@pytest.mark.asyncio
+async def test_flush_does_not_block_new_logs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Logs enqueued during a flush should not block or be lost."""
+
+    logs.pending_logs.clear()
+
+    inserted: list[LessonLog] = []
+
+    class DummySession:
+        def add_all(self, objs: list[LessonLog]) -> None:
+            inserted.extend(objs)
+
+    flush_started = asyncio.Event()
+    continue_flush = asyncio.Event()
+    calls = 0
+
+    async def slow_run_db(
+        fn: Callable[[DummySession], None], *args: object, **kwargs: object
+    ) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            flush_started.set()
+            await continue_flush.wait()
+        fn(DummySession())
+
+    monkeypatch.setattr(logs, "run_db", slow_run_db)
+    monkeypatch.setattr(logs, "commit", lambda _: None)
+
+    first = asyncio.create_task(
+        add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+    )
+    await flush_started.wait()
+
+    assert not first.done()
+
+    await add_lesson_log(1, 1, 0, 2, "assistant", "hi")
+
+    assert not first.done()
+    assert len(inserted) == 1
+    assert inserted[0].step_idx == 2
+
+    continue_flush.set()
+    await first
+
+    assert {log.step_idx for log in inserted} == {1, 2}
     assert not logs.pending_logs
 
 
