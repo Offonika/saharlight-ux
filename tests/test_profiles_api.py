@@ -51,8 +51,9 @@ def test_profiles_get_missing_profile_logs_warning(
     engine.dispose()
 
 
-def test_profiles_get_db_error_returns_500(
+def test_profiles_get_unexpected_exception_reraised(
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     app = FastAPI()
     app.include_router(router, prefix="/api")
@@ -64,10 +65,14 @@ def test_profiles_get_db_error_returns_500(
 
     monkeypatch.setattr(legacy_module, "get_profile", _get_profile)
 
-    with TestClient(app) as client:
-        resp = client.get("/api/profiles", params={"telegramId": 1})
-    assert resp.status_code == 500
-    assert resp.json() == {"detail": "database connection failed"}
+    with TestClient(app) as client, caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            client.get("/api/profiles", params={"telegramId": 1})
+
+    assert any(
+        rec.levelno == logging.ERROR and "failed to fetch profile" in rec.message
+        for rec in caplog.records
+    )
 
 
 def test_profiles_get_db_connection_error_returns_503(
