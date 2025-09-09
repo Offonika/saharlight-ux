@@ -59,15 +59,15 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
 
     captured_profile: Mapping[str, str | None] = {}
 
-    async def fake_next_step(
-        user_id: int,
-        lesson_id: int,
+    async def fake_generate_step_text(
         profile: Mapping[str, str | None],
-        prev_summary: str | None = None,
-    ) -> tuple[str, bool]:
+        slug: str,
+        step_idx: int,
+        prev_summary: str | None,
+    ) -> str:
         nonlocal captured_profile
         captured_profile = profile
-        return "шаг1", False
+        return "шаг1"
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -76,7 +76,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
     )
     monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
+        learning_handlers, "generate_step_text", fake_generate_step_text
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
 
@@ -117,7 +117,6 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
     await app.process_update(Update(update_id=3, message=_msg(3, "2")))
     await app.process_update(Update(update_id=4, message=_msg(4, "0")))
-
     assert bot.sent[-1] == "шаг1"
     assert all(
         title not in s
