@@ -58,7 +58,8 @@ async def onboarding_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     overrides[stage] = message.text.strip()
     user_data.pop("learn_onboarding_stage", None)
     if await ensure_overrides(update, context):
-        await learning_handlers.learn_command(update, context)
+        wrapped = Update(getattr(update, "update_id", 0), message=message)
+        await learning_handlers.learn_command(wrapped, context)
 
 
 async def onboarding_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -81,7 +82,8 @@ async def onboarding_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     if await ensure_overrides(update, context):
         message = cast("Message | None", query.message)
         if message is not None:
-            await learning_handlers.learn_command(Update(0, message=message), context)
+            wrapped = Update(getattr(update, "update_id", 0), message=message)
+            await learning_handlers.learn_command(wrapped, context)
 
 
 def register_handlers(app: App) -> None:

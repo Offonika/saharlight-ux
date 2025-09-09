@@ -10,7 +10,6 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import learning_onboarding
-from services.api.app.diabetes.planner import pretty_plan
 
 
 class DummyBot(Bot):
@@ -79,21 +78,21 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr(learning_handlers.plans_repo, "create_plan", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "update_plan", _noop)
     monkeypatch.setattr(learning_handlers.progress_service, "upsert_progress", _noop)
+    async def _start(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", _start
+    )
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
     app.add_handler(CommandHandler("learn", learning_handlers.learn_command))
-
-    orig_reply = learning_onboarding.onboarding_reply
-
-    async def autoplan_reply(update: Update, context: Any) -> None:
-        await orig_reply(update, context)
-        if context.user_data.get("learning_onboarded"):
-            await learning_handlers.learn_command(update, context)
-            await learning_handlers.plan_command(update, context)
-
     app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, autoplan_reply)
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            learning_onboarding.onboarding_reply,
+        )
     )
     await app.initialize()
 
@@ -118,7 +117,7 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
     await app.process_update(Update(update_id=4, message=_msg(4, "0")))
 
     plan = fake_generate_learning_plan("first")
-    expected_plan = pretty_plan(plan)
-    assert bot.sent[-2:] == ["first", expected_plan]
+    assert app.user_data[1]["learning_plan"] == plan
+    assert bot.sent[-1] == "first"
 
     await app.shutdown()
