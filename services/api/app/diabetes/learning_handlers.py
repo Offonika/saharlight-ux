@@ -721,13 +721,15 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         return
     idx = cast(int, user_data.get("learning_plan_index", 0)) + 1
-    if idx >= len(plan):
+    completed = idx >= len(plan)
+    if completed:
         await message.reply_text("План завершён.", reply_markup=build_main_keyboard())
     else:
         await message.reply_text(plan[idx], reply_markup=build_main_keyboard())
+    idx = min(idx, len(plan) - 1)
     user_data["learning_plan_index"] = idx
     user = update.effective_user
-    if user is not None:
+    if user is not None and not completed:
         await _persist(user.id, user_data, context.bot_data)
 
 
