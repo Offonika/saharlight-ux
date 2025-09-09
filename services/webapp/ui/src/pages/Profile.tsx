@@ -43,6 +43,12 @@ const rapidInsulinTypes: RapidInsulin[] = [
   'regular',
 ];
 
+const therapyTypes: TherapyType[] = ['insulin', 'tablets', 'none', 'mixed'];
+const normalizeTherapyType = (value: unknown): TherapyType =>
+  therapyTypes.includes(value as TherapyType)
+    ? (value as TherapyType)
+    : 'none';
+
 interface ProfileFormHeaderProps {
   onBack: () => void;
   therapyType?: TherapyType;
@@ -113,11 +119,12 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   });
   const [original, setOriginal] = useState<ProfileForm | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
+  const initialTherapyType = normalizeTherapyType(therapyTypeProp);
   const [therapyType, setTherapyType] = useState<TherapyType>(
-    therapyTypeProp ?? 'none',
+    initialTherapyType,
   );
   const [originalTherapyType, setOriginalTherapyType] = useState<TherapyType>(
-    therapyTypeProp ?? 'none',
+    initialTherapyType,
   );
 
   const [fieldErrors, setFieldErrors] = useState<
@@ -233,7 +240,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
             ? data.timezone
             : deviceTz;
         const timezoneAuto = data.timezoneAuto === true;
-        const therapyType = data.therapyType ?? 'none';
+        const therapyType = normalizeTherapyType(data.therapyType);
 
         const loadedProfile: ProfileForm = {
           icr,
@@ -424,6 +431,9 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
     },
   ): Promise<void> => {
     try {
+      const therapyTypeValue = normalizeTherapyType(
+        data.therapyType ?? originalTherapyType,
+      );
       const payload: {
         telegramId: number;
         target: number;
@@ -449,10 +459,10 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
         timezoneAuto: profile.timezoneAuto,
         sosContact: profile.sosContact,
         sosAlertsEnabled: profile.sosAlertsEnabled,
-        therapyType: data.therapyType ?? originalTherapyType,
+        therapyType: therapyTypeValue,
       };
 
-      if (data.therapyType !== 'tablets' && data.therapyType !== 'none') {
+      if (therapyTypeValue !== 'tablets' && therapyTypeValue !== 'none') {
         if (data.icr !== undefined) payload.icr = data.icr;
         if (data.cf !== undefined) payload.cf = data.cf;
       }
@@ -464,7 +474,7 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       setOriginal(profile);
       if (data.therapyType) {
-        setOriginalTherapyType(data.therapyType);
+        setOriginalTherapyType(therapyTypeValue);
       }
       toast({
         title: t('profile.saved'),

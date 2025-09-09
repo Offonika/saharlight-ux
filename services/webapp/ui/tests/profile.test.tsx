@@ -343,6 +343,39 @@ describe('Profile page', () => {
     });
   });
 
+  it('defaults unknown therapyType to none when saving', async () => {
+    (resolveTelegramId as vi.Mock).mockReturnValue(123);
+    (getProfile as vi.Mock).mockResolvedValue({
+      ...baseProfile,
+      therapyType: 'unknown',
+    });
+
+    const { getByText, getByPlaceholderText } = renderWithClient(<Profile />);
+
+    await waitFor(() => {
+      expect((getByPlaceholderText('12') as HTMLInputElement).value).toBe('12');
+    });
+
+    fireEvent.click(getByText('Сохранить настройки'));
+
+    await waitFor(() => {
+      expect(saveProfile).toHaveBeenCalledWith({
+        telegramId: 123,
+        target: 6,
+        low: 4,
+        high: 10,
+        timezone: 'Europe/Moscow',
+        timezoneAuto: false,
+        quietStart: '23:00',
+        quietEnd: '07:00',
+        sosAlertsEnabled: true,
+        sosContact: null,
+        therapyType: 'none',
+      });
+      expect(patchProfile).not.toHaveBeenCalled();
+    });
+  });
+
   const nonInsulinTherapies: Array<'none' | 'tablets'> = ['none', 'tablets'];
 
   it.each(nonInsulinTherapies)(

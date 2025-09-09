@@ -108,7 +108,15 @@ describe('profile api', () => {
     vi.stubGlobal('fetch', mockFetch);
 
     await expect(
-      saveProfile({ telegramId: 1, icr: 1, cf: 2, target: 5, low: 4, high: 10 }),
+      saveProfile({
+        telegramId: 1,
+        icr: 1,
+        cf: 2,
+        target: 5,
+        low: 4,
+        high: 10,
+        therapyType: 'insulin',
+      }),
     ).rejects.toThrow('Не удалось сохранить профиль: fail');
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/profile',
