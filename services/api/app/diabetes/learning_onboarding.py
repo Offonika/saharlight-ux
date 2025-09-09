@@ -36,17 +36,6 @@ def _norm_age_group(text: str) -> str | None:
     return mapping.get(t)
 
 
-def _norm_diabetes_type(text: str) -> str | None:
-    """Normalize *text* to a diabetes type code."""
-
-    t = text.strip().lower().replace(" ", "")
-    if t in {"1", "t1", "type1", "i"}:
-        return "T1"
-    if t in {"2", "t2", "type2", "ii"}:
-        return "T2"
-    return None
-
-
 def _norm_level(text: str) -> str | None:
     """Normalize *text* to a learning level."""
 
@@ -84,7 +73,6 @@ def needs_level(profile_db: Mapping[str, object]) -> bool:
 
 # Questions asked during the onboarding flow.
 AGE_PROMPT = "Укажите вашу возрастную группу."
-DIABETES_TYPE_PROMPT = "Укажите тип диабета."
 LEARNING_LEVEL_PROMPT = "Укажите ваш уровень знаний."
 
 
@@ -113,19 +101,6 @@ _ORDER: list[
         ),
     ),
     (
-        "diabetes_type",
-        DIABETES_TYPE_PROMPT,
-        _norm_diabetes_type,
-        InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton("T1", callback_data=f"{CB_PREFIX}T1"),
-                    InlineKeyboardButton("T2", callback_data=f"{CB_PREFIX}T2"),
-                ]
-            ]
-        ),
-    ),
-    (
         "learning_level",
         LEARNING_LEVEL_PROMPT,
         _norm_level,
@@ -149,8 +124,7 @@ _ORDER: list[
 async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """Ensure learning mode prerequisites are satisfied.
 
-    Sequentially ask the user for ``age_group``, ``diabetes_type`` and
-    ``learning_level``. Answers are stored in
+    Sequentially ask the user for ``age_group`` and ``learning_level``. Answers are stored in
     ``ctx.user_data['learn_profile_overrides']``. While onboarding is in
     progress the function returns ``False`` so that callers can stop further
     processing. ``True`` is returned once all fields are collected.
@@ -172,29 +146,15 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         except (httpx.HTTPError, RuntimeError):
             logger.exception("Failed to get profile for user %s", user.id)
             profile = {}
-        diabetes_type = profile.get("diabetes_type")
-        if (
-            isinstance(diabetes_type, str)
-            and diabetes_type != "unknown"
-            and "diabetes_type" not in overrides
-        ):
-            overrides["diabetes_type"] = diabetes_type
     has_age = "age_group" in overrides or not needs_age(profile)
-    dtype_val = overrides.get("diabetes_type") or profile.get("diabetes_type")
-    has_dtype = isinstance(dtype_val, str) and dtype_val not in ("", "unknown")
     has_level = "learning_level" in overrides or not needs_level(profile)
-    asked = (
-        "age"
-        if not has_age
-        else "level" if has_age and has_dtype and not has_level else "none"
-    )
+    asked = "age" if not has_age else "level" if has_age and not has_level else "none"
     logger.info(
         "ensure_overrides",
         extra={
             "user_id": getattr(user, "id", None),
             "has_age": has_age,
             "has_level": has_level,
-            "has_dtype": has_dtype,
             "asked": asked,
         },
     )

@@ -106,22 +106,16 @@ async def test_learning_onboarding_flow(
         message2 = DummyMessage("взрослый")
         update2 = cast(Update, SimpleNamespace(message=message2, effective_user=None))
         await learning_onboarding.onboarding_reply(update2, context)
-        assert message2.replies == [onboarding_utils.DIABETES_TYPE_PROMPT]
+        assert message2.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
 
-        message3 = DummyMessage("type1")
+        message3 = DummyMessage("новичок")
         update3 = cast(Update, SimpleNamespace(message=message3, effective_user=None))
         await learning_onboarding.onboarding_reply(update3, context)
-        assert message3.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
-
-        message4 = DummyMessage("новичок")
-        update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
-        await learning_onboarding.onboarding_reply(update4, context)
         assert any(
-            LEARN_BUTTON_TEXT in text or "Урок" in text for text in message4.replies
+            LEARN_BUTTON_TEXT in text or "Урок" in text for text in message3.replies
         )
         assert context.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
-            "diabetes_type": "T1",
             "learning_level": "novice",
         }
 
@@ -191,17 +185,8 @@ async def test_learning_onboarding_callback_flow(
             SimpleNamespace(callback_query=q1, message=None, effective_user=None),
         )
         await learning_onboarding.onboarding_callback(upd_cb1, ctx)
-        assert q1_msg.replies == [onboarding_utils.DIABETES_TYPE_PROMPT]
-
-        q2_msg = DummyMessage()
-        q2 = DummyCallbackQuery(f"{onboarding_utils.CB_PREFIX}T1", q2_msg)
-        upd_cb2 = cast(
-            Update,
-            SimpleNamespace(callback_query=q2, message=None, effective_user=None),
-        )
-        await learning_onboarding.onboarding_callback(upd_cb2, ctx)
-        assert q2_msg.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
-        markup = q2_msg.markups[0]
+        assert q1_msg.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
+        markup = q1_msg.markups[0]
         assert isinstance(markup, InlineKeyboardMarkup)
         assert [b.text for b in markup.inline_keyboard[0]] == [
             "Новичок",
@@ -209,19 +194,18 @@ async def test_learning_onboarding_callback_flow(
             "Продвинутый",
         ]
 
-        q3_msg = DummyMessage()
-        q3 = DummyCallbackQuery(f"{onboarding_utils.CB_PREFIX}novice", q3_msg)
-        upd_cb3 = cast(
+        q2_msg = DummyMessage()
+        q2 = DummyCallbackQuery(f"{onboarding_utils.CB_PREFIX}novice", q2_msg)
+        upd_cb2 = cast(
             Update,
-            SimpleNamespace(callback_query=q3, message=None, effective_user=None),
+            SimpleNamespace(callback_query=q2, message=None, effective_user=None),
         )
-        await learning_onboarding.onboarding_callback(upd_cb3, ctx)
+        await learning_onboarding.onboarding_callback(upd_cb2, ctx)
         assert any(
-            LEARN_BUTTON_TEXT in text or "Урок" in text for text in q3_msg.replies
+            LEARN_BUTTON_TEXT in text or "Урок" in text for text in q2_msg.replies
         )
         assert ctx.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
-            "diabetes_type": "T1",
             "learning_level": "novice",
         }
 
@@ -254,7 +238,6 @@ async def test_ensure_overrides_normalizes_level() -> None:
             user_data={
                 "learn_profile_overrides": {
                     "age_group": "adult",
-                    "diabetes_type": "T1",
                     "learning_level": "продвинутый",
                 }
             }
@@ -266,41 +249,6 @@ async def test_ensure_overrides_normalizes_level() -> None:
     assert await onboarding_utils.ensure_overrides(update, context)
     assert context.user_data["learn_profile_overrides"]["learning_level"] == "expert"
     assert context.user_data.get("learning_onboarded") is True
-
-
-@pytest.mark.asyncio
-async def test_skip_diabetes_type_if_profile_has_it(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
-        return {"diabetes_type": "T1"}
-
-    monkeypatch.setattr(
-        onboarding_utils.profiles,
-        "get_profile_for_user",
-        fake_get_profile,
-    )
-    user = SimpleNamespace(id=1)
-    context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
-    )
-    msg1 = DummyMessage()
-    upd1 = cast(
-        Update, SimpleNamespace(message=msg1, callback_query=None, effective_user=user)
-    )
-    assert not await onboarding_utils.ensure_overrides(upd1, context)
-    assert msg1.replies == [onboarding_utils.AGE_PROMPT]
-
-    overrides = cast(dict[str, str], context.user_data["learn_profile_overrides"])
-    overrides["age_group"] = "adult"
-    msg2 = DummyMessage()
-    upd2 = cast(
-        Update, SimpleNamespace(message=msg2, callback_query=None, effective_user=user)
-    )
-    assert not await onboarding_utils.ensure_overrides(upd2, context)
-    assert msg2.replies == [onboarding_utils.LEARNING_LEVEL_PROMPT]
-    assert overrides["diabetes_type"] == "T1"
 
 
 @pytest.mark.asyncio
@@ -338,7 +286,7 @@ async def test_ensure_overrides_logs_level(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
-        return {"age_group": "adult", "diabetes_type": "T1"}
+        return {"age_group": "adult"}
 
     monkeypatch.setattr(
         onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
