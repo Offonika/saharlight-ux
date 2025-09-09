@@ -179,6 +179,25 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             and "diabetes_type" not in overrides
         ):
             overrides["diabetes_type"] = diabetes_type
+    has_age = "age_group" in overrides or not needs_age(profile)
+    dtype_val = overrides.get("diabetes_type") or profile.get("diabetes_type")
+    has_dtype = isinstance(dtype_val, str) and dtype_val not in ("", "unknown")
+    has_level = "learning_level" in overrides or not needs_level(profile)
+    asked = (
+        "age"
+        if not has_age
+        else "level" if has_age and has_dtype and not has_level else "none"
+    )
+    logger.info(
+        "ensure_overrides",
+        extra={
+            "user_id": getattr(user, "id", None),
+            "has_age": has_age,
+            "has_level": has_level,
+            "has_dtype": has_dtype,
+            "asked": asked,
+        },
+    )
     for key, prompt, norm, keyboard in _ORDER:
         if key == "age_group" and not needs_age(profile):
             val = profile.get("age_group")
@@ -202,6 +221,10 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 continue
             overrides.pop(key, None)
         if message is not None:
+            if key == "age_group":
+                logger.info("onboarding_question", extra={"reason": "needs_age"})
+            elif key == "learning_level":
+                logger.info("onboarding_question", extra={"reason": "needs_level"})
             await message.reply_text(prompt, reply_markup=keyboard)
         user_data["learn_onboarding_stage"] = key
         return False
