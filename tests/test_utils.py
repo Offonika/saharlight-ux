@@ -171,7 +171,7 @@ async def test_get_coords_and_link_custom_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
-        assert url == "http://custom"
+        assert url == "http://ipinfo.io/custom"
 
         class Resp:
             status_code = 200
@@ -187,9 +187,31 @@ async def test_get_coords_and_link_custom_source(
 
     monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
 
-    coords, link = await utils.get_coords_and_link("http://custom")
+    coords, link = await utils.get_coords_and_link("http://ipinfo.io/custom")
     assert coords == "1,2"
     assert link == "https://maps.google.com/?q=1,2"
+
+
+@pytest.mark.asyncio
+async def test_get_coords_and_link_invalid_scheme(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        coords, link = await utils.get_coords_and_link("ftp://ipinfo.io/json")
+
+    assert coords is None and link is None
+    assert any("Invalid source URL" in msg for msg in caplog.messages)
+
+
+@pytest.mark.asyncio
+async def test_get_coords_and_link_invalid_host(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING):
+        coords, link = await utils.get_coords_and_link("https://example.com/json")
+
+    assert coords is None and link is None
+    assert any("Invalid source URL" in msg for msg in caplog.messages)
 
 
 @pytest.mark.asyncio

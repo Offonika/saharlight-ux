@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime, time, timedelta
 from json import JSONDecodeError
+from urllib.parse import urlparse
 
 import httpx
 
@@ -59,6 +60,7 @@ def parse_time_interval(value: str) -> time | timedelta:
         raise ValueError(INVALID_TIME_MSG)
 
 
+ALLOWED_GEO_HOSTS = {"ipinfo.io"}
 GEO_DATA_URL = os.getenv("GEO_DATA_URL", "https://ipinfo.io/json")
 
 
@@ -68,6 +70,16 @@ async def get_coords_and_link(
     """Return approximate coordinates and Google Maps link based on IP."""
 
     url = source_url or GEO_DATA_URL
+
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if (
+        parsed.scheme not in {"http", "https"}
+        or host is None
+        or host not in ALLOWED_GEO_HOSTS
+    ):
+        logger.warning("Invalid source URL: %s", url)
+        return None, None
 
     try:
         async with httpx.AsyncClient() as client:
