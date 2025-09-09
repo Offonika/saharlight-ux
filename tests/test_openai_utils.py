@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
@@ -197,6 +198,25 @@ def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> None:
 
     fake_http_client.close.assert_called_once()
     assert openai_utils._http_client is None
+
+
+@pytest.mark.asyncio
+async def test_openai_client_ctx_disposes_with_running_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dispose_mock = AsyncMock()
+    monkeypatch.setattr(openai_utils, "dispose_http_client", dispose_mock)
+    monkeypatch.setattr(openai_utils, "get_openai_client", Mock())
+
+    run_mock = Mock(side_effect=RuntimeError("asyncio.run should not be called"))
+    monkeypatch.setattr(asyncio, "run", run_mock)
+
+    with openai_utils.openai_client_ctx():
+        pass
+
+    await asyncio.sleep(0)
+    dispose_mock.assert_awaited_once()
+    run_mock.assert_not_called()
 
 
 @pytest.mark.asyncio
