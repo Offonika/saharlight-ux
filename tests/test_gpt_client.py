@@ -483,3 +483,12 @@ def test_validate_image_path_rejects_parent(
     with pytest.raises(ValueError):
         gpt_client._validate_image_path("../img.jpg")
 
+
+def test_validate_image_path_rejects_similar_prefix(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "photos"
+    monkeypatch.setattr(settings, "photos_dir", str(root))
+    with pytest.raises(ValueError):
+        gpt_client._validate_image_path(str(tmp_path / "photos2" / "img.jpg"))
+
