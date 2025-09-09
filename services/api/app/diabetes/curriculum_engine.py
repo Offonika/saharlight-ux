@@ -32,6 +32,17 @@ class LessonNotFoundError(Exception):
         self.slug = slug
 
 
+class ProgressNotFoundError(Exception):
+    """Raised when a user's lesson progress is missing."""
+
+    def __init__(self, user_id: int, lesson_id: int) -> None:
+        super().__init__(
+            f"progress not found: user_id={user_id}, lesson_id={lesson_id}"
+        )
+        self.user_id = user_id
+        self.lesson_id = lesson_id
+
+
 async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
@@ -89,10 +100,14 @@ async def next_step(
                 sa.select(LessonProgress).filter_by(
                     user_id=user_id, lesson_id=lesson_id
                 )
-            ).scalar_one()
+            ).scalar_one_or_none()
+            if progress is None:
+                raise ProgressNotFoundError(user_id, lesson_id)
             lesson = session.execute(
                 sa.select(Lesson).filter_by(id=lesson_id)
-            ).scalar_one()
+            ).scalar_one_or_none()
+            if lesson is None:
+                raise LessonNotFoundError(str(lesson_id))
             return progress.current_step, lesson.slug
 
         current_step, slug = await db.run_db(_get_progress)
