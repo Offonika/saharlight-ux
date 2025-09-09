@@ -714,8 +714,18 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": user_text}],
         )
-        content = completion.choices[0].message.content or ""
-        reply = gpt_client.format_reply(content)
+        choices = getattr(completion, "choices", None)
+        if not choices:
+            logger.error("GPT reply has no choices: %s", completion)
+            reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
+        else:
+            message_obj = getattr(choices[0], "message", None)
+            content = getattr(message_obj, "content", None)
+            if not content:
+                logger.error("GPT reply missing content: %s", choices[0])
+                reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
+            else:
+                reply = gpt_client.format_reply(content)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Failed to get GPT reply: %s", exc)
         reply = "⚠️ Не удалось получить ответ. Попробуйте позже."

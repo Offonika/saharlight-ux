@@ -2,6 +2,7 @@ from types import SimpleNamespace, TracebackType
 from typing import Any, cast
 
 import datetime
+import logging
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -66,6 +67,52 @@ async def test_chat_with_gpt_handles_error(monkeypatch: pytest.MonkeyPatch) -> N
     assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
     assert history and history[0].endswith("assistant: ⚠️ Не удалось получить ответ. Попробуйте позже.")
+
+
+@pytest.mark.asyncio
+async def test_chat_with_gpt_handles_empty_choices(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_completion(*args: object, **kwargs: object) -> Any:
+        return SimpleNamespace(choices=[])
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
+
+    message = DummyMessage("hi")
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    with caplog.at_level(logging.ERROR):
+        await gpt_handlers.chat_with_gpt(update, context)
+    assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
+    history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
+    assert history and history[0].endswith("assistant: ⚠️ Не удалось получить ответ. Попробуйте позже.")
+    assert "has no choices" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_chat_with_gpt_handles_missing_content(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_completion(*args: object, **kwargs: object) -> Any:
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=None))])
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
+
+    message = DummyMessage("hi")
+    update = cast(Update, SimpleNamespace(message=message, effective_user=None))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    with caplog.at_level(logging.ERROR):
+        await gpt_handlers.chat_with_gpt(update, context)
+    assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
+    history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
+    assert history and history[0].endswith("assistant: ⚠️ Не удалось получить ответ. Попробуйте позже.")
+    assert "missing content" in caplog.text
 
 
 @pytest.mark.asyncio
