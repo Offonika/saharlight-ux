@@ -304,6 +304,66 @@ async def test_skip_diabetes_type_if_profile_has_it(
 
 
 @pytest.mark.asyncio
+async def test_ensure_overrides_logs_age(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        return {}
+
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
+    )
+    user = SimpleNamespace(id=1)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    msg = DummyMessage()
+    upd = cast(
+        Update, SimpleNamespace(message=msg, callback_query=None, effective_user=user)
+    )
+    with caplog.at_level(logging.INFO):
+        assert not await onboarding_utils.ensure_overrides(upd, context)
+    assert any(
+        r.message == "ensure_overrides" and r.asked == "age" for r in caplog.records
+    )
+    assert any(
+        r.message == "onboarding_question" and r.reason == "needs_age"
+        for r in caplog.records
+    )
+
+
+@pytest.mark.asyncio
+async def test_ensure_overrides_logs_level(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        return {"age_group": "adult", "diabetes_type": "T1"}
+
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
+    )
+    user = SimpleNamespace(id=1)
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    msg = DummyMessage()
+    upd = cast(
+        Update, SimpleNamespace(message=msg, callback_query=None, effective_user=user)
+    )
+    with caplog.at_level(logging.INFO):
+        assert not await onboarding_utils.ensure_overrides(upd, context)
+    assert any(
+        r.message == "ensure_overrides" and r.asked == "level" for r in caplog.records
+    )
+    assert any(
+        r.message == "onboarding_question" and r.reason == "needs_level"
+        for r in caplog.records
+    )
+
+
+@pytest.mark.asyncio
 async def test_lesson_command_requires_onboarding(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -10,14 +10,16 @@ from sqlalchemy.exc import SQLAlchemyError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
+from services.api.app import profiles
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from ..ui.keyboard import LEARN_BUTTON_TEXT
-from .learning_onboarding import ensure_overrides
+from .learning_onboarding import ensure_overrides, needs_age, needs_level
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
+
 # Re-export the curriculum engine so tests and callers can patch it easily.
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
@@ -38,6 +40,7 @@ logger = logging.getLogger(__name__)
 PLANS_KEY = "learning_plans"
 PROGRESS_KEY = "learning_progress"
 BUSY_KEY = "learn_busy"
+STEP_GRACE_PERIOD = 5 * 60
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
@@ -181,6 +184,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         last_step_text=snapshot,
         prev_summary=prev_summary,
         awaiting=True,
+        last_step_at=time.monotonic(),
     )
     set_state(user_data, state)
     return True
@@ -231,19 +235,45 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    try:
+        profile_db = await profiles.get_profile_for_user(user.id, context)
+    except (httpx.HTTPError, RuntimeError):
+        logger.exception("Failed to get profile for user %s", user.id)
+        profile_db = {}
+    overrides = cast(dict[str, str], user_data.get("learn_profile_overrides", {}))
+    has_age = "age_group" in overrides or not needs_age(profile_db)
+    dtype_val = overrides.get("diabetes_type") or profile_db.get("diabetes_type")
+    has_dtype = isinstance(dtype_val, str) and dtype_val not in ("", "unknown")
+    has_level = "learning_level" in overrides or not needs_level(profile_db)
+    asked = (
+        "age"
+        if not has_age
+        else "level" if has_age and has_dtype and not has_level else "none"
+    )
+    logger.info(
+        "learn_command",
+        extra={
+            "user_id": user.id,
+            "has_age": has_age,
+            "has_level": has_level,
+            "has_dtype": has_dtype,
+            "asked": asked,
+        },
+    )
     state = get_state(user_data)
     if state is not None and state.last_step_text:
         await message.reply_text(
             state.last_step_text, reply_markup=build_main_keyboard()
         )
+        state.awaiting = True
+        state.last_step_at = time.monotonic()
+        set_state(user_data, state)
         return
     if not await ensure_overrides(update, context):
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
+    logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
     try:
         await curriculum_engine.start_lesson(user.id, slug)
     except LessonNotFoundError:
@@ -277,6 +307,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         step=1,
         last_step_text=text,
         awaiting=True,
+        last_step_at=time.monotonic(),
     )
     set_state(user_data, state)
     await _persist(user.id, user_data, context.bot_data)
@@ -294,9 +325,7 @@ async def _start_lesson(
     from_user = getattr(message, "from_user", None)
     if from_user is None:
         return
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
+    logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
     try:
         await curriculum_engine.start_lesson(from_user.id, topic_slug)
     except LessonNotFoundError:
@@ -332,6 +361,7 @@ async def _start_lesson(
         step=1,
         last_step_text=text,
         awaiting=True,
+        last_step_at=time.monotonic(),
     )
     set_state(user_data, state)
     await _persist(from_user.id, user_data, bot_data)
@@ -423,7 +453,10 @@ async def lesson_answer_handler(
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is None or not state.awaiting or user_data.get(BUSY_KEY):
+    now = time.monotonic()
+    if state is None or user_data.get(BUSY_KEY):
+        return
+    if not state.awaiting and now - state.last_step_at > STEP_GRACE_PERIOD:
         return
     if _rate_limited(user_data, "_answer_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
@@ -509,6 +542,7 @@ async def lesson_answer_handler(
     finally:
         user_data[BUSY_KEY] = False
         state.awaiting = True
+        state.last_step_at = time.monotonic()
         set_state(user_data, state)
         if from_user is not None:
             await _persist(from_user.id, user_data, context.bot_data)
@@ -547,7 +581,12 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is not None and state.awaiting and state.last_step_text:
+    now = time.monotonic()
+    if (
+        state is not None
+        and state.last_step_text
+        and (state.awaiting or now - state.last_step_at <= STEP_GRACE_PERIOD)
+    ):
         await lesson_answer_handler(update, context)
         raise ApplicationHandlerStop
     profile = _get_profile(user_data)
