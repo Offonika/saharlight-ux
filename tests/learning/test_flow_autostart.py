@@ -115,8 +115,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     )
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
-    await app.process_update(Update(update_id=3, message=_msg(3, "2")))
-    await app.process_update(Update(update_id=4, message=_msg(4, "0")))
+    await app.process_update(Update(update_id=3, message=_msg(3, "0")))
     assert bot.sent[-1] == "шаг1"
     assert all(
         title not in s
@@ -126,7 +125,6 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     assert captured_profile == {
         "age_group": "adult",
-        "diabetes_type": "T2",
         "learning_level": "novice",
     }
 

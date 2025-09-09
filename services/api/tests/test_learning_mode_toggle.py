@@ -89,7 +89,6 @@ async def test_learning_mode_enabled_lists_lessons(
                 "learning_onboarded": True,
                 "learn_profile_overrides": {
                     "age_group": "adult",
-                    "diabetes_type": "T1",
                     "learning_level": "novice",
                 },
             }
@@ -124,7 +123,6 @@ async def test_learning_mode_disabled_denies_access(
                 "learning_onboarded": True,
                 "learn_profile_overrides": {
                     "age_group": "adult",
-                    "diabetes_type": "T1",
                     "learning_level": "novice",
                 },
             }

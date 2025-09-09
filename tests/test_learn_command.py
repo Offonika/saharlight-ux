@@ -97,7 +97,6 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
                 "learning_onboarded": True,
                 "learn_profile_overrides": {
                     "age_group": "adult",
-                    "diabetes_type": "T1",
                     "learning_level": "novice",
                 },
             }
@@ -165,7 +164,6 @@ async def test_learn_command_lists_lessons(
                 "learning_onboarded": True,
                 "learn_profile_overrides": {
                     "age_group": "adult",
-                    "diabetes_type": "T1",
                     "learning_level": "novice",
                 },
             }

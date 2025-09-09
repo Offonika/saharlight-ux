@@ -87,7 +87,12 @@ async def onboarding_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 def register_handlers(app: App) -> None:
-    """Register learning onboarding handlers on the application."""
+    """Register learning onboarding handlers on the application.
+
+    The reply handler is added without extra patterns so free-form messages
+    like "T1" or "T2" are ignored unless onboarding is active and are
+    processed by regular assistant handlers instead.
+    """
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, onboarding_reply))
     app.add_handler(CallbackQueryHandler(onboarding_callback, pattern=f"^{CB_PREFIX}"))
     app.add_handler(CommandHandler("learn_reset", learn_reset))
