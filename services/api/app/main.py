@@ -63,6 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         static_lessons = await run_db(_count)
     except Exception:  # pragma: no cover - logging only
+        logger.exception("Failed to count lessons")
         static_lessons = 0
     logger.info(
         "startup_env",
