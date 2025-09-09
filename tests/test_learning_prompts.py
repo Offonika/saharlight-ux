@@ -84,3 +84,11 @@ def test_build_system_prompt_warns_on_unknown_type() -> None:
 
     prompt = build_system_prompt({"diabetes_type": "unknown"})
     assert "Тип диабета не определён — избегай тип-специфичных рекомендаций." in prompt
+
+def test_system_prompt_avoids_type_specific_mentions_when_unknown() -> None:
+    """When diabetes type is unknown no T1/T2 hints appear."""
+
+    prompt = build_system_prompt({})
+    assert "Тип диабета не определён" in prompt
+    assert "T1" not in prompt
+    assert "T2" not in prompt
