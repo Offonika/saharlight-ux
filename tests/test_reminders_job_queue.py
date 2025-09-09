@@ -17,7 +17,7 @@ from services.api.app.diabetes.handlers import reminder_handlers
 from services.api.app.diabetes.services.db import Base, User
 from services.api.app.routers import reminders as reminders_router
 from services.api.app.services import reminders
-from services.api.app.telegram_auth import require_tg_user
+from services.api.app.telegram_auth import check_token
 
 
 class DummyJob:
@@ -100,7 +100,7 @@ def client(
     )
     app = FastAPI()
     app.include_router(reminders_router.router, prefix="/api")
-    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    app.dependency_overrides[check_token] = lambda: {"id": 1}
     with TestClient(app) as test_client:
         yield test_client
 

@@ -22,7 +22,7 @@
 
 ## Проверка статуса
 ```bash
-curl -H 'X-Telegram-Init-Data: <init-data>' \
+curl -H 'Authorization: tg <init-data>' \
   http://localhost:8000/api/onboarding/status
 ```
 Возвращает `completed`, `step` и `missing`.

@@ -18,7 +18,7 @@ from services.api.app.diabetes.services.db import Base, Reminder, User
 from services.api.app.routers import reminders as reminders_router
 from services.api.app.routers.reminders import router
 from services.api.app.services import reminders
-from services.api.app.telegram_auth import require_tg_user
+from services.api.app.telegram_auth import check_token
 
 
 class DummyJob:
@@ -134,7 +134,7 @@ def client(
     )
     app = FastAPI()
     app.include_router(router, prefix="/api")
-    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    app.dependency_overrides[check_token] = lambda: {"id": 1}
     with TestClient(app) as test_client:
         yield test_client
 
@@ -155,7 +155,7 @@ def client_with_job_queue(
     reminder_events.register_job_queue(cast(Any, job_queue))
     app = FastAPI()
     app.include_router(router, prefix="/api")
-    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    app.dependency_overrides[check_token] = lambda: {"id": 1}
     with TestClient(app) as test_client:
         yield test_client, job_queue
     reminder_events.register_job_queue(None)
@@ -252,7 +252,7 @@ def test_get_single_reminder(
 
 def test_invalid_telegram_id_returns_empty_list(client: TestClient) -> None:
     fastapi_app = cast(FastAPI, client.app)
-    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    fastapi_app.dependency_overrides[check_token] = lambda: {"id": 2}
     resp = client.get("/api/reminders", params={"telegramId": 2})
     assert resp.status_code == 200
     assert resp.json() == []

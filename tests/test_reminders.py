@@ -41,7 +41,7 @@ from services.api.app.diabetes.services.repository import commit
 from services.api.app.diabetes.utils.helpers import parse_time_interval
 from services.api.app.routers.reminders import router as reminders_router
 from services.api.app.services import reminders
-from services.api.app.telegram_auth import require_tg_user
+from services.api.app.telegram_auth import check_token
 
 
 class DummyMessage:
@@ -1917,7 +1917,7 @@ def client(
     )
     app = FastAPI()
     app.include_router(reminders_router, prefix="/api")
-    app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    app.dependency_overrides[check_token] = lambda: {"id": 1}
     with TestClient(app) as test_client:
         yield test_client
 
@@ -2011,7 +2011,7 @@ def test_get_single_reminder(
 
 def test_real_404(client: TestClient) -> None:
     fastapi_app = cast(FastAPI, client.app)
-    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    fastapi_app.dependency_overrides[check_token] = lambda: {"id": 2}
     resp = client.get("/api/reminders", params={"telegramId": 2})
     assert resp.status_code == 200
     assert resp.json() == []
@@ -2035,14 +2035,14 @@ def test_post_reminder_forbidden(
         session.add(DbUser(telegram_id=1, thread_id="t"))
         session.commit()
     fastapi_app = cast(FastAPI, client.app)
-    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    fastapi_app.dependency_overrides[check_token] = lambda: {"id": 2}
     resp = client.post(
         "/api/reminders",
         json={"telegramId": 1, "type": "sugar"},
     )
     assert resp.status_code == 403
     assert resp.json() == {"detail": "forbidden"}
-    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    fastapi_app.dependency_overrides[check_token] = lambda: {"id": 1}
 
 
 def test_patch_reminder_forbidden(
@@ -2061,11 +2061,11 @@ def test_patch_reminder_forbidden(
         )
         session.commit()
     fastapi_app = cast(FastAPI, client.app)
-    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 2}
+    fastapi_app.dependency_overrides[check_token] = lambda: {"id": 2}
     resp = client.patch(
         "/api/reminders",
         json={"telegramId": 1, "id": 1, "type": "sugar"},
     )
     assert resp.status_code == 403
     assert resp.json() == {"detail": "forbidden"}
-    fastapi_app.dependency_overrides[require_tg_user] = lambda: {"id": 1}
+    fastapi_app.dependency_overrides[check_token] = lambda: {"id": 1}

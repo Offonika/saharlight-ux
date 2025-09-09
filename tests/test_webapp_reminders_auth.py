@@ -15,7 +15,6 @@ import services.api.app.main as server
 from services.api.app.config import settings
 from services.api.app.diabetes.services.db import Base, User
 from services.api.app.services import reminders
-from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
 
@@ -59,6 +58,6 @@ def test_reminders_authorized_without_role(client: TestClient) -> None:
     resp = client.get(
         "/api/reminders",
         params={"telegramId": 1},
-        headers={TG_INIT_DATA_HEADER: init_data},
+        headers={"Authorization": f"tg {init_data}"},
     )
     assert resp.status_code == 200

@@ -87,20 +87,20 @@ scripts/run_bot.sh
 ```bash
 curl -X POST http://localhost:8000/api/onboarding/events \
   -H 'Content-Type: application/json' \
-  -H 'X-Telegram-Init-Data: <init-data>' \
+  -H 'Authorization: tg <init-data>' \
   -d '{"event":"onboarding_started","step":0}'
 ```
 
 ### Пример `/status`
 ```bash
-curl -H 'X-Telegram-Init-Data: <init-data>' \
+curl -H 'Authorization: tg <init-data>' \
   http://localhost:8000/api/onboarding/status
 ```
 
-### Получение `X-Telegram-Init-Data` в WebApp
+### Получение init data в WebApp
 Внутри Telegram Web App доступ к токену инициализации предоставляет объект
 `Telegram.WebApp`. Его значение необходимо передавать в заголовке
-`X-Telegram-Init-Data` при обращении к API:
+`Authorization` при обращении к API в формате `tg <init-data>`:
 
 ```ts
 const tg = window.Telegram.WebApp;
@@ -108,7 +108,7 @@ tg.ready();
 const initData = tg.initData;
 
 fetch('http://localhost:8000/api/onboarding/status', {
-  headers: { 'X-Telegram-Init-Data': initData },
+  headers: { Authorization: `tg ${initData}` },
 });
 ```
 

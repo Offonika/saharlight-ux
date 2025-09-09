@@ -18,14 +18,19 @@ describe('RemindersApi', () => {
         }),
       );
     vi.stubGlobal('fetch', mockFetch);
+    const { setTelegramInitData } = await import('../src/lib/telegram-auth');
+    setTelegramInitData('init');
     const { makeRemindersApi } = await import('../src/features/reminders/api/reminders');
-    const api = makeRemindersApi(null);
+    const api = makeRemindersApi();
     const result = await api.remindersPost({
       reminder: { telegramId: 1, type: ReminderType.Sugar },
     });
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/reminders',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({ Authorization: 'tg init' }),
+      }),
     );
     expect(result).toEqual({ ok: true });
   });
