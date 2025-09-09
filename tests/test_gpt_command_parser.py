@@ -732,6 +732,19 @@ def test_extract_first_json_three_objects_in_row() -> None:
     }
 
 
+def test_extract_first_json_too_long_returns_none() -> None:
+    text = "{" + "a" * (gpt_command_parser.MAX_INPUT_LENGTH + 1) + "}"
+    assert gpt_command_parser._extract_first_json(text) is None
+
+
+def test_extract_first_json_iteration_limit_returns_none(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(gpt_command_parser, "MAX_ITERATIONS", 10)
+    text = " " * 20
+    assert gpt_command_parser._extract_first_json(text) is None
+
+
 @pytest.mark.asyncio
 async def test_parse_command_with_multiple_jsons(
     monkeypatch: pytest.MonkeyPatch,
