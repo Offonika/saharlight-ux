@@ -15,7 +15,7 @@ from services.api.app.diabetes.handlers import profile as profile_handlers
 import services.api.app.diabetes.handlers.router as router
 from services.api.app.diabetes.services.repository import commit
 import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
-from services.api.app.diabetes.services.db import Base, Profile, dispose_engine
+from services.api.app.diabetes.services.db import Base, Profile, User as DbUser, dispose_engine
 
 
 class DummyMessage:
@@ -106,6 +106,10 @@ async def test_profile_command_saves_locally(
     dummy_api = MagicMock()
     dummy_api.profiles_post = MagicMock()
     monkeypatch.setattr(profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock))
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))

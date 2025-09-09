@@ -66,6 +66,24 @@ def test_create_user_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
         assert user.thread_id == "webapp"
 
 
+def test_create_users_authorized(monkeypatch: pytest.MonkeyPatch) -> None:
+    Session = setup_db(monkeypatch)
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data = build_init_data(99)
+    with TestClient(server.app) as client:
+        resp = client.post(
+            "/api/users",
+            json={"telegramId": 99},
+            headers={TG_INIT_DATA_HEADER: init_data},
+        )
+    assert resp.status_code == 200
+
+    with Session() as session:
+        user = session.get(db.User, 99)
+        assert user is not None
+        assert user.thread_id == "webapp"
+
+
 def test_create_user_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
     setup_db(monkeypatch)
     monkeypatch.setattr(settings, "telegram_token", TOKEN)

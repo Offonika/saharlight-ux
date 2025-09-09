@@ -5,6 +5,7 @@ from datetime import time as time_type
 from typing import TYPE_CHECKING, cast
 
 from sqlalchemy.orm import Session
+from fastapi import HTTPException
 
 from services.api.app import config
 from services.api.app.diabetes.schemas.profile import ProfileSettingsIn
@@ -226,9 +227,12 @@ def save_profile(
     timezone: str | None = None,
 ) -> bool:
     """Persist profile values into the local database."""
+    if user_id <= 0:
+        raise HTTPException(status_code=422, detail="telegram id must be positive")
+
     user = session.get(User, user_id)
     if user is None:
-        session.add(User(telegram_id=user_id, thread_id="api"))
+        raise HTTPException(status_code=404, detail="user not found")
 
     prof = session.get(Profile, user_id)
     if prof is None:

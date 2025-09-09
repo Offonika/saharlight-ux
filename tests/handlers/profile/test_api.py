@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import importlib
 
 from services.api.app.diabetes.services.db import Base, User, Profile
+from fastapi import HTTPException
 from services.api.app import main
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -165,19 +166,24 @@ def test_save_profile_creates_missing_user(
     session_factory: sessionmaker[Session],
 ) -> None:
     with session_factory() as session:
-        ok = profile_api.save_profile(session, 1, 1.0, 2.0, 3.0, 4.0, 5.0)
-        assert ok is True
+        with pytest.raises(HTTPException) as exc:
+            profile_api.save_profile(session, 1, 1.0, 2.0, 3.0, 4.0, 5.0)
+    assert exc.value.status_code == 404
+    assert exc.value.detail == "user not found"
 
     with session_factory() as session:
-        user = session.get(User, 1)
-        profile = session.get(Profile, 1)
-        assert user is not None and profile is not None
+        assert session.get(User, 1) is None
+        assert session.get(Profile, 1) is None
 
 
 def test_local_profiles_post_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
     api = profile_api.LocalProfileAPI(session_factory)
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
     monkeypatch.setattr(profile_api, "save_profile", lambda *a, **k: False)
     with pytest.raises(profile_api.ProfileSaveError):
         api.profiles_post(profile_api.LocalProfile(telegram_id=1))
@@ -212,6 +218,10 @@ def test_local_profiles_partial_update_keeps_existing(
 ) -> None:
     api = profile_api.LocalProfileAPI(session_factory)
 
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
     initial = profile_api.LocalProfile(
         telegram_id=1,
         icr=1.0,
@@ -239,6 +249,10 @@ def test_local_profiles_missing_required_raises(
     session_factory: sessionmaker[Session],
 ) -> None:
     api = profile_api.LocalProfileAPI(session_factory)
+
+    with session_factory() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
 
     with pytest.raises(profile_api.ProfileSaveError):
         api.profiles_post(

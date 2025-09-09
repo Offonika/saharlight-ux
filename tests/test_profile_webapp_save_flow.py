@@ -195,6 +195,10 @@ async def test_profile_view_uses_local_profile_on_stale_api(
     post_mock = MagicMock(return_value=(True, None))
     monkeypatch.setattr(handlers, "post_profile", post_mock)
 
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
     msg = DummyMessage()
     payload = {"icr": 8, "cf": 3, "target": 6, "low": 4, "high": 9}
     msg.web_app_data = SimpleNamespace(data=json.dumps(payload))
