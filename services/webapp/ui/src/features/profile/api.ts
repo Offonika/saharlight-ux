@@ -56,7 +56,7 @@ export async function saveProfile({
   timezoneAuto?: boolean;
   sosContact?: string | null;
   sosAlertsEnabled?: boolean;
-  therapyType?: TherapyType | null;
+  therapyType: TherapyType | null;
 }): Promise<unknown> {
   try {
     const body: Record<string, unknown> = {
@@ -64,6 +64,7 @@ export async function saveProfile({
       target,
       low,
       high,
+      therapyType,
     };
 
     if (icr !== undefined) {
@@ -96,10 +97,6 @@ export async function saveProfile({
 
     if (sosAlertsEnabled !== undefined) {
       body.sosAlertsEnabled = sosAlertsEnabled;
-    }
-
-    if (therapyType !== undefined) {
-      body.therapyType = therapyType;
     }
 
     return await api.post('/profile', body);
