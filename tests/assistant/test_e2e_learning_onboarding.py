@@ -114,7 +114,10 @@ async def test_first_run_restart_and_type_questions(
     msg_level = DummyMessage(text="0")
     upd_level = SimpleNamespace(message=msg_level, effective_user=msg_level.from_user)
     await onboarding_handlers.onboarding_reply(upd_level, context)
-    assert msg_level.sent == ["Шаг 1"]
+    from services.api.app.diabetes.planner import pretty_plan
+
+    plan = ["Шаг 1", "Шаг 2"]
+    assert msg_level.sent == [f"\U0001F5FA План обучения\n{pretty_plan(plan)}", "Шаг 1"]
 
     msg_q = DummyMessage(text=question)
     upd_q = SimpleNamespace(message=msg_q, effective_user=msg_q.from_user)

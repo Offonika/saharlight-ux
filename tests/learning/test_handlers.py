@@ -131,8 +131,15 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     ans_msg = Message(message_id=3, date=datetime.now(), chat=chat, from_user=user, text="42")
     ans_msg._bot = bot
     await app.process_update(Update(update_id=3, message=ans_msg))
-
-    assert bot.sent == ["Выберите тему:", "Доступные темы:", "step1", "feedback", "step2"]
+    plan = learning_handlers.generate_learning_plan("step1")
+    assert bot.sent == [
+        "Выберите тему:",
+        "Доступные темы:",
+        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        "step1",
+        "feedback",
+        "step2",
+    ]
 
     await app.shutdown()
 

@@ -12,6 +12,7 @@ from services.api.app.diabetes import dynamic_tutor, learning_handlers
 from services.api.app.diabetes.learning_prompts import disclaimer
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan
 
 
 class DummyMessage:
@@ -123,7 +124,11 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     context_cb = make_context(user_data={})
 
     await learning_handlers.lesson_callback(update_cb, context_cb)
-    assert msg2.replies == [f"{disclaimer()}\n\nstep1?"]
+    plan = learning_handlers.generate_learning_plan(f"{disclaimer()}\n\nstep1?")
+    assert msg2.replies == [
+        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        f"{disclaimer()}\n\nstep1?",
+    ]
     assert isinstance(msg2.markups[0], ReplyKeyboardMarkup)
     state = get_state(context_cb.user_data)
     assert state is not None and state.step == 1 and state.awaiting
@@ -179,7 +184,9 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     context = make_context(user_data={}, args=["slug"])
 
     await learning_handlers.lesson_command(update, context)
-    assert msg.replies == [f"{disclaimer()}\n\nstep1?"]
+    expected_plan = generate_learning_plan(f"{disclaimer()}\n\nstep1?")
+    plan_text = f"\U0001F5FA План обучения\n{pretty_plan(expected_plan)}"
+    assert msg.replies == [plan_text, f"{disclaimer()}\n\nstep1?"]
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
 
     msg2 = DummyMessage(text="ans")
@@ -313,7 +320,11 @@ async def test_learn_command_autostarts_when_topics_hidden(
     context = make_context(user_data={})
 
     await learning_handlers.learn_command(update, context)
-    assert msg.replies == ["first"]
+    plan = learning_handlers.generate_learning_plan("first")
+    assert msg.replies == [
+        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        "first",
+    ]
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
     state = get_state(context.user_data)
     assert state is not None and state.topic == "slug" and state.step == 1

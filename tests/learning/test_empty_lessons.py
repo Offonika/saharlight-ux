@@ -111,7 +111,10 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
     msg._bot = bot
     await app.process_update(Update(update_id=1, message=msg))
 
-    assert bot.sent == ["step1"]
+    assert bot.sent == [
+        "\U0001F5FA План обучения\n1. step1\n2. step2",
+        "step1",
+    ]
 
     await app.shutdown()
 

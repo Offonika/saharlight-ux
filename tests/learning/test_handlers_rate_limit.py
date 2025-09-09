@@ -83,7 +83,11 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
     update1 = make_update(callback_query=callback1)
     context1 = make_context(user_data=user_data)
     await learning_handlers.lesson_callback(update1, context1)
-    assert msg1.replies == ["step1"]
+    plan = learning_handlers.generate_learning_plan("step1")
+    assert msg1.replies == [
+        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        "step1",
+    ]
 
     msg2 = DummyMessage()
     callback2 = DummyCallback(msg2, "lesson:slug")

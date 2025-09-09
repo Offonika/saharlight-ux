@@ -67,19 +67,37 @@ async def test_patch_and_get(monkeypatch: pytest.MonkeyPatch) -> None:
             json={
                 "age_group": "adult",
                 "learning_level": "novice",
-                "diabetes_type": "T1",
             },
         )
         assert resp.status_code == 200
         assert resp.json() == {
             "age_group": "adult",
             "learning_level": "novice",
-            "diabetes_type": "T1",
         }
         resp2 = client.get("/api/learning-profile")
     assert resp2.json() == {
         "age_group": "adult",
         "learning_level": "novice",
-        "diabetes_type": "T1",
     }
+    teardown_client()
+
+
+@pytest.mark.asyncio
+async def test_diabetes_type_read_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_local = setup_db()
+    add_user(session_local)
+    with session_local() as session:
+        session.add(
+            LearningUserProfile(user_id=1, diabetes_type="T2")
+        )
+        session.commit()
+    client = make_client(monkeypatch, session_local)
+    with client:
+        resp = client.patch(
+            "/api/learning-profile",
+            json={"diabetes_type": "T1"},
+        )
+        assert resp.status_code == 400
+        resp2 = client.get("/api/learning-profile")
+    assert resp2.json() == {"diabetes_type": "T2"}
     teardown_client()
