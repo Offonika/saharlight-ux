@@ -29,13 +29,10 @@ describe('onboarding api', () => {
     );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/onboarding/events',
-      expect.objectContaining({
-        method: 'POST',
-        headers: expect.objectContaining({
-          Authorization: expect.stringMatching(/^tg /),
-        }),
-      }),
+      expect.objectContaining({ method: 'POST' }),
     );
+    const init = mockFetch.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Headers).get('Authorization')).toMatch(/^tg /);
   });
 
   it('throws error when getOnboardingStatus request fails', async () => {
@@ -48,12 +45,10 @@ describe('onboarding api', () => {
     );
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/onboarding/status',
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          Authorization: expect.stringMatching(/^tg /),
-        }),
-      }),
+      expect.any(Object),
     );
+    const init = mockFetch.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Headers).get('Authorization')).toMatch(/^tg /);
   });
 
   it('returns data when getOnboardingStatus succeeds', async () => {
@@ -72,13 +67,20 @@ describe('onboarding api', () => {
     expect(data).toEqual({ step: 'profile' });
   });
 
-  it('skips requests when init data is missing', async () => {
+  it('redirects when init data is missing', async () => {
     const mockFetch = vi.fn();
+    const openMock = vi.fn();
     vi.stubGlobal('fetch', mockFetch);
+    vi.stubGlobal('location', { href: 'https://app.example', hash: '' } as any);
+    (window as any).Telegram = { WebApp: { openTelegramLink: openMock } };
 
-    await postOnboardingEvent('onboarding_started');
-    await getOnboardingStatus();
-
+    await expect(postOnboardingEvent('onboarding_started')).rejects.toThrow(
+      'Telegram authorization required',
+    );
+    await expect(getOnboardingStatus()).rejects.toThrow(
+      'Telegram authorization required',
+    );
+    expect(openMock).toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
@@ -93,12 +95,13 @@ describe('onboarding api', () => {
     } as any);
 
     await postOnboardingEvent('onboarding_started');
-
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/onboarding/events',
-      expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: `tg ${fresh}` }),
-      }),
+      expect.any(Object),
+    );
+    const init = mockFetch.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Headers).get('Authorization')).toBe(
+      `tg ${fresh}`,
     );
   });
 });

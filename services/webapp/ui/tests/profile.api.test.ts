@@ -7,7 +7,8 @@ import {
 } from '../src/features/profile/api';
 
 vi.mock('@/lib/telegram-auth', () => ({
-  getTelegramAuthHeaders: () => ({}),
+  getTelegramAuthHeaders: () => ({ Authorization: 'tg test' }),
+  setTelegramInitData: vi.fn(),
 }));
 
 describe('profile api', () => {

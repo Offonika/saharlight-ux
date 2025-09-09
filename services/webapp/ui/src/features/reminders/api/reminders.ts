@@ -2,12 +2,14 @@ import { useEffect, useMemo } from "react";
 import { Configuration } from "@sdk/runtime.ts";
 import { RemindersApi } from "@sdk/apis";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
-import { getTelegramAuthHeaders, setTelegramInitData } from "@/lib/telegram-auth";
+import { setTelegramInitData } from "@/lib/telegram-auth";
+import { buildHeaders } from "@/api/http";
 
 export function makeRemindersApi() {
+  const hdrs = buildHeaders({ headers: {} }, true);
   const cfg = new Configuration({
     basePath: "/api",
-    headers: getTelegramAuthHeaders(),
+    headers: Object.fromEntries(hdrs.entries()),
   });
   return new RemindersApi(cfg);
 }

@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@/lib/telegram-auth', () => ({
+  getTelegramAuthHeaders: () => ({ Authorization: 'tg test' }),
+  setTelegramInitData: vi.fn(),
+}));
+
 const makeResponse = () =>
   new Response(JSON.stringify(['UTC']), {
     status: 200,

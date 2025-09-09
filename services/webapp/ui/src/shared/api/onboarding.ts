@@ -1,4 +1,5 @@
-import { getTelegramAuthHeaders, setTelegramInitData } from '@/lib/telegram-auth';
+import { setTelegramInitData } from '@/lib/telegram-auth';
+import { buildHeaders } from '@/api/http';
 
 export function getInitDataRaw(): string | null {
   const initData =
@@ -26,16 +27,12 @@ export async function postOnboardingEvent(
   if (rawInitData) {
     setTelegramInitData(rawInitData);
   }
-  const headers = getTelegramAuthHeaders();
-  if (!headers.Authorization) {
-    return;
-  }
-  headers['Content-Type'] = 'application/json';
-
+  const body = JSON.stringify({ event, step, meta });
+  const headers = buildHeaders({ headers: {}, body }, true);
   const res = await fetch('/api/onboarding/events', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ event, step, meta }),
+    body,
   });
   if (!res.ok) throw new Error('Failed to post onboarding event');
 }
@@ -45,10 +42,7 @@ export async function getOnboardingStatus() {
   if (rawInitData) {
     setTelegramInitData(rawInitData);
   }
-  const headers = getTelegramAuthHeaders();
-  if (!headers.Authorization) {
-    return;
-  }
+  const headers = buildHeaders({ headers: {} }, true);
   const res = await fetch('/api/onboarding/status', { headers });
   if (!res.ok) throw new Error('Failed to get onboarding status');
   return res.json();

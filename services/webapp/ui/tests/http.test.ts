@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/lib/telegram-auth', () => ({
   getTelegramAuthHeaders: () => ({}),
+  setTelegramInitData: vi.fn(),
 }));
 
 const makeJsonResponse = () =>

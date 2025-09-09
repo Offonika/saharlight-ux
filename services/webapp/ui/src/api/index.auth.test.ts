@@ -12,6 +12,7 @@ describe('api client telegram auth', () => {
   it('sends Authorization header from getTelegramAuthHeaders', async () => {
     vi.doMock('@/lib/telegram-auth', () => ({
       getTelegramAuthHeaders: () => ({ Authorization: 'tg test' }),
+      setTelegramInitData: vi.fn(),
     }));
     const fetchMock = vi
       .fn()
