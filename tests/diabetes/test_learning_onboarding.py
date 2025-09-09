@@ -30,6 +30,7 @@ class DummyMessage:
         self.text = text
         self.replies: list[str] = []
         self.markups: list[Any] = []
+        self.from_user = SimpleNamespace(id=0)
 
     async def reply_text(
         self, text: str, **kwargs: Any
@@ -108,9 +109,10 @@ async def test_learning_onboarding_flow(
         message4 = DummyMessage("новичок")
         update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
         await learning_onboarding.onboarding_reply(update4, context)
-        assert message4.replies == [
-            "Ответы сохранены. Отправьте /learn чтобы продолжить."
-        ]
+        assert any(
+            LEARN_BUTTON_TEXT in text or "Урок" in text
+            for text in message4.replies
+        )
         assert context.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
             "diabetes_type": "T1",
@@ -201,9 +203,9 @@ async def test_learning_onboarding_callback_flow(
             SimpleNamespace(callback_query=q3, message=None, effective_user=None),
         )
         await learning_onboarding.onboarding_callback(upd_cb3, ctx)
-        assert q3_msg.replies == [
-            "Ответы сохранены. Отправьте /learn чтобы продолжить.",
-        ]
+        assert any(
+            LEARN_BUTTON_TEXT in text or "Урок" in text for text in q3_msg.replies
+        )
         assert ctx.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
             "diabetes_type": "T1",

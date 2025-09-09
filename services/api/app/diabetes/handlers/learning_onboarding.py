@@ -15,6 +15,8 @@ from telegram.ext import (
     filters,
 )
 
+from services.api.app.diabetes import learning_handlers
+
 from ..learning_onboarding import CB_PREFIX, ensure_overrides, learn_reset
 
 __all__ = [
@@ -56,7 +58,7 @@ async def onboarding_reply(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     overrides[stage] = message.text.strip()
     user_data.pop("learn_onboarding_stage", None)
     if await ensure_overrides(update, context):
-        await message.reply_text("Ответы сохранены. Отправьте /learn чтобы продолжить.")
+        await learning_handlers.learn_command(update, context)
 
 
 async def onboarding_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -79,9 +81,7 @@ async def onboarding_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     if await ensure_overrides(update, context):
         message = cast("Message | None", query.message)
         if message is not None:
-            await message.reply_text(
-                "Ответы сохранены. Отправьте /learn чтобы продолжить."
-            )
+            await learning_handlers.learn_command(Update(0, message=message), context)
 
 
 def register_handlers(app: App) -> None:
