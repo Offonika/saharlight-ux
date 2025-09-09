@@ -9,7 +9,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import gpt_handlers
-from services.api.app.diabetes import assistant_state
+from services.api.app.diabetes import assistant_state, commands
 
 
 class DummyMessage:
@@ -211,7 +211,11 @@ async def test_chat_with_gpt_summarizes_history(monkeypatch: pytest.MonkeyPatch)
 
 
 @pytest.mark.asyncio
-async def test_reset_command_clears_history() -> None:
+async def test_reset_command_clears_history(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def dummy_clear_memory(_: int) -> None:
+        return None
+
+    monkeypatch.setattr(commands, "_clear_memory", dummy_clear_memory)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
@@ -222,14 +226,23 @@ async def test_reset_command_clears_history() -> None:
         ),
     )
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
-    await gpt_handlers.reset_command(update, context)
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    await commands.reset_command(update, context)
     assert context.user_data == {}
-    assert message.texts == ["История диалога очищена."]
+    assert message.texts == ["История очищена."]
 
 
 @pytest.mark.asyncio
-async def test_reset_command_ignored_when_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_reset_command_ignored_when_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def dummy_clear_memory(_: int) -> None:
+        return None
+
+    monkeypatch.setattr(commands, "_clear_memory", dummy_clear_memory)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
@@ -240,9 +253,9 @@ async def test_reset_command_ignored_when_disabled(monkeypatch: pytest.MonkeyPat
         ),
     )
     message = DummyMessage()
-    update = cast(Update, SimpleNamespace(message=message))
-    monkeypatch.setattr(gpt_handlers.settings, "assistant_mode_enabled", False)
-    await gpt_handlers.reset_command(update, context)
+    update = cast(Update, SimpleNamespace(effective_message=message))
+    monkeypatch.setattr(commands.settings, "assistant_mode_enabled", False)
+    await commands.reset_command(update, context)
     assert context.user_data == {
         assistant_state.HISTORY_KEY: ["turn"],
         assistant_state.SUMMARY_KEY: "s",

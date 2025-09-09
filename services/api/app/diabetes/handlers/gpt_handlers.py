@@ -745,25 +745,10 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await memory_service.record_turn(user.id, summary_text=summary)
 
 
-async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Clear assistant conversation history and summary."""
-
-    message = update.message
-    if message is None:
-        return
-    if not settings.assistant_mode_enabled:
-        return
-
-    user_data = cast(dict[str, object], context.user_data)
-    assistant_state.reset(user_data)
-    await message.reply_text("История диалога очищена.")
-
-
 __all__ = [
     "SessionLocal",
     "freeform_handler",
     "chat_with_gpt",
-    "reset_command",
     "ParserTimeoutError",
     "parse_quick_values",
     "apply_pending_entry",
