@@ -2,8 +2,8 @@ import asyncio
 import atexit
 import logging
 import threading
-from collections.abc import AsyncIterator, Iterator
-from contextlib import asynccontextmanager, contextmanager
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Literal, overload
 
 import httpx
@@ -110,12 +110,14 @@ async def dispose_http_client() -> None:
         _async_http_client.clear()
 
 
-@contextmanager
-def openai_client_ctx() -> Iterator[OpenAI]:
+@asynccontextmanager
+async def openai_client_ctx() -> AsyncIterator[OpenAI]:
     """Context manager yielding a configured OpenAI client.
 
     Ensures that the underlying HTTP client is disposed of when the
-    context exits.
+    context exits. Disposes the underlying HTTP client either by
+    awaiting in an active event loop or by running a new loop when
+    called from synchronous code.
     """
 
     client = get_openai_client()
@@ -127,10 +129,13 @@ def openai_client_ctx() -> Iterator[OpenAI]:
         except RuntimeError:
             loop = None
 
-        if loop is None:
-            asyncio.run(dispose_http_client())
-        else:
-            loop.create_task(dispose_http_client())
+        try:
+            if loop is None:
+                asyncio.run(dispose_http_client())
+            else:
+                await dispose_http_client()
+        except Exception:  # pragma: no cover - best effort on shutdown
+            logger.exception("[OpenAI] Failed to dispose HTTP client")
 
 
 @asynccontextmanager
