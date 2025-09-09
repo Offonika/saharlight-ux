@@ -607,9 +607,12 @@ async def freeform_handler(
     commit = commit or globals()["commit"]
     check_alert = check_alert or globals()["check_alert"]
     menu_keyboard_markup = menu_keyboard_markup or build_main_keyboard()
-    assert SessionLocal is not None
-    assert commit is not None
-    assert check_alert is not None
+    if SessionLocal is None:
+        raise RuntimeError("SessionLocal sessionmaker is required")
+    if commit is None:
+        raise RuntimeError("commit function is required")
+    if check_alert is None:
+        raise RuntimeError("check_alert callback is required")
     user_data_raw = context.user_data
     if user_data_raw is None:
         return
