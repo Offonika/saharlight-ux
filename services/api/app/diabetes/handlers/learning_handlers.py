@@ -20,7 +20,8 @@ from telegram.ext import (
 )
 
 from services.api.app.config import settings
-from services.api.app.diabetes import curriculum_engine
+# Re-export the curriculum engine for tests and other modules.
+from services.api.app.diabetes import curriculum_engine as curriculum_engine
 from services.api.app.diabetes.learning_state import (
     LearnState,
     clear_state,
@@ -386,6 +387,7 @@ def register_handlers(app: App) -> None:
 
 
 __all__ = [
+    "curriculum_engine",
     "cmd_menu",
     "on_learn_button",
     "learn_command",
