@@ -32,25 +32,33 @@ class TelegramPaymentsAdapter:
 
     provider_token: str = settings.telegram_payments_provider_token or ""
 
-    async def create_invoice(self, update: Update, context: ContextTypes.DEFAULT_TYPE, plan: str) -> None:
+    async def create_invoice(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE, plan: str
+    ) -> None:
         """Send an invoice to the user."""
 
         chat = update.effective_chat
         if chat is None:
             raise ValueError("update.effective_chat is required")
         chat_id = chat.id
-        prices = [LabeledPrice(label="Subscription", amount=100)]
+        settings = BillingSettings()
+        amount = settings.billing_plan_prices.get(plan)
+        if amount is None:
+            raise ValueError(f"unknown plan: {plan}")
+        prices = [LabeledPrice(label="Subscription", amount=amount)]
         await context.bot.send_invoice(
             chat_id=chat_id,
             title="Subscription",
             description="Monthly subscription",
             payload=plan,
             provider_token=self.provider_token,
-            currency="RUB",
+            currency=settings.billing_currency,
             prices=prices,
         )
 
-    async def handle_pre_checkout_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_pre_checkout_query(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Confirm pre checkout query."""
 
         query = update.pre_checkout_query
@@ -58,7 +66,9 @@ class TelegramPaymentsAdapter:
             raise ValueError("update.pre_checkout_query is required")
         await query.answer(ok=True)
 
-    async def handle_successful_payment(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    async def handle_successful_payment(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
         """Notify backend about successful payment."""
 
         msg = update.message
@@ -123,6 +133,10 @@ def register_billing_handlers(
 
     if adapter is None:
         adapter = TelegramPaymentsAdapter()
-    app.add_handler(CommandHandler("subscribe", partial(adapter.create_invoice, plan="pro")))
+    app.add_handler(
+        CommandHandler("subscribe", partial(adapter.create_invoice, plan="pro"))
+    )
     app.add_handler(PreCheckoutQueryHandler(adapter.handle_pre_checkout_query))
-    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, adapter.handle_successful_payment))
+    app.add_handler(
+        MessageHandler(filters.SUCCESSFUL_PAYMENT, adapter.handle_successful_payment)
+    )

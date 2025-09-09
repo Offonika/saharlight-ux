@@ -29,24 +29,37 @@ class BillingSettings(BaseSettings):
 
     billing_enabled: bool = Field(default=False, alias="BILLING_ENABLED")
     billing_test_mode: bool = Field(default=True, alias="BILLING_TEST_MODE")
-    billing_provider: BillingProvider = Field(default=BillingProvider.DUMMY, alias="BILLING_PROVIDER")
+    billing_provider: BillingProvider = Field(
+        default=BillingProvider.DUMMY, alias="BILLING_PROVIDER"
+    )
     paywall_mode: PaywallMode = Field(default=PaywallMode.SOFT, alias="PAYWALL_MODE")
     billing_admin_token: str | None = Field(default=None, alias="BILLING_ADMIN_TOKEN")
-    billing_webhook_secret: str | None = Field(default=None, alias="BILLING_WEBHOOK_SECRET")
+    billing_webhook_secret: str | None = Field(
+        default=None, alias="BILLING_WEBHOOK_SECRET"
+    )
     billing_webhook_ips_raw: str = Field(default="", alias="BILLING_WEBHOOK_IPS")
     billing_webhook_timeout: float = Field(default=5.0, alias="BILLING_WEBHOOK_TIMEOUT")
+    billing_currency: str = Field(default="RUB", alias="BILLING_CURRENCY")
+    billing_plan_prices: dict[str, int] = Field(
+        default_factory=dict, alias="BILLING_PLAN_PRICES"
+    )
 
     @model_validator(mode="after")
     def _require_admin_token(self) -> "BillingSettings":
         """Ensure real providers have an admin token configured."""
-        if self.billing_provider is not BillingProvider.DUMMY and not self.billing_admin_token:
+        if (
+            self.billing_provider is not BillingProvider.DUMMY
+            and not self.billing_admin_token
+        ):
             raise ValueError("BILLING_ADMIN_TOKEN is required for non-dummy providers")
         return self
 
     @property
     def billing_webhook_ips(self) -> list[str]:
         """List of allowed source IPs for billing webhooks."""
-        return [ip.strip() for ip in self.billing_webhook_ips_raw.split(",") if ip.strip()]
+        return [
+            ip.strip() for ip in self.billing_webhook_ips_raw.split(",") if ip.strip()
+        ]
 
 
 billing_settings = BillingSettings()

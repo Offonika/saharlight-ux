@@ -9,6 +9,8 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
+from telegram import LabeledPrice
+
 from services.bot.telegram_payments import TelegramPaymentsAdapter
 
 
@@ -20,10 +22,16 @@ async def test_create_invoice(monkeypatch: pytest.MonkeyPatch) -> None:
     chat = SimpleNamespace(id=1)
     update = SimpleNamespace(effective_chat=chat)
 
+    monkeypatch.setenv("BILLING_CURRENCY", "USD")
+    monkeypatch.setenv("BILLING_PLAN_PRICES", '{"pro": 2500}')
+
     await adapter.create_invoice(update, context, plan="pro")
 
     bot.send_invoice.assert_called_once()
-    assert bot.send_invoice.call_args.kwargs["payload"] == "pro"
+    kwargs = bot.send_invoice.call_args.kwargs
+    assert kwargs["payload"] == "pro"
+    assert kwargs["currency"] == "USD"
+    assert kwargs["prices"] == [LabeledPrice(label="Subscription", amount=2500)]
 
 
 @pytest.mark.asyncio
