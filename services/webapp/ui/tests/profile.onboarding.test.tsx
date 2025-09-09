@@ -85,7 +85,7 @@ describe('Profile onboarding', () => {
   });
 
   it('posts onboarding_started when telegram data is valid', async () => {
-    searchParams = new URLSearchParams('flow=onboarding&step=1');
+    searchParams = new URLSearchParams('flow=onboarding&step=timezone');
     (useTelegramInitData as vi.Mock).mockReturnValue('init');
 
     render(
@@ -97,7 +97,7 @@ describe('Profile onboarding', () => {
     await waitFor(() => {
       expect(postOnboardingEvent).toHaveBeenCalledWith(
         'onboarding_started',
-        '1',
+        'timezone',
       );
     });
   });
