@@ -5,8 +5,10 @@ import time
 from typing import Any, Mapping, MutableMapping, cast
 
 import httpx
+import sqlalchemy as sa
 from openai import OpenAIError
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
@@ -22,6 +24,8 @@ from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
 from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
+from .models_learning import Lesson
+from .services import db
 from .services.gpt_client import (
     create_learning_chat_completion,
     format_reply,
@@ -59,6 +63,18 @@ def _get_profile(user_data: MutableMapping[str, Any]) -> Mapping[str, str | None
     if isinstance(raw, Mapping):
         return raw
     return {}
+
+
+async def _lessons_available() -> bool:
+    """Return ``True`` if there is at least one lesson in the database."""
+
+    def _count(session: Session) -> bool:
+        return (
+            session.execute(sa.select(sa.func.count()).select_from(Lesson)).scalar_one()
+            > 0
+        )
+
+    return await db.run_db(_count)
 
 
 async def _persist(
@@ -220,8 +236,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await message.reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
-        await legacy_handlers.learn_command(update, context)
-        return
+        if await _lessons_available():
+            await legacy_handlers.learn_command(update, context)
+            return
     if settings.learning_ui_show_topics:
         await topics_command(update, context)
         return
@@ -241,16 +258,16 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
+    progress = None
     try:
         progress = await curriculum_engine.start_lesson(user.id, slug)
         text, _ = await curriculum_engine.next_step(
             user.id, progress.lesson_id, profile
         )
     except LessonNotFoundError:
-        await message.reply_text(
-            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
-        )
-        return
+        text = await generate_step_text(profile, slug, 1, None)
+        if text != BUSY_MESSAGE:
+            text = f"{disclaimer()}\n\n{text}"
     except (
         SQLAlchemyError,
         OpenAIError,
@@ -268,14 +285,15 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
-        user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
+    if progress is not None:
+        await add_lesson_log(
+            user.id,
+            0,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
     state = LearnState(
         topic=slug,
         step=1,
@@ -298,16 +316,16 @@ async def _start_lesson(
     from_user = getattr(message, "from_user", None)
     if from_user is None:
         return
+    progress = None
     try:
         progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
         text, _ = await curriculum_engine.next_step(
             from_user.id, progress.lesson_id, profile
         )
     except LessonNotFoundError:
-        await message.reply_text(
-            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
-        )
-        return
+        text = await generate_step_text(profile, topic_slug, 1, None)
+        if text != BUSY_MESSAGE:
+            text = f"{disclaimer()}\n\n{text}"
     except (
         SQLAlchemyError,
         OpenAIError,
@@ -327,14 +345,15 @@ async def _start_lesson(
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
-        from_user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
+    if progress is not None:
+        await add_lesson_log(
+            from_user.id,
+            0,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
     state = LearnState(
         topic=topic_slug,
         step=1,

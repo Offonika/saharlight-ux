@@ -79,6 +79,11 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers,
+        "plan_command",
+        lambda update, ctx: bot.send_message(chat_id=1, text="plan"),
+    )
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
@@ -118,15 +123,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     await app.process_update(Update(update_id=3, message=_msg(3, "2")))
     await app.process_update(Update(update_id=4, message=_msg(4, "0")))
 
-    # call /learn again - should autostart first topic
-    await app.process_update(
-        Update(
-            update_id=5,
-            message=_msg(5, "/learn", entities=[MessageEntity("bot_command", 0, 6)]),
-        )
-    )
-
-    assert bot.sent[-1] == "шаг1"
+    assert bot.sent[-2:] == ["шаг1", "plan"]
     assert all(
         title not in s
         and "Выберите тему" not in s
