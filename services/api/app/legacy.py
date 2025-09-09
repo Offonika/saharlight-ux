@@ -69,9 +69,12 @@ async def profiles_get(
     except (ConnectionError, sqlalchemy_exc.OperationalError) as exc:
         logger.exception("failed to fetch profile %s", tid)
         raise HTTPException(status_code=503, detail="database temporarily unavailable") from exc
-    except Exception as exc:
+    except sqlalchemy_exc.SQLAlchemyError as exc:
         logger.exception("failed to fetch profile %s", tid)
-        raise HTTPException(status_code=500, detail="database connection failed") from exc
+        raise HTTPException(status_code=500, detail="database error") from exc
+    except Exception:
+        logger.exception("failed to fetch profile %s", tid)
+        raise
 
     tz = profile.timezone if profile.timezone else "UTC"
     tz_auto = profile.timezone_auto if profile.timezone_auto is not None else True
