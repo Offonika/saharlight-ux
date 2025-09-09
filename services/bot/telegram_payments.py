@@ -7,6 +7,7 @@ import hmac
 import logging
 from dataclasses import dataclass
 from functools import partial
+from typing import TYPE_CHECKING, TypeAlias
 
 import httpx
 from telegram import LabeledPrice, Update
@@ -14,6 +15,8 @@ from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
+    ExtBot,
+    JobQueue,
     MessageHandler,
     PreCheckoutQueryHandler,
     filters,
@@ -23,6 +26,19 @@ from services.api.app.config import settings
 from services.api.app.billing.config import BillingSettings
 
 logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    App: TypeAlias = Application[
+        ExtBot[None],
+        ContextTypes.DEFAULT_TYPE,
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
+        JobQueue[ContextTypes.DEFAULT_TYPE],
+    ]
+else:
+    App = Application
 
 
 @dataclass
@@ -125,7 +141,7 @@ class TelegramPaymentsAdapter:
 
 
 def register_billing_handlers(
-    app: Application,
+    app: App,
     adapter: TelegramPaymentsAdapter | None = None,
 ) -> None:
     """Register Telegram Payments handlers with the application."""
