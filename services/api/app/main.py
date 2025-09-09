@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 # ────────── local ──────────
 from . import config, reminder_events
@@ -26,7 +27,8 @@ from services.api.app.assistant.repositories.logs import (
     stop_flush_task,
 )
 from .diabetes.handlers.reminder_jobs import DefaultJobQueue
-from .diabetes.services.db import init_db, run_db  # noqa: F401
+from .diabetes.models_learning import Lesson
+from .diabetes.services.db import init_db, run_db
 from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
 from services.api.app.diabetes.utils.openai_utils import dispose_http_client
 from .telegram_auth import require_tg_user  # noqa: F401
@@ -55,6 +57,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except (ValueError, SQLAlchemyError) as exc:
         logger.error("Failed to initialize the database: %s", exc)
         raise RuntimeError("Database initialization failed. Please check your configuration and try again.") from exc
+    def _count(session: Session) -> int:
+        return session.query(Lesson).count()
+
+    try:
+        static_lessons = await run_db(_count)
+    except Exception:  # pragma: no cover - logging only
+        static_lessons = 0
+    logger.info(
+        "startup_env",
+        extra={
+            "content_mode": settings.learning_content_mode,
+            "openai_key": bool(settings.openai_api_key),
+            "static_lessons": static_lessons,
+        },
+    )
     jq = cast(DefaultJobQueue | None, getattr(app.state, "job_queue", None))
     reminder_events.register_job_queue(jq)
     if settings.learning_logging_required:
