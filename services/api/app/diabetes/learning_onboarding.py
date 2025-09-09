@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, cast
+from typing import Callable, Mapping, cast
 
 import httpx
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
@@ -66,6 +66,20 @@ def _norm_level(text: str) -> str | None:
         "эксперт": "expert",
     }
     return str_map.get(t)
+
+
+def needs_age(profile_db: Mapping[str, object]) -> bool:
+    """Return ``True`` if user's age group is missing."""
+
+    value = profile_db.get("age_group")
+    return not isinstance(value, str) or value == ""
+
+
+def needs_level(profile_db: Mapping[str, object]) -> bool:
+    """Return ``True`` if learning level is missing."""
+
+    value = profile_db.get("learning_level")
+    return not isinstance(value, str) or value == ""
 
 
 # Questions asked during the onboarding flow.
@@ -150,6 +164,7 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if message is None and update.callback_query is not None:
         message = cast("Message | None", update.callback_query.message)
 
+    profile: Mapping[str, object] = {}
     user = update.effective_user
     if user is not None:
         try:
@@ -165,6 +180,20 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         ):
             overrides["diabetes_type"] = diabetes_type
     for key, prompt, norm, keyboard in _ORDER:
+        if key == "age_group" and not needs_age(profile):
+            val = profile.get("age_group")
+            if isinstance(val, str):
+                normalized = norm(val)
+                if normalized is not None:
+                    overrides[key] = normalized
+                    continue
+        if key == "learning_level" and not needs_level(profile):
+            val = profile.get("learning_level")
+            if isinstance(val, str):
+                normalized = norm(val)
+                if normalized is not None:
+                    overrides[key] = normalized
+                    continue
         raw = overrides.get(key)
         if raw is not None:
             normalized = norm(raw)

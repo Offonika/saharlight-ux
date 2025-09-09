@@ -70,6 +70,13 @@ async def test_learning_onboarding_flow(
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
     monkeypatch.setattr(settings, "learning_content_mode", "static")
 
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        return {}
+
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
+    )
+
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
     path.write_text(json.dumps(sample), encoding="utf-8")
@@ -110,8 +117,7 @@ async def test_learning_onboarding_flow(
         update4 = cast(Update, SimpleNamespace(message=message4, effective_user=None))
         await learning_onboarding.onboarding_reply(update4, context)
         assert any(
-            LEARN_BUTTON_TEXT in text or "Урок" in text
-            for text in message4.replies
+            LEARN_BUTTON_TEXT in text or "Урок" in text for text in message4.replies
         )
         assert context.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
@@ -151,6 +157,13 @@ async def test_learning_onboarding_callback_flow(
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
     monkeypatch.setattr(settings, "learning_content_mode", "static")
+
+    async def fake_get_profile(_: int, __: object) -> dict[str, object]:
+        return {}
+
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
+    )
 
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
@@ -392,3 +405,13 @@ async def test_ensure_overrides_propagates_unexpected(
     )
     with pytest.raises(ValueError):
         await onboarding_utils.ensure_overrides(update, context)
+
+
+def test_needs_age() -> None:
+    assert onboarding_utils.needs_age({})
+    assert onboarding_utils.needs_age({"age_group": "adult"}) is False
+
+
+def test_needs_level() -> None:
+    assert onboarding_utils.needs_level({})
+    assert onboarding_utils.needs_level({"learning_level": "novice"}) is False
