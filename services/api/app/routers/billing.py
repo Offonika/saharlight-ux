@@ -40,6 +40,8 @@ from ..schemas.billing import (
     SubscriptionSchema,
     WebhookEvent,
 )
+from ..schemas.user import UserContext
+from ..telegram_auth import require_tg_user
 
 logger = logging.getLogger(__name__)
 
@@ -76,20 +78,27 @@ def _require_billing_enabled(
 
 @router.post("/pay")
 async def pay(
+    user_id: int,
+    user: UserContext = Depends(require_tg_user),
     settings: BillingSettings = Depends(_require_billing_enabled),
 ) -> dict[str, object]:
     """Create a payment using the configured provider."""
 
+    if user_id != user["id"]:
+        raise HTTPException(status_code=403, detail="telegram id mismatch")
     return await create_payment(settings)
 
 
 @router.post("/trial", response_model=SubscriptionSchema)
 async def start_trial(
     user_id: int,
+    user: UserContext = Depends(require_tg_user),
     settings: BillingSettings = Depends(_require_billing_enabled),
 ) -> SubscriptionSchema:
     """Start a trial subscription for the user."""
 
+    if user_id != user["id"]:
+        raise HTTPException(status_code=403, detail="telegram id mismatch")
     now = datetime.now(timezone.utc)
 
     def _create_trial(session: Session) -> Subscription:
@@ -118,7 +127,9 @@ async def start_trial(
                 select(Subscription)
                 .where(
                     Subscription.user_id == user_id,
-                    Subscription.status.in_([SubStatus.trial.value, SubStatus.active.value]),
+                    Subscription.status.in_(
+                        [SubStatus.trial.value, SubStatus.active.value]
+                    ),
                 )
                 .order_by(Subscription.start_date.desc())
                 .limit(1)
@@ -128,7 +139,9 @@ async def start_trial(
             if existing is not None:
                 status = SubStatus(existing.status)
                 if status is SubStatus.trial:
-                    raise HTTPException(status_code=409, detail="Пробный период уже активен")
+                    raise HTTPException(
+                        status_code=409, detail="Пробный период уже активен"
+                    )
                 raise HTTPException(status_code=409, detail="Подписка уже активна")
             return _create_trial(session)
 
@@ -151,7 +164,9 @@ async def start_trial(
             },
             exc_info=exc,
         )
-        raise HTTPException(status_code=400, detail="Недопустимое значение перечисления") from exc
+        raise HTTPException(
+            status_code=400, detail="Недопустимое значение перечисления"
+        ) from exc
     except IntegrityError as exc:
         logger.warning(
             "trial creation failed",
@@ -163,9 +178,13 @@ async def start_trial(
             },
             exc_info=exc,
         )
-        raise HTTPException(status_code=409, detail="Пробный период уже активен") from exc
+        raise HTTPException(
+            status_code=409, detail="Пробный период уже активен"
+        ) from exc
     if trial is None:
-        raise HTTPException(status_code=500, detail="Не удалось получить пробный период")
+        raise HTTPException(
+            status_code=500, detail="Не удалось получить пробный период"
+        )
 
     return SubscriptionSchema.model_validate(trial, from_attributes=True)
 
@@ -174,10 +193,13 @@ async def start_trial(
 async def subscribe(
     user_id: int,
     plan: SubscriptionPlan,
+    user: UserContext = Depends(require_tg_user),
     settings: BillingSettings = Depends(_require_billing_enabled),
 ) -> CheckoutSchema | DummyCheckoutSchema:
     """Initiate a subscription and return checkout details."""
 
+    if user_id != user["id"]:
+        raise HTTPException(status_code=403, detail="telegram id mismatch")
     now = datetime.now(timezone.utc)
 
     def _ensure_no_active(session: Session) -> None:
@@ -284,7 +306,9 @@ async def webhook(
     now = datetime.now(timezone.utc)
 
     def _activate(session: Session) -> bool:
-        stmt = select(Subscription).where(Subscription.transaction_id == event.transaction_id)
+        stmt = select(Subscription).where(
+            Subscription.transaction_id == event.transaction_id
+        )
         sub = session.scalars(stmt).first()
         if sub is None:
             return False
@@ -312,7 +336,11 @@ async def webhook(
         sub_end = sub.end_date
         if sub_end is not None and sub_end.tzinfo is None:
             sub_end = sub_end.replace(tzinfo=timezone.utc)
-        if sub.status == SubStatus.active.value and sub_end is not None and sub_end > now:
+        if (
+            sub.status == SubStatus.active.value
+            and sub_end is not None
+            and sub_end > now
+        ):
             return False
         base = sub_end if sub_end is not None and sub_end > now else now
         sub.plan = event.plan
@@ -411,7 +439,9 @@ async def admin_mock_webhook(
 
 
 @router.get("/status", response_model=BillingStatusResponse)
-async def status(user_id: int, settings: BillingSettings = Depends(get_billing_settings)) -> BillingStatusResponse:
+async def status(
+    user_id: int, settings: BillingSettings = Depends(get_billing_settings)
+) -> BillingStatusResponse:
     """Return billing feature flags and the latest subscription for a user."""
 
     def _get_subscription(session: Session) -> Subscription | None:
@@ -449,5 +479,7 @@ async def status(user_id: int, settings: BillingSettings = Depends(get_billing_s
         return BillingStatusResponse(featureFlags=flags, subscription=None)
     return BillingStatusResponse(
         featureFlags=flags,
-        subscription=SubscriptionSchema.model_validate(subscription, from_attributes=True),
+        subscription=SubscriptionSchema.model_validate(
+            subscription, from_attributes=True
+        ),
     )
