@@ -1,42 +1,44 @@
-import { renderHook, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useTelegram } from '../src/hooks/useTelegram';
+import { renderHook } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 
-describe('useTelegram initData fallback', () => {
-  const saved = 'query=1&user=%7B%22id%22%3A1%7D';
+import { useTelegramInitData } from '../src/hooks/useTelegramInitData';
 
-  beforeEach(() => {
-    (window as any).Telegram = {
-      WebApp: {
-        initDataUnsafe: {},
-        ready: vi.fn(),
-        expand: vi.fn(),
-        onEvent: vi.fn(),
-        offEvent: vi.fn(),
-      },
-    };
-    localStorage.setItem('tg_init_data', saved);
-  });
-
+describe('useTelegramInitData', () => {
   afterEach(() => {
     delete (window as any).Telegram;
     localStorage.clear();
   });
 
-  it('returns initData from localStorage when tg.initData missing', async () => {
-    const { result } = renderHook(() => useTelegram(false));
-    await waitFor(() => {
-      expect(result.current.isReady).toBe(true);
-    });
-    expect(result.current.initData).toBe(saved);
+  it('returns Telegram initData and stores it', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const init = `auth_date=${now}`;
+    (window as any).Telegram = { WebApp: { initData: init } };
+
+    const { result } = renderHook(() => useTelegramInitData());
+
+    expect(result.current).toBe(init);
+    expect(localStorage.getItem('tg_init_data')).toBe(init);
   });
 
-  it('returns null when initData is absent in tg and localStorage', async () => {
-    localStorage.removeItem('tg_init_data');
-    const { result } = renderHook(() => useTelegram(false));
-    await waitFor(() => {
-      expect(result.current.isReady).toBe(true);
-    });
-    expect(result.current.initData).toBeNull();
+  it('returns initData from localStorage when valid', () => {
+    const now = Math.floor(Date.now() / 1000);
+    const saved = `auth_date=${now}`;
+    localStorage.setItem('tg_init_data', saved);
+
+    const { result } = renderHook(() => useTelegramInitData());
+
+    expect(result.current).toBe(saved);
+  });
+
+  it('removes outdated initData', () => {
+    const past = Math.floor(Date.now() / 1000) - 25 * 60 * 60;
+    const old = `auth_date=${past}`;
+    localStorage.setItem('tg_init_data', old);
+
+    const { result } = renderHook(() => useTelegramInitData());
+
+    expect(result.current).toBeNull();
+    expect(localStorage.getItem('tg_init_data')).toBeNull();
   });
 });
+

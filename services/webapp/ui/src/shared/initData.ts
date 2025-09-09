@@ -7,9 +7,9 @@ export function hasInitData(): boolean {
     return true;
   }
 
-  const urlData = new URLSearchParams(window.location.search).get(
-    'tgWebAppData',
-  );
+  const urlData = new URLSearchParams(
+    window.location.hash ? window.location.hash.substring(1) : '',
+  ).get('tgWebAppData');
 
   return Boolean(urlData);
 }

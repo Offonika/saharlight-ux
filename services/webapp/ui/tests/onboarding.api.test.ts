@@ -76,7 +76,7 @@ describe('onboarding api', () => {
       .fn()
       .mockResolvedValue(new Response(null, { status: 200 }));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubGlobal('location', { search: '?tgWebAppData=from-url' } as any);
+    vi.stubGlobal('location', { hash: '#tgWebAppData=from-url' } as any);
 
     await postOnboardingEvent('onboarding_started');
 

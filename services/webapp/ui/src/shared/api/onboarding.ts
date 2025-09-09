@@ -9,9 +9,9 @@ export function getInitDataRaw(): string | null {
     return initData;
   }
 
-  const urlData = new URLSearchParams(window.location.search).get(
-    'tgWebAppData',
-  );
+  const urlData = new URLSearchParams(
+    window.location.hash ? window.location.hash.substring(1) : '',
+  ).get('tgWebAppData');
 
   return urlData || null;
 }
