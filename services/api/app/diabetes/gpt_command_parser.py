@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import re
+from collections import deque
 from collections.abc import Awaitable
 from typing import cast
 
@@ -73,12 +74,14 @@ def _sanitize_sensitive_data(text: str) -> str:
 
 
 def _extract_first_json(text: str) -> dict[str, object] | None:
-    """Return the first complete JSON object found in *text*.
+    """Return the first JSON dictionary found in *text*.
 
     The function scans *text* while skipping characters inside string literals
     and uses :func:`json.JSONDecoder.raw_decode` to parse potential JSON
-    segments.  It returns the first dictionary found or, for a top-level array,
-    the first element when the array contains exactly one dictionary.
+    segments.  After decoding each segment, it searches recursively for the
+    first dictionary, returning it even when the JSON is wrapped in arrays or
+    nested inside other structures.  If no dictionary is found, ``None`` is
+    returned.
     """
 
     decoder = json.JSONDecoder()
@@ -115,10 +118,21 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
             continue
 
         i = end
-        if isinstance(obj, dict):
-            return obj
-        if isinstance(obj, list) and len(obj) == 1 and isinstance(obj[0], dict):
-            return obj[0]
+        queue: deque[object] = deque([obj])
+        first_dict: dict[str, object] | None = None
+        while queue:
+            current = queue.popleft()
+            if isinstance(current, dict):
+                if first_dict is None:
+                    first_dict = current
+                if "action" in current:
+                    return current
+                queue.extend(current.values())
+            elif isinstance(current, list):
+                queue.extend(current)
+
+        if first_dict is not None:
+            return first_dict
 
     return None
 
