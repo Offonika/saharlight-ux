@@ -13,6 +13,7 @@ from .handlers.onboarding_handlers import reset_onboarding as _reset_onboarding
 from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .assistant_state import reset as _reset_assistant
 from ..assistant.services.memory_service import clear_memory as _clear_memory
+from services.api.app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +88,7 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     message = update.effective_message
     user = getattr(update, "effective_user", None)
-    if message is None:
+    if message is None or not settings.assistant_mode_enabled:
         return
     user_data = cast(dict[str, object], context.user_data)
     _reset_assistant(user_data)
