@@ -40,9 +40,7 @@ def test_system_tutor_contains_disclaimer() -> None:
         ),
     ],
 )
-def test_builder_functions_without_disclaimer(
-    builder: object, kwargs: dict[str, object]
-) -> None:
+def test_builder_functions_without_disclaimer(builder: object, kwargs: dict[str, object]) -> None:
     """Builders should return non-empty text without the disclaimer."""
 
     text = builder(**kwargs)  # type: ignore[arg-type]
@@ -80,3 +78,9 @@ def test_build_user_prompt_step_trims_and_ends_with_instruction() -> None:
     assert len(prompt) <= 1_500
     assert prompt.endswith("Ответ не показывай.")
 
+
+def test_build_system_prompt_warns_on_unknown_type() -> None:
+    """Include warning when diabetes type is unknown."""
+
+    prompt = build_system_prompt({"diabetes_type": "unknown"})
+    assert "Тип диабета не определён — избегай тип-специфичных рекомендаций." in prompt
