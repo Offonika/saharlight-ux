@@ -46,12 +46,6 @@ async def generate_step_text(
             "failed to generate step", extra={"topic": topic_slug, "step": step_idx}
         )
         return BUSY_MESSAGE
-    except Exception:
-        logger.exception(
-            "unexpected error while generating step",
-            extra={"topic": topic_slug, "step": step_idx},
-        )
-        raise
 
 
 async def check_user_answer(
@@ -80,12 +74,6 @@ async def check_user_answer(
             extra={"topic": topic_slug, "answer": user_answer},
         )
         return False, BUSY_MESSAGE
-    except Exception:
-        logger.exception(
-            "unexpected error while checking answer",
-            extra={"topic": topic_slug, "answer": user_answer},
-        )
-        raise
     if not feedback.strip():
         logger.warning(
             "empty feedback",
