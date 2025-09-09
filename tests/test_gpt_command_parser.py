@@ -120,7 +120,6 @@ async def test_parse_command_with_array_response(
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     result = await gpt_command_parser.parse_command("test")
-
     assert result == {"action": "add_entry", "fields": {}}
 
 
@@ -190,7 +189,7 @@ async def test_parse_command_with_array_multiple_objects(
 
     result = await gpt_command_parser.parse_command("test")
 
-    assert result == {"action": "add_entry", "fields": {}}
+    assert result is None
 
 
 @pytest.mark.asyncio
@@ -629,10 +628,7 @@ def test_extract_first_json_array_with_many_objects() -> None:
     text = (
         '[{"action":"add_entry","fields":{}},' ' {"action":"delete_entry","fields":{}}]'
     )
-    assert gpt_command_parser._extract_first_json(text) == {
-        "action": "add_entry",
-        "fields": {},
-    }
+    assert gpt_command_parser._extract_first_json(text) is None
 
 
 def test_extract_first_json_malformed_then_valid() -> None:
