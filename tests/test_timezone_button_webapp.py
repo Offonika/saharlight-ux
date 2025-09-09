@@ -59,7 +59,7 @@ async def test_timezone_webapp_saves_tz_and_moves_to_reminders(
     monkeypatch.setattr(handlers, "SessionLocal", TestSession, raising=False)
 
     async def run_db(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
-        sessionmaker = kwargs.get("sessionmaker", TestSession)
+        sessionmaker = kwargs.pop("sessionmaker", TestSession)
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 

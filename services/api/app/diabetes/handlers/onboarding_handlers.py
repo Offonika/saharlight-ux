@@ -33,7 +33,7 @@ from telegram.ext import (
 
 import config
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.services.users import ensure_user_exists
 from services.api.app.services import onboarding_state
 from ..onboarding_state import OnboardingStateStore
@@ -41,6 +41,7 @@ from services.api.app.services.onboarding_events import log_onboarding_event
 from services.api.app.services.profile import save_timezone
 from services.api.app.types import SessionProtocol
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from services.api.app.diabetes.utils.ui import (
     PHOTO_BUTTON_PATTERN,
     build_timezone_webapp_button,
@@ -160,11 +161,10 @@ async def _log_event(user_id: int, name: str, step: int, variant: str | None) ->
 
     try:
         await run_db(_log, sessionmaker=SessionLocal)
-    except telegram.error.TelegramError:  # pragma: no cover - logging only
-        logger.exception("Failed to log onboarding event")
-    except Exception:
-        logger.exception("Unexpected error logging onboarding event")
-        raise
+    except (SQLAlchemyError, CommitError) as exc:
+        logger.exception("Failed to log onboarding event: %s", exc)
+    except telegram.error.TelegramError as exc:  # pragma: no cover - logging only
+        logger.exception("Failed to log onboarding event: %s", exc)
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -178,11 +178,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     if video_url:
         try:
             await message.reply_video(video_url)
-        except telegram.error.TelegramError:  # pragma: no cover - fallback
+        except telegram.error.TelegramError as exc:  # pragma: no cover - fallback
+            logger.warning("Failed to send onboarding video: %s", exc)
             await message.reply_text(video_url)
-        except Exception:
-            logger.exception("Unexpected error sending onboarding video")
-            raise
     user_id = user.id
     await ensure_user_exists(user_id)
     user_data = cast(dict[str, Any], context.user_data)

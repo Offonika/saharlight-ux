@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 from typing import Any, Callable, cast
 
@@ -7,6 +8,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from telegram import Update
+import telegram.error
 from telegram.ext import CallbackContext, ConversationHandler
 
 import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
@@ -79,7 +81,7 @@ async def test_start_command_sends_video(monkeypatch: pytest.MonkeyPatch) -> Non
 
 @pytest.mark.asyncio
 async def test_start_command_sends_link_on_failure(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setattr(
         onboarding.config, "ONBOARDING_VIDEO_URL", "https://e.co/v.mp4", raising=False
@@ -98,7 +100,7 @@ async def test_start_command_sends_link_on_failure(
     async def fail_video(
         url: str, **kwargs: Any
     ) -> None:  # pragma: no cover - forced error
-        raise RuntimeError
+        raise telegram.error.TelegramError("boom")
 
     message.reply_video = fail_video  # type: ignore[assignment]
 
@@ -110,6 +112,8 @@ async def test_start_command_sends_link_on_failure(
         SimpleNamespace(user_data={}, job_queue=None),
     )
 
-    await onboarding.start_command(update, context)
+    with caplog.at_level(logging.WARNING):
+        await onboarding.start_command(update, context)
     assert message.texts == ["https://e.co/v.mp4"]
     assert not message.videos
+    assert "Failed to send onboarding video" in caplog.text
