@@ -18,7 +18,9 @@ from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
-from . import curriculum_engine  # noqa: F401
+# Re-export the curriculum engine so tests and callers can patch it easily.
+# Including it in ``__all__`` below marks the import as used for the linter.
+from . import curriculum_engine as curriculum_engine
 from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
 from .services.gpt_client import (
@@ -605,6 +607,7 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 
 __all__ = [
+    "curriculum_engine",
     "topics_command",
     "learn_command",
     "lesson_command",
