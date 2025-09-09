@@ -10,6 +10,7 @@ from telegram.ext import Application, CommandHandler
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers as dynamic_handlers
 from services.api.app.diabetes.handlers import learning_handlers
+from services.api.app.diabetes.curriculum_engine import LessonNotFoundError
 
 
 class DummyBot(Bot):
@@ -78,6 +79,11 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(dynamic_handlers, "ensure_overrides", fake_ensure_overrides)
     monkeypatch.setattr(dynamic_handlers, "choose_initial_topic", lambda _p: ("slug", "t"))
+    monkeypatch.setattr(
+        dynamic_handlers.curriculum_engine,
+        "start_lesson",
+        lambda *_a, **_k: (_ for _ in ()).throw(LessonNotFoundError("slug")),
+    )
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
@@ -97,7 +103,10 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
     msg._bot = bot
     await app.process_update(Update(update_id=1, message=msg))
 
-    assert bot.sent == ["step1"]
+    assert bot.sent == [
+        dynamic_handlers.NO_STATIC_LESSONS_MESSAGE,
+        "step1",
+    ]
 
     await app.shutdown()
 

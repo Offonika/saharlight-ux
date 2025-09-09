@@ -79,6 +79,11 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
+    monkeypatch.setattr(
+        learning_handlers, "generate_learning_plan", lambda t: [t]
+    )
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()

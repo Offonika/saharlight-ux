@@ -78,6 +78,10 @@ async def test_plan_button_flow(
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
+    monkeypatch.setattr(
+        learning_handlers, "generate_learning_plan", lambda t: [t, "Шаг 2"]
+    )
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     async def fake_generate_step_text(
         _profile: Any, _topic: str, step_idx: int, _prev: str | None

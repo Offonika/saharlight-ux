@@ -106,6 +106,10 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers, "generate_learning_plan", lambda t: [t]
+    )
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -280,6 +284,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
     monkeypatch.setattr(
         learning_handlers, "choose_initial_topic", lambda _: ("slug", "t")
     )
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
 
     progress = SimpleNamespace(lesson_id=1)
 
@@ -305,6 +310,8 @@ async def test_learn_command_autostarts_when_topics_hidden(
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
+    monkeypatch.setattr(learning_handlers, "generate_learning_plan", lambda t: [t])
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None

@@ -21,6 +21,7 @@ from .learning_utils import choose_initial_topic
 # Re-export the curriculum engine so tests and callers can patch it easily.
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
+from .curriculum_engine import LessonNotFoundError
 from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
 from .services.gpt_client import (
@@ -41,7 +42,7 @@ BUSY_KEY = "learn_busy"
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
 
-LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
+NO_STATIC_LESSONS_MESSAGE = "Не нашёл учебные записи, пробую динамический режим…"
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -242,34 +243,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
-    text = await generate_step_text(profile, slug, 1, None)
-    if text == BUSY_MESSAGE:
-        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-        return
-    plan = generate_learning_plan(text)
-    user_data["learning_plan"] = plan
-    user_data["learning_plan_index"] = 0
-    text = format_reply(plan[0])
-    await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
-        user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
-    state = LearnState(
-        topic=slug,
-        step=1,
-        last_step_text=text,
-        awaiting=True,
-    )
-    set_state(user_data, state)
-    await _persist(user.id, user_data, context.bot_data)
+    await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
 async def _start_lesson(
@@ -284,16 +258,70 @@ async def _start_lesson(
     from_user = getattr(message, "from_user", None)
     if from_user is None:
         return
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
-    text = await generate_step_text(profile, topic_slug, 1, None)
-    if text == BUSY_MESSAGE:
+    try:
+        progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
+        lesson_id = progress.lesson_id
+        logger.info(
+            "learn_start", extra={"content_mode": "static", "branch": "dynamic"}
+        )
+        text, _ = await curriculum_engine.next_step(
+            from_user.id, lesson_id, profile
+        )
+        if text is None or text == BUSY_MESSAGE:
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+            return
+    except LessonNotFoundError:
+        await message.reply_text(
+            NO_STATIC_LESSONS_MESSAGE, reply_markup=build_main_keyboard()
+        )
+        logger.warning(
+            "no_static_lessons; run dynamic",
+            extra={"hint": "make load-lessons"},
+        )
+        logger.info(
+            "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
+        )
+        text = await generate_step_text(profile, topic_slug, 1, None)
+        if text == BUSY_MESSAGE:
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+            return
+        if not text.startswith(disclaimer()):
+            text = f"{disclaimer()}\n\n{text}"
+        plan = generate_learning_plan(text)
+        user_data["learning_plan"] = plan
+        user_data["learning_plan_index"] = 0
+        text = format_reply(plan[0])
+        await message.reply_text(text, reply_markup=build_main_keyboard())
+        await add_lesson_log(
+            from_user.id,
+            0,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
+        state = LearnState(
+            topic=topic_slug,
+            step=1,
+            last_step_text=text,
+            awaiting=True,
+        )
+        set_state(user_data, state)
+        await _persist(from_user.id, user_data, bot_data)
+        return
+    except Exception as exc:  # pragma: no cover - error path
+        logger.exception("lesson start failed", exc_info=exc)
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
+
     if not text.startswith(disclaimer()):
         text = f"{disclaimer()}\n\n{text}"
-    plan = generate_learning_plan(text)
+    try:
+        plan = generate_learning_plan(text)
+    except Exception as exc:  # pragma: no cover - error path
+        logger.exception("plan generation failed", exc_info=exc)
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
     text = format_reply(plan[0])

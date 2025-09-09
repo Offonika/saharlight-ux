@@ -13,6 +13,7 @@ from services.api.app.diabetes.planner import generate_learning_plan, pretty_pla
 class DummyMessage:
     def __init__(self) -> None:
         self.replies: list[str] = []
+        self.from_user = SimpleNamespace(id=1)
 
     async def reply_text(self, text: str, **kwargs: object) -> None:
         self.replies.append(text)
@@ -55,6 +56,7 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
         return True
 
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
+    monkeypatch.setattr(learning_handlers.settings, "learning_ui_show_topics", False)
 
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
@@ -77,6 +79,9 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
+    monkeypatch.setattr(learning_handlers, "generate_learning_plan", lambda t: [t])
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     message = DummyMessage()
     update = make_update(message=message)
