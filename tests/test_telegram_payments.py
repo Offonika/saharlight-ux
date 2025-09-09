@@ -27,6 +27,17 @@ async def test_create_invoice(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_invoice_no_chat() -> None:
+    adapter = TelegramPaymentsAdapter(provider_token="token")
+    bot = AsyncMock()
+    context = SimpleNamespace(bot=bot)
+    update = SimpleNamespace(effective_chat=None)
+
+    with pytest.raises(ValueError):
+        await adapter.create_invoice(update, context, plan="pro")
+
+
+@pytest.mark.asyncio
 async def test_handle_pre_checkout_query() -> None:
     adapter = TelegramPaymentsAdapter()
     pre_checkout = AsyncMock()
@@ -36,6 +47,16 @@ async def test_handle_pre_checkout_query() -> None:
     await adapter.handle_pre_checkout_query(update, context)
 
     pre_checkout.answer.assert_called_once_with(ok=True)
+
+
+@pytest.mark.asyncio
+async def test_handle_pre_checkout_query_none() -> None:
+    adapter = TelegramPaymentsAdapter()
+    update = SimpleNamespace(pre_checkout_query=None)
+    context = SimpleNamespace()
+
+    with pytest.raises(ValueError):
+        await adapter.handle_pre_checkout_query(update, context)
 
 
 @pytest.mark.asyncio
@@ -167,3 +188,14 @@ async def test_handle_successful_payment_http_error(
     message.reply_text.assert_called_once_with(
         "⚠️ Не удалось подтвердить платёж, попробуйте позже",
     )
+
+
+@pytest.mark.asyncio
+async def test_handle_successful_payment_no_payment() -> None:
+    adapter = TelegramPaymentsAdapter()
+    message = SimpleNamespace(successful_payment=None, reply_text=AsyncMock())
+    update = SimpleNamespace(message=message)
+
+    await adapter.handle_successful_payment(update, SimpleNamespace())
+
+    message.reply_text.assert_called_once_with("⚠️ Платёж не найден")
