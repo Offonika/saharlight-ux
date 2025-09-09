@@ -731,9 +731,6 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     except asyncio.TimeoutError as exc:
         logger.exception("GPT request timed out: %s", exc)
         reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
-    except Exception:
-        logger.exception("Unexpected GPT error")
-        raise
 
     await message.reply_text(reply)
     summarized = assistant_state.add_turn(
