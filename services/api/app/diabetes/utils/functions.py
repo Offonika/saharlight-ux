@@ -7,8 +7,10 @@ import re
 # ---------------------------------------------------------------------------
 # Regex helpers
 # ---------------------------------------------------------------------------
-# Base pattern for numeric values with optional decimal part (``"1"``, ``"2,5"``).
-NUMBER_RE = r"\d+[.,]?\d*"
+# Base pattern for numeric values with optional decimal part
+# (``"1"``, ``"2,5"``). If a decimal separator is present, at least one
+# digit must follow it.
+NUMBER_RE = r"\d+(?:[.,]\d+)?"
 
 # Generic range patterns reused across nutrition parsing.
 PLUS_MINUS_RANGE_RE = re.compile(rf"({NUMBER_RE})\s*±\s*({NUMBER_RE})")
@@ -128,10 +130,10 @@ BAD_DOSE_UNIT_RE = re.compile(
 )
 
 SUGAR_VALUE_RE = re.compile(
-    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)"
+    rf"\b{SUGAR_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?![.,])(?=(?:\s*(?:ммоль/?л|mmol/?l))?\b)"
 )
 SUGAR_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(ммоль/?л|mmol/?l)\b")
-XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})\b")
+XE_VALUE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?![.,])\b")
 XE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:xe|хе)\b")
 # ``dose`` may be followed immediately by another token (e.g. ``"carbs=30"``).
 # ``\b`` would fail in such cases, so we use a lookahead that ensures the
@@ -140,7 +142,9 @@ DOSE_VALUE_RE = re.compile(
     rf"\b{DOSE_WORD_RE.pattern}\s*[:=]?\s*({NUMBER_RE})(?=$|\s|[^0-9a-zA-Z.,])"
 )
 DOSE_UNIT_RE = re.compile(rf"\b({NUMBER_RE})\s*(?:ед\.?|units?|u)\b")
-ONLY_NUMBER_RE = re.compile(rf"\s*({NUMBER_RE})\s*")
+# Accepts numbers even with a trailing separator for error detection in
+# ``smart_input``.
+ONLY_NUMBER_RE = re.compile(r"\s*(\d+[.,]?\d*)\s*")
 
 EXPLICIT_SUGAR_RE = re.compile(rf"\b{SUGAR_WORD_RE.pattern}\b")
 EXPLICIT_XE_RE = re.compile(rf"\b{XE_LABEL_RE.pattern}\b")
