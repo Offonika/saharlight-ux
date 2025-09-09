@@ -34,9 +34,13 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
     if len(init_data) > 1024:
         raise HTTPException(status_code=413, detail="init data too long")
     try:
-        params: dict[str, object] = dict(parse_qsl(init_data, strict_parsing=True))
+        pairs: list[tuple[str, str]] = parse_qsl(init_data, strict_parsing=True)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="invalid init data") from exc
+    keys = [k for k, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise HTTPException(status_code=401, detail="duplicate parameter")
+    params: dict[str, object] = dict(pairs)
     auth_hash_obj = params.pop("hash", None)
     if not isinstance(auth_hash_obj, str):
         raise HTTPException(status_code=401, detail="missing hash")

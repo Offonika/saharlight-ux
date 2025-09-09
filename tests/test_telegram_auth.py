@@ -52,6 +52,15 @@ def test_parse_and_verify_init_data_invalid_hash() -> None:
         parse_and_verify_init_data(tampered, TOKEN)
 
 
+def test_parse_and_verify_init_data_duplicate_param() -> None:
+    init_data = build_init_data()
+    tampered = f"{init_data}&auth_date=1"
+    with pytest.raises(HTTPException) as exc:
+        parse_and_verify_init_data(tampered, TOKEN)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "duplicate parameter"
+
+
 def test_parse_and_verify_init_data_invalid_user_json() -> None:
     params = {
         "auth_date": str(int(time.time())),
