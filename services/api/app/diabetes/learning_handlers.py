@@ -18,6 +18,7 @@ from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
+
 # Re-export the curriculum engine so tests and callers can patch it easily.
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
@@ -41,6 +42,7 @@ BUSY_KEY = "learn_busy"
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
+ANSWER_WINDOW_SECONDS = 5 * 60.0
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -120,9 +122,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         return True
     bot_data = cast(MutableMapping[str, Any], context.bot_data)
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
-    progress_map = cast(
-        dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {})
-    )
+    progress_map = cast(dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {}))
     data = progress_map.get(user.id)
     raw_plan = plans_map.get(user.id)
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
@@ -166,9 +166,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         if snapshot == BUSY_MESSAGE:
             message = update.effective_message
             if message is not None:
-                await message.reply_text(
-                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
-                )
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return False
         data["snapshot"] = snapshot
         progress_map[user.id] = data
@@ -205,10 +203,7 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
-            for slug, title in TOPICS_RU.items()
-        ]
+        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -235,19 +230,37 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    overrides = cast(dict[str, str], user_data.get("learn_profile_overrides", {}))
+    has_age = bool(overrides.get("age_group"))
+    has_level = bool(overrides.get("learning_level"))
+    has_dtype = bool(overrides.get("diabetes_type"))
+    asked = "none"
+    if not has_age:
+        asked = "age"
+    elif not has_level:
+        asked = "level"
+    logger.info(
+        "learn_entry",
+        extra={
+            "user_id": user.id,
+            "has_age": has_age,
+            "has_level": has_level,
+            "has_dtype": has_dtype,
+            "asked": asked,
+        },
+    )
     state = get_state(user_data)
     if state is not None and state.last_step_text:
-        await message.reply_text(
-            state.last_step_text, reply_markup=build_main_keyboard()
-        )
+        await message.reply_text(state.last_step_text, reply_markup=build_main_keyboard())
+        state.awaiting = True
+        state.last_step_at = time.monotonic()
+        set_state(user_data, state)
         return
     if not await ensure_overrides(update, context):
         return
     profile = _get_profile(user_data)
     slug, _ = choose_initial_topic(profile)
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
+    logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
     try:
         await curriculum_engine.start_lesson(user.id, slug)
     except LessonNotFoundError:
@@ -281,6 +294,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         step=1,
         last_step_text=text,
         awaiting=True,
+        last_step_at=time.monotonic(),
     )
     set_state(user_data, state)
     await _persist(user.id, user_data, context.bot_data)
@@ -298,9 +312,7 @@ async def _start_lesson(
     from_user = getattr(message, "from_user", None)
     if from_user is None:
         return
-    logger.info(
-        "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
-    )
+    logger.info("learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"})
     try:
         await curriculum_engine.start_lesson(from_user.id, topic_slug)
     except LessonNotFoundError:
@@ -336,6 +348,7 @@ async def _start_lesson(
         step=1,
         last_step_text=text,
         awaiting=True,
+        last_step_at=time.monotonic(),
     )
     set_state(user_data, state)
     await _persist(from_user.id, user_data, bot_data)
@@ -361,9 +374,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(
-            f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn"
-        )
+        await message.reply_text(f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn")
         return
     if topic_slug not in TOPICS_RU:
         await message.reply_text("Неизвестная тема")
@@ -408,9 +419,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
-async def lesson_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -427,8 +436,14 @@ async def lesson_answer_handler(
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is None or not state.awaiting or user_data.get(BUSY_KEY):
+    if state is None or user_data.get(BUSY_KEY):
         return
+    if not state.awaiting:
+        now = time.monotonic()
+        if now - state.last_step_at > ANSWER_WINDOW_SECONDS:
+            return
+        state.awaiting = True
+        set_state(user_data, state)
     if _rate_limited(user_data, "_answer_ts"):
         await message.reply_text(RATE_LIMIT_MESSAGE)
         return
@@ -454,15 +469,12 @@ async def lesson_answer_handler(
     state.awaiting = False
     user_data[BUSY_KEY] = True
     set_state(user_data, state)
+    sent_step = False
     try:
         if user_text.lower() == "не знаю":
-            feedback = await assistant_chat(
-                profile, f"Объясни подробнее: {state.last_step_text}"
-            )
+            feedback = await assistant_chat(profile, f"Объясни подробнее: {state.last_step_text}")
         else:
-            _correct, feedback = await check_user_answer(
-                profile, state.topic, user_text, state.last_step_text or ""
-            )
+            _correct, feedback = await check_user_answer(profile, state.topic, user_text, state.last_step_text or "")
         feedback = format_reply(feedback)
         await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
@@ -479,13 +491,9 @@ async def lesson_answer_handler(
                 )
             except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
                 logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(
-                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
-                )
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
                 return
-        next_text = await generate_step_text(
-            profile, state.topic, state.step + 1, feedback
-        )
+        next_text = await generate_step_text(profile, state.topic, state.step + 1, feedback)
         if next_text == BUSY_MESSAGE:
             await message.reply_text(next_text, reply_markup=build_main_keyboard())
             return
@@ -503,18 +511,19 @@ async def lesson_answer_handler(
                 )
             except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
                 logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(
-                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
-                )
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
                 return
         state.step += 1
         state.last_step_text = next_text
         state.prev_summary = feedback
+        sent_step = True
     finally:
         user_data[BUSY_KEY] = False
-        state.awaiting = True
+        if sent_step:
+            state.awaiting = True
+            state.last_step_at = time.monotonic()
         set_state(user_data, state)
-        if from_user is not None:
+        if from_user is not None and sent_step:
             await _persist(from_user.id, user_data, context.bot_data)
 
 
@@ -551,7 +560,12 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
-    if state is not None and state.awaiting and state.last_step_text:
+    now = time.monotonic()
+    if (
+        state is not None
+        and state.last_step_text
+        and (state.awaiting or now - state.last_step_at <= ANSWER_WINDOW_SECONDS)
+    ):
         await lesson_answer_handler(update, context)
         raise ApplicationHandlerStop
     profile = _get_profile(user_data)
@@ -580,9 +594,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if user is not None:
         await _persist(user.id, user_data, context.bot_data)
-    await message.reply_text(
-        f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard()
-    )
+    await message.reply_text(f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard())
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

@@ -24,9 +24,7 @@ class DummyMessage:
 async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     user_data: dict[str, object] = {}
-    set_state(
-        user_data, LearnState(topic="t", step=1, awaiting=True, last_step_text="q")
-    )
+    set_state(user_data, LearnState(topic="t", step=1, awaiting=True, last_step_text="q"))
     called = False
 
     async def fake_check_user_answer(
@@ -44,9 +42,7 @@ async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
         return "next"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -61,6 +57,84 @@ async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ApplicationHandlerStop):
         await learning_handlers.on_any_text(update, context)
     assert called
+    assert msg.replies == ["fb", "next"]
+
+
+@pytest.mark.asyncio
+async def test_on_any_text_recent_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+    user_data: dict[str, object] = {}
+    set_state(
+        user_data,
+        LearnState(topic="t", step=1, awaiting=False, last_step_text="q", last_step_at=0.0),
+    )
+    monkeypatch.setattr(learning_handlers.time, "monotonic", lambda: 0.0)
+    called = False
+
+    async def fake_check_user_answer(
+        profile: Mapping[str, str | None], topic: str, answer: str, last: str
+    ) -> tuple[bool, str]:
+        nonlocal called
+        called = True
+        return True, "fb"
+
+    async def fake_generate_step_text(
+        profile: Mapping[str, str | None], topic: str, step_idx: int, prev: object
+    ) -> str:
+        return "next"
+
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
+    monkeypatch.setattr(learning_handlers, "_rate_limited", lambda *_: False)
+
+    msg = DummyMessage("ans")
+    update = make_update(message=msg)
+    context = make_context(user_data=user_data)
+
+    with pytest.raises(ApplicationHandlerStop):
+        await learning_handlers.on_any_text(update, context)
+    assert called
+    assert msg.replies == ["fb", "next"]
+
+
+@pytest.mark.asyncio
+async def test_lesson_answer_handler_recent(monkeypatch: pytest.MonkeyPatch) -> None:
+    user_data: dict[str, object] = {}
+    set_state(
+        user_data,
+        LearnState(topic="t", step=1, awaiting=False, last_step_text="q", last_step_at=0.0),
+    )
+    monkeypatch.setattr(learning_handlers.time, "monotonic", lambda: 0.0)
+
+    async def fake_check_user_answer(
+        profile: Mapping[str, str | None], topic: str, answer: str, last: str
+    ) -> tuple[bool, str]:
+        return True, "fb"
+
+    async def fake_generate_step_text(
+        profile: Mapping[str, str | None], topic: str, step_idx: int, prev: object
+    ) -> str:
+        return "next"
+
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
+    monkeypatch.setattr(learning_handlers, "_rate_limited", lambda *_: False)
+
+    msg = DummyMessage("ans")
+    update = make_update(message=msg)
+    context = make_context(user_data=user_data)
+
+    await learning_handlers.lesson_answer_handler(update, context)
     assert msg.replies == ["fb", "next"]
 
 
@@ -86,18 +160,14 @@ async def test_on_any_text_idontknow(monkeypatch: pytest.MonkeyPatch) -> None:
         assert prev == "fb"
         return "next"
 
-    async def fake_check_user_answer(
-        *args: object, **kwargs: object
-    ) -> tuple[bool, str]:
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
         raise AssertionError("should not be called")
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
@@ -124,9 +194,7 @@ async def test_on_any_text_general(monkeypatch: pytest.MonkeyPatch) -> None:
         assert text == "hello"
         return "reply"
 
-    async def fake_check_user_answer(
-        *args: object, **kwargs: object
-    ) -> tuple[bool, str]:
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
         raise AssertionError("should not be called")
 
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)

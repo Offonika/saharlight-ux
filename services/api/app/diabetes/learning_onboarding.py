@@ -119,12 +119,8 @@ _ORDER: list[
             [
                 [
                     InlineKeyboardButton("Новичок", callback_data=f"{CB_PREFIX}novice"),
-                    InlineKeyboardButton(
-                        "Средний", callback_data=f"{CB_PREFIX}intermediate"
-                    ),
-                    InlineKeyboardButton(
-                        "Продвинутый", callback_data=f"{CB_PREFIX}expert"
-                    ),
+                    InlineKeyboardButton("Средний", callback_data=f"{CB_PREFIX}intermediate"),
+                    InlineKeyboardButton("Продвинутый", callback_data=f"{CB_PREFIX}expert"),
                 ]
             ]
         ),
@@ -143,9 +139,7 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """
 
     user_data = cast(dict[str, object], context.user_data)
-    overrides = cast(
-        dict[str, str], user_data.setdefault("learn_profile_overrides", {})
-    )
+    overrides = cast(dict[str, str], user_data.setdefault("learn_profile_overrides", {}))
     message: Message | None = update.message
     if message is None and update.callback_query is not None:
         message = cast("Message | None", update.callback_query.message)
@@ -158,12 +152,26 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             logger.exception("Failed to get profile for user %s", user.id)
             profile = {}
         diabetes_type = profile.get("diabetes_type")
-        if (
-            isinstance(diabetes_type, str)
-            and diabetes_type != "unknown"
-            and "diabetes_type" not in overrides
-        ):
+        if isinstance(diabetes_type, str) and diabetes_type != "unknown" and "diabetes_type" not in overrides:
             overrides["diabetes_type"] = diabetes_type
+    has_age = bool(overrides.get("age_group"))
+    has_level = bool(overrides.get("learning_level"))
+    has_dtype = bool(overrides.get("diabetes_type"))
+    asked = "none"
+    if not has_age:
+        asked = "age"
+    elif not has_level:
+        asked = "level"
+    logger.info(
+        "learn_overrides",
+        extra={
+            "user_id": getattr(user, "id", None),
+            "has_age": has_age,
+            "has_level": has_level,
+            "has_dtype": has_dtype,
+            "asked": asked,
+        },
+    )
     for key, prompt, norm, keyboard in _ORDER:
         raw = overrides.get(key)
         if raw is not None:
@@ -173,6 +181,16 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 continue
             overrides.pop(key, None)
         if message is not None:
+            if key == "age_group":
+                logger.info(
+                    "learn_onboarding_question",
+                    extra={"reason": "needs_age", "user_id": getattr(user, "id", None)},
+                )
+            elif key == "learning_level":
+                logger.info(
+                    "learn_onboarding_question",
+                    extra={"reason": "needs_level", "user_id": getattr(user, "id", None)},
+                )
             await message.reply_text(prompt, reply_markup=keyboard)
         user_data["learn_onboarding_stage"] = key
         return False
