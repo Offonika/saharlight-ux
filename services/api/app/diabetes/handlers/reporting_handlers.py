@@ -249,7 +249,8 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
         if user_data_raw is None:
             context.user_data = {}
             user_data_raw = context.user_data
-        assert user_data_raw is not None
+        if user_data_raw is None:  # pragma: no cover - defensive
+            raise RuntimeError("context.user_data could not be initialized")
         user_data = cast(UserData, user_data_raw)
         user_data["awaiting_report_date"] = True
         await query.edit_message_text("Введите дату начала отчёта в формате YYYY-MM-DD\nОтправьте «назад» для отмены.")
@@ -329,7 +330,8 @@ async def send_report(
     if user_data_raw is None:
         context.user_data = {}
         user_data_raw = context.user_data
-    assert user_data_raw is not None
+    if user_data_raw is None:  # pragma: no cover - defensive
+        raise RuntimeError("context.user_data could not be initialized")
     user_data = cast(UserData, user_data_raw)
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
