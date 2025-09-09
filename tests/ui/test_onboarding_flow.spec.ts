@@ -56,6 +56,7 @@ vi.mock('../../services/webapp/ui/src/pages/resolveTelegramId', () => ({
 const postEventProfile = vi.fn();
 vi.mock('../../services/webapp/ui/src/shared/api/onboarding', () => ({
   postOnboardingEvent: postEventProfile,
+  isValidOnboardingStep: (step: string | null) => step !== null,
 }));
 
 import Profile from '../../services/webapp/ui/src/pages/Profile';

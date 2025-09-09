@@ -35,7 +35,11 @@ import { useTelegram } from "@/hooks/useTelegram";
 import { useTelegramInitData } from "@/hooks/useTelegramInitData";
 import { setTelegramInitData } from "@/lib/telegram-auth";
 import { resolveTelegramId } from "./resolveTelegramId";
-import { postOnboardingEvent } from "@/shared/api/onboarding";
+import {
+  postOnboardingEvent,
+  type OnboardingStep,
+  isValidOnboardingStep,
+} from "@/shared/api/onboarding";
 
 const rapidInsulinTypes: RapidInsulin[] = [
   'aspart',
@@ -83,7 +87,9 @@ interface ProfileProps {
 const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const onboardingStep = searchParams.get("step") || undefined;
+  const onboardingStepParam = searchParams.get("step");
+  const onboardingStep: OnboardingStep | undefined =
+    isValidOnboardingStep(onboardingStepParam) ? onboardingStepParam : undefined;
   const isOnboardingFlow = searchParams.get("flow") === "onboarding";
   const { toast } = useToast();
   const { user } = useTelegram();
