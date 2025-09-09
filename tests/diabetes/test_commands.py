@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any, cast
 
+import asyncio
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -49,9 +50,7 @@ async def test_reset_onboarding_warns_and_resets(
     user = SimpleNamespace(id=1)
     update = cast(
         Update,
-        SimpleNamespace(
-            effective_message=message, message=message, effective_user=user
-        ),
+        SimpleNamespace(effective_message=message, message=message, effective_user=user),
     )
     app = DummyApp()
     context = cast(
@@ -64,9 +63,7 @@ async def test_reset_onboarding_warns_and_resets(
 
     async def dummy_reset(update: Update, context: CallbackContext) -> int:
         store.reset(user.id)
-        await message.reply_text(
-            "Онбординг сброшен. Отправьте /start, чтобы начать заново."
-        )
+        await message.reply_text("Онбординг сброшен. Отправьте /start, чтобы начать заново.")
         return 0
 
     monkeypatch.setattr(commands, "_reset_onboarding", dummy_reset)
@@ -79,3 +76,32 @@ async def test_reset_onboarding_warns_and_resets(
     await commands.reset_onboarding(update, context)
     assert store.get(1).step == 0
     assert "сброшен" in message.replies[0].lower()
+
+
+@pytest.mark.asyncio
+async def test_reset_onboarding_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    message = DummyMessage()
+    user = SimpleNamespace(id=1)
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=message, message=message, effective_user=user),
+    )
+    app = DummyApp()
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(application=app, user_data={}),
+    )
+
+    async def fast_sleep(_: float) -> None:
+        return
+
+    monkeypatch.setattr(commands.asyncio, "sleep", fast_sleep)
+
+    await commands.reset_onboarding(update, context)
+    task = context.user_data.get("_onb_reset_task")
+    assert isinstance(task, asyncio.Task)
+    await task
+
+    assert "_onb_reset_confirm" not in context.user_data
+    assert "_onb_reset_task" not in context.user_data
+    assert any("не подтвержд" in r.lower() for r in message.replies)
