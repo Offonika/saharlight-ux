@@ -76,7 +76,7 @@ def aggregate_for_date(
     return [{"variant": variant, "step": step, "count": count} for variant, step, count in rows]
 
 
-def main(argv: Iterable[str] | None = None) -> int:
+def main(argv: Iterable[str] | None = None) -> str:
     parser = argparse.ArgumentParser(description="Aggregate onboarding events into daily metrics")
     parser.add_argument(
         "--date",
@@ -87,10 +87,10 @@ def main(argv: Iterable[str] | None = None) -> int:
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     metrics = aggregate_for_date(args.date)
-    print(json.dumps(metrics, ensure_ascii=False))
-    logger.info("Aggregated %d rows for %s", len(metrics), args.date)
-    return 0
+    metrics_json = json.dumps(metrics, ensure_ascii=False)
+    logger.info("Aggregated metrics for %s: %s", args.date, metrics_json)
+    return metrics_json
 
 
 if __name__ == "__main__":  # pragma: no cover - CLI entry point
-    raise SystemExit(main())
+    print(main())

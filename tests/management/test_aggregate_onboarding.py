@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+import json
+import logging
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session as SASession, sessionmaker
@@ -61,3 +63,15 @@ def test_aggregate_onboarding(session_local: sessionmaker[SASession]) -> None:
         counts = {(r.variant, r.step): r.count for r in rows}
         assert counts[("A", "start")] == 2
         assert counts[("A", "finish")] == 1
+def test_main_logs_json(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    metrics = [{"variant": "A", "step": "start", "count": 1}]
+    monkeypatch.setattr(
+        aggregate_onboarding, "aggregate_for_date", lambda d: metrics
+    )
+
+    caplog.set_level(logging.INFO, logger=aggregate_onboarding.logger.name)
+    result = aggregate_onboarding.main(["--date", "2024-01-02"])
+    assert json.loads(result) == metrics
+    assert result in caplog.text
