@@ -143,7 +143,7 @@ curl http://localhost:8000/api/profile?telegramId=777
 
 ## Переменные окружения
 Основные параметры указываются в `.env`:
-- `TELEGRAM_TOKEN` — токен бота (обязательно);
+- `TELEGRAM_TOKEN` — токен бота (обязательно; при отсутствии бот завершится с ошибкой);
 - `PUBLIC_ORIGIN` — публичный URL API;
 - `WEBAPP_URL` — адрес WebApp для онбординга;
 - `API_URL` — базовый URL внешнего API; требует установленный пакет `diabetes_sdk`;

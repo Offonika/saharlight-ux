@@ -14,7 +14,10 @@ logger = logging.getLogger(__name__)
 def main() -> None:
     """Run the telegram bot with the /start WebApp links and status command."""
 
-    token = os.environ["TELEGRAM_TOKEN"]
+    token = os.environ.get("TELEGRAM_TOKEN")
+    if not token:
+        logger.error("TELEGRAM_TOKEN is not set")
+        raise RuntimeError("TELEGRAM_TOKEN is not configured")
     ui_base_url = os.environ.get("UI_BASE_URL", "/ui")
     api_base_url = os.environ.get("API_BASE_URL", "/api")
     application = Application.builder().token(token).build()

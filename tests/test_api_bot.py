@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import sys
 
 import pytest
@@ -66,3 +67,21 @@ def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPat
     assert sentinel_handler in built_app.handlers
     assert built_app.run_polling_called
     assert captured["url"] == "https://ui"
+
+
+def test_main_fails_without_token(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """main exits with error when TELEGRAM_TOKEN is missing."""
+
+    monkeypatch.setenv("DB_PASSWORD", "pwd")
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+
+    sys.modules.pop("services.api.app.bot", None)
+    bot = importlib.import_module("services.api.app.bot")
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(RuntimeError):
+            bot.main()
+
+    assert "TELEGRAM_TOKEN" in caplog.text
