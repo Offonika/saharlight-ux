@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import cast
 
+import telegram
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -63,8 +64,11 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             await message.reply_text(
                 "⏱ Сброс онбординга не подтверждён. Отправьте /reset_onboarding снова.",
             )
-        except Exception:
-            pass
+        except telegram.error.TelegramError as exc:
+            logger.exception(
+                "Failed to notify about onboarding reset timeout: %s",
+                exc,
+            )
 
     user_data["_onb_reset_confirm"] = True
     user_data["_onb_reset_task"] = asyncio.create_task(_reset_timeout())
