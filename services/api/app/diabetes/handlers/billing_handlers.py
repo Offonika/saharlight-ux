@@ -63,19 +63,19 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                         status_url, params={"user_id": user.id}, timeout=10.0
                     )
                     stat.raise_for_status()
-                    try:
-                        payload = stat.json()
-                    except ValueError:
-                        logger.exception("invalid trial status response")
-                        await message.reply_text("❌ Ошибка сервера.")
-                        return
-                    sub = payload.get("subscription")
-                    if isinstance(sub, dict):
-                        end_raw = sub.get("endDate")
-                        if isinstance(end_raw, str):
-                            end_dt = datetime.fromisoformat(end_raw)
-            except Exception:
+                    payload = stat.json()
+            except httpx.HTTPError:
                 logger.exception("failed to fetch trial status")
+            except ValueError:
+                logger.exception("invalid trial status response")
+                await message.reply_text("❌ Ошибка сервера.")
+                return
+            else:
+                sub = payload.get("subscription")
+                if isinstance(sub, dict):
+                    end_raw = sub.get("endDate")
+                    if isinstance(end_raw, str):
+                        end_dt = datetime.fromisoformat(end_raw)
             if end_dt is not None:
                 end_str = end_dt.strftime("%d.%m.%Y")
                 await message.reply_text(f"🎁 Пробный период уже активен до {end_str}")
