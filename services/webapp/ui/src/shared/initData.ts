@@ -1,9 +1,12 @@
+import { setTelegramInitData } from '@/lib/telegram-auth';
+
 export function hasInitData(): boolean {
   const initData =
     (window as unknown as { Telegram?: { WebApp?: { initData?: string } } })
       .Telegram?.WebApp?.initData;
 
   if (initData) {
+    setTelegramInitData(initData);
     return true;
   }
 
@@ -12,5 +15,10 @@ export function hasInitData(): boolean {
     : window.location.hash;
   const urlData = new URLSearchParams(hash).get('tgWebAppData');
 
-  return Boolean(urlData);
+  if (urlData) {
+    setTelegramInitData(urlData);
+    return true;
+  }
+
+  return false;
 }

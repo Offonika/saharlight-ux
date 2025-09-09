@@ -9,6 +9,7 @@ import { buildReminderPayload } from "../api/buildPayload";
 import type { ReminderDto, ScheduleKind, ReminderType } from "../types";
 import { validate, hasErrors } from "../logic/validate";
 import { useTelegramInitData } from "../../../hooks/useTelegramInitData";
+import { setTelegramInitData } from "@/lib/telegram-auth";
 import { getTelegramUserId } from "../../../shared/telegram";
 import { useToast } from "../../../shared/toast";
 import { useTelegram } from "@/hooks/useTelegram";
@@ -59,6 +60,11 @@ function mapToForm(reminder: ReminderSchema): ReminderDto {
 export default function RemindersEdit() {
   const api = useRemindersApi();
   const initData = useTelegramInitData();
+  useEffect(() => {
+    if (initData) {
+      setTelegramInitData(initData);
+    }
+  }, [initData]);
   const { sendData, user } = useTelegram();
   const telegramId = useMemo(
     () => getTelegramUserId(initData) || user?.id || 0,
