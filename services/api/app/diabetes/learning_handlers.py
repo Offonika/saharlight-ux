@@ -40,8 +40,6 @@ BUSY_KEY = "learn_busy"
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
 
-LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
-
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
     """Return ``True`` if action identified by ``key`` is too frequent."""
@@ -248,8 +246,42 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )
     except LessonNotFoundError:
         await message.reply_text(
-            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
+            "Не нашёл учебные записи, пробую динамический режим…",
+            reply_markup=build_main_keyboard(),
         )
+        logger.warning(
+            "no_static_lessons; run dynamic",
+            extra={"hint": "make load-lessons"},
+        )
+        text = await generate_step_text(profile, slug, 1, None)
+        if text is None or text == BUSY_MESSAGE:
+            await message.reply_text(
+                BUSY_MESSAGE, reply_markup=build_main_keyboard()
+            )
+            return
+        if not text.startswith(disclaimer()):
+            text = f"{disclaimer()}\n\n{text}"
+        plan = generate_learning_plan(text)
+        user_data["learning_plan"] = plan
+        user_data["learning_plan_index"] = 0
+        text = format_reply(plan[0])
+        await message.reply_text(text, reply_markup=build_main_keyboard())
+        await add_lesson_log(
+            user.id,
+            0,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
+        state = LearnState(
+            topic=slug,
+            step=1,
+            last_step_text=text,
+            awaiting=True,
+        )
+        set_state(user_data, state)
+        await _persist(user.id, user_data, context.bot_data)
         return
     except (
         SQLAlchemyError,
@@ -305,8 +337,40 @@ async def _start_lesson(
         )
     except LessonNotFoundError:
         await message.reply_text(
-            LESSON_NOT_FOUND_MESSAGE, reply_markup=build_main_keyboard()
+            "Не нашёл учебные записи, пробую динамический режим…",
+            reply_markup=build_main_keyboard(),
         )
+        logger.warning(
+            "no_static_lessons; run dynamic",
+            extra={"hint": "make load-lessons"},
+        )
+        text = await generate_step_text(profile, topic_slug, 1, None)
+        if text is None or text == BUSY_MESSAGE:
+            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+            return
+        if not text.startswith(disclaimer()):
+            text = f"{disclaimer()}\n\n{text}"
+        plan = generate_learning_plan(text)
+        user_data["learning_plan"] = plan
+        user_data["learning_plan_index"] = 0
+        text = format_reply(plan[0])
+        await message.reply_text(text, reply_markup=build_main_keyboard())
+        await add_lesson_log(
+            from_user.id,
+            0,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
+        state = LearnState(
+            topic=topic_slug,
+            step=1,
+            last_step_text=text,
+            awaiting=True,
+        )
+        set_state(user_data, state)
+        await _persist(from_user.id, user_data, bot_data)
         return
     except (
         SQLAlchemyError,

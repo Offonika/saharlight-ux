@@ -118,6 +118,10 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
             continue
 
         i = end
+        if isinstance(obj, list):
+            if len(obj) == 1 and isinstance(obj[0], dict):
+                return obj[0]
+            continue
         queue: deque[object] = deque([obj])
         first_dict: dict[str, object] | None = None
         while queue:

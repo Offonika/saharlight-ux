@@ -56,31 +56,42 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(dynamic_handlers, "ensure_overrides", fake_ensure_overrides)
     monkeypatch.setattr(dynamic_handlers, "choose_initial_topic", lambda _p: ("slug", "t"))
     monkeypatch.setattr(dynamic_handlers, "build_main_keyboard", lambda: None)
-
-    async def fail_next_step(
-        user_id: int,
-        lesson_id: int,
-        profile: Mapping[str, str | None],
-        prev_summary: str | None = None,
-    ) -> tuple[str, bool]:
-        raise AssertionError("should not be called")
-
-    monkeypatch.setattr(dynamic_handlers.curriculum_engine, "next_step", fail_next_step)
+    monkeypatch.setattr(dynamic_handlers, "disclaimer", lambda: "")
 
     async def raise_start_lesson(user_id: int, slug: str) -> object:
         raise LessonNotFoundError(slug)
 
     monkeypatch.setattr(dynamic_handlers.curriculum_engine, "start_lesson", raise_start_lesson)
 
-    def fail_generate_learning_plan(_text: str) -> list[str]:
-        raise AssertionError("should not be called")
+    called: dict[str, int] = {"step": 0, "plan": 0, "log": 0}
 
-    monkeypatch.setattr(dynamic_handlers, "generate_learning_plan", fail_generate_learning_plan)
+    async def fake_generate_step_text(
+        profile: Mapping[str, str | None],
+        slug: str,
+        step: int,
+        prev_summary: str | None,
+    ) -> str:
+        called["step"] += 1
+        return "step text"
 
-    async def fail_add_log(*args: object, **kwargs: object) -> None:
-        raise AssertionError("should not be called")
+    monkeypatch.setattr(dynamic_handlers, "generate_step_text", fake_generate_step_text)
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
+    def fake_generate_learning_plan(text: str) -> list[str]:
+        called["plan"] += 1
+        return [f"plan: {text}"]
+
+    monkeypatch.setattr(dynamic_handlers, "generate_learning_plan", fake_generate_learning_plan)
+    monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
+
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        called["log"] += 1
+
+    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fake_add_log)
+
+    async def fake_persist(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(dynamic_handlers, "_persist", fake_persist)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -88,8 +99,13 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
 
     await dynamic_handlers.learn_command(update, context)
 
-    assert msg.replies == [dynamic_handlers.LESSON_NOT_FOUND_MESSAGE]
-    assert get_state(context.user_data) is None
+    assert msg.replies == [
+        "Не нашёл учебные записи, пробую динамический режим…",
+        "plan: step text",
+    ]
+    state = get_state(context.user_data)
+    assert state is not None
+    assert called == {"step": 1, "plan": 1, "log": 1}
 
 
 @pytest.mark.asyncio
@@ -109,25 +125,35 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(dynamic_handlers.curriculum_engine, "start_lesson", raise_start_lesson)
 
-    async def fail_next_step(
-        user_id: int,
-        lesson_id: int,
+    called: dict[str, int] = {"step": 0, "plan": 0, "log": 0}
+
+    async def fake_generate_step_text(
         profile: Mapping[str, str | None],
-        prev_summary: str | None = None,
-    ) -> tuple[str, bool]:
-        raise AssertionError("should not be called")
+        slug: str,
+        step: int,
+        prev_summary: str | None,
+    ) -> str:
+        called["step"] += 1
+        return "step text"
 
-    monkeypatch.setattr(dynamic_handlers.curriculum_engine, "next_step", fail_next_step)
+    monkeypatch.setattr(dynamic_handlers, "generate_step_text", fake_generate_step_text)
 
-    def fail_generate_learning_plan(_text: str) -> list[str]:
-        raise AssertionError("should not be called")
+    def fake_generate_learning_plan(text: str) -> list[str]:
+        called["plan"] += 1
+        return [f"plan: {text}"]
 
-    monkeypatch.setattr(dynamic_handlers, "generate_learning_plan", fail_generate_learning_plan)
+    monkeypatch.setattr(dynamic_handlers, "generate_learning_plan", fake_generate_learning_plan)
+    monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
 
-    async def fail_add_log(*args: object, **kwargs: object) -> None:
-        raise AssertionError("should not be called")
+    async def fake_add_log(*args: object, **kwargs: object) -> None:
+        called["log"] += 1
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
+    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fake_add_log)
+
+    async def fake_persist(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(dynamic_handlers, "_persist", fake_persist)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -135,5 +161,10 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
 
     await dynamic_handlers.lesson_command(update, context)
 
-    assert msg.replies == [dynamic_handlers.LESSON_NOT_FOUND_MESSAGE]
-    assert get_state(context.user_data) is None
+    assert msg.replies == [
+        "Не нашёл учебные записи, пробую динамический режим…",
+        "plan: step text",
+    ]
+    state = get_state(context.user_data)
+    assert state is not None
+    assert called == {"step": 1, "plan": 1, "log": 1}
