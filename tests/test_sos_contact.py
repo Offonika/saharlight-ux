@@ -59,7 +59,7 @@ async def test_soscontact_stores_contact(
         Update,
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
-    context = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())
+    context = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace(user_data={}))
 
     result = await sos_handlers.sos_contact_save(update, context)
 
@@ -70,6 +70,33 @@ async def test_soscontact_stores_contact(
         profile = session.get(Profile, 1)
         assert profile is not None
         assert profile.sos_contact == contact
+
+
+@pytest.mark.asyncio
+async def test_soscontact_creates_user(
+    test_session: sessionmaker[Session],
+) -> None:
+    message = DummyMessage("@alice")
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        ContextTypes.DEFAULT_TYPE, SimpleNamespace(user_data={"thread_id": "t"})
+    )
+
+    result = await sos_handlers.sos_contact_save(update, context)
+
+    assert result == sos_handlers.ConversationHandler.END
+    assert message.replies == ["✅ Контакт для SOS сохранён."]
+
+    with test_session() as session:
+        user = session.get(User, 1)
+        profile = session.get(Profile, 1)
+        assert user is not None
+        assert user.thread_id == "t"
+        assert profile is not None
+        assert profile.sos_contact == "@alice"
 
 
 @pytest.mark.asyncio
@@ -88,7 +115,7 @@ async def test_alert_notifies_user_and_contact(
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
     await sos_handlers.sos_contact_save(
-        update, cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())
+        update, cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace(user_data={}))
     )
 
     update_alert = cast(
