@@ -36,7 +36,9 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     trial_url = f"{base.rstrip('/')}/billing/trial"
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(trial_url, params={"user_id": user.id}, timeout=10.0)
+            resp = await client.post(
+                trial_url, params={"user_id": user.id}, timeout=10.0
+            )
             resp.raise_for_status()
             data = resp.json()
     except httpx.HTTPStatusError as exc:
@@ -62,19 +64,15 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                         end_raw = sub.get("endDate")
                         if isinstance(end_raw, str):
                             end_dt = datetime.fromisoformat(end_raw)
-            except Exception:  # pragma: no cover - best effort
-                pass
+            except Exception:
+                logger.exception("failed to fetch trial status")
             if end_dt is not None:
                 end_str = end_dt.strftime("%d.%m.%Y")
-                await message.reply_text(
-                    f"🎁 Пробный период уже активен до {end_str}"
-                )
+                await message.reply_text(f"🎁 Пробный период уже активен до {end_str}")
             else:
                 await message.reply_text("🎁 Пробный период уже активен")
             return
-        await message.reply_text(
-            "❌ Не удалось активировать trial. Попробуйте позже."
-        )
+        await message.reply_text("❌ Не удалось активировать trial. Попробуйте позже.")
         return
     except httpx.HTTPError:
         logger.exception("failed to start trial")
@@ -139,7 +137,9 @@ async def upgrade_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
 
 
-async def subscription_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def subscription_button(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Handle "Подписка" menu button."""
 
     message = update.message
@@ -150,7 +150,9 @@ async def subscription_button(update: Update, context: ContextTypes.DEFAULT_TYPE
     base = config.get_settings().api_url
     if not base:
         await message.reply_text("❌ Не настроен API_URL")
-        logger.info("billing_action=user_id:%s action=status result=no_api_url", user.id)
+        logger.info(
+            "billing_action=user_id:%s action=status result=no_api_url", user.id
+        )
         return
     url = f"{base.rstrip('/')}/billing/status"
     try:
@@ -177,7 +179,9 @@ async def subscription_button(update: Update, context: ContextTypes.DEFAULT_TYPE
         status = BillingStatusResponse.model_validate(data)
     except Exception:
         logger.exception("invalid billing status payload")
-        logger.info("billing_action=user_id:%s action=status result=bad_payload", user.id)
+        logger.info(
+            "billing_action=user_id:%s action=status result=bad_payload", user.id
+        )
         await message.reply_text("❌ Ошибка сервера.")
         return
     sub = status.subscription
@@ -188,7 +192,9 @@ async def subscription_button(update: Update, context: ContextTypes.DEFAULT_TYPE
     else:
         if sub.status == "trial":
             end_str = sub.endDate.strftime("%d.%m.%Y") if sub.endDate else ""
-            text = f"Пробный период до {end_str}" if end_str else "Пробный период активен"
+            text = (
+                f"Пробный период до {end_str}" if end_str else "Пробный период активен"
+            )
         elif sub.status == "active":
             end_str = sub.endDate.strftime("%d.%m.%Y") if sub.endDate else ""
             text = f"Подписка PRO до {end_str}" if end_str else "Подписка PRO активна"
