@@ -3,6 +3,7 @@ import {
   postOnboardingEvent,
   getOnboardingStatus,
 } from '../src/shared/api/onboarding';
+import { setTelegramInitData } from '../src/lib/telegram-auth';
 
 describe('onboarding api', () => {
   afterEach(() => {
@@ -10,6 +11,7 @@ describe('onboarding api', () => {
     vi.unstubAllGlobals();
     delete (window as any).Telegram;
     localStorage.clear();
+    setTelegramInitData('');
   });
 
   it('throws error when postOnboardingEvent request fails', async () => {
@@ -76,7 +78,7 @@ describe('onboarding api', () => {
       .fn()
       .mockResolvedValue(new Response(null, { status: 200 }));
     vi.stubGlobal('fetch', mockFetch);
-    vi.stubGlobal('location', { search: '?tgWebAppData=from-url' } as any);
+    vi.stubGlobal('location', { hash: '#tgWebAppData=from-url' } as any);
 
     await postOnboardingEvent('onboarding_started');
 

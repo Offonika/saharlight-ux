@@ -13,7 +13,7 @@ describe('hasInitData', () => {
   });
 
   it('returns true when tgWebAppData param present', () => {
-    vi.stubGlobal('location', { search: '?tgWebAppData=from-url' } as any);
+    vi.stubGlobal('location', { hash: '#tgWebAppData=from-url' } as any);
     expect(hasInitData()).toBe(true);
   });
 
