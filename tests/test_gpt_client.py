@@ -72,6 +72,63 @@ def test_get_async_client_multiple_loops(monkeypatch: pytest.MonkeyPatch) -> Non
     assert call_count == 2
 
 
+def test_create_chat_completion_multiple_loops(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    call_count = 0
+
+    class DummyAsyncClient:
+        def __init__(self) -> None:
+            self.chat = SimpleNamespace(
+                completions=SimpleNamespace(create=self._create)
+            )
+
+        async def _create(self, **_: Any) -> gpt_client.ChatCompletion:
+            return gpt_client.ChatCompletion.model_validate(
+                {
+                    "id": "1",
+                    "object": "chat.completion",
+                    "created": 0,
+                    "model": "gpt",
+                    "choices": [
+                        {
+                            "index": 0,
+                            "finish_reason": "stop",
+                            "message": {
+                                "role": "assistant",
+                                "content": "ok",
+                            },
+                        }
+                    ],
+                }
+            )
+
+        async def close(self) -> None:
+            return None
+
+    def fake_get_async_openai_client() -> DummyAsyncClient:
+        nonlocal call_count
+        call_count += 1
+        return DummyAsyncClient()
+
+    monkeypatch.setattr(
+        gpt_client, "get_async_openai_client", fake_get_async_openai_client
+    )
+    monkeypatch.setattr(
+        config, "get_settings", lambda: SimpleNamespace(openai_api_key="k")
+    )
+
+    async def run() -> gpt_client.ChatCompletion:
+        return await gpt_client.create_chat_completion(model="gpt", messages=[])
+
+    asyncio.run(gpt_client.dispose_openai_clients())
+    assert asyncio.run(run()).choices[0].message.content == "ok"
+    asyncio.run(gpt_client.dispose_openai_clients())
+    assert asyncio.run(run()).choices[0].message.content == "ok"
+    asyncio.run(gpt_client.dispose_openai_clients())
+    assert call_count == 2
+
+
 @pytest.mark.asyncio
 async def test_send_message_openaierror(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
