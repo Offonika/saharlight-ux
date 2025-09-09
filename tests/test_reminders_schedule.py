@@ -71,3 +71,11 @@ def test_quiet_window_cross_midnight_morning(
     next_dt = compute_next(rem, tz)
     assert next_dt == datetime(2024, 1, 1, 4, 0, tzinfo=timezone.utc)
 
+
+def test_quiet_window_dst_transition(monkeypatch: pytest.MonkeyPatch) -> None:
+    tz = ZoneInfo("Europe/Berlin")
+    _patch_now(monkeypatch, datetime(2024, 3, 31, 2, 30))
+    rem = Reminder(kind="every", interval_minutes=60)
+    next_dt = compute_next(rem, tz, quiet_start="02:00", quiet_end="04:00")
+    assert next_dt == datetime(2024, 3, 31, 2, 0, tzinfo=timezone.utc)
+
