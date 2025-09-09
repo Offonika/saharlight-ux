@@ -138,7 +138,7 @@ const Subscription = () => {
     if (typeof telegramId !== 'number') return;
     try {
       const { url } = await subscribePlan(String(telegramId), planId);
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     } catch (e) {
       toast({ title: 'Ошибка', description: String(e), variant: 'destructive' });
     }
