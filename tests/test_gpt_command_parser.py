@@ -538,10 +538,7 @@ def test_extract_first_json_multi_object_array() -> None:
     text = (
         '[{"action":"add_entry","fields":{}},' '{"action":"delete_entry","fields":{}}]'
     )
-    assert gpt_command_parser._extract_first_json(text) == {
-        "action": "add_entry",
-        "fields": {},
-    }
+    assert gpt_command_parser._extract_first_json(text) is None
 
 
 def test_extract_first_json_nested_object_wrapper() -> None:
