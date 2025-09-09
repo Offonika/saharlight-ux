@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 from typing import Iterable
 
-from services.api.app.config import settings
+from services.api.app.config import get_settings, reload_settings, settings
 
 # Expose commonly used environment variables so importing modules can
 # reference them directly if needed.  Values default to ``None`` when not
@@ -50,9 +50,13 @@ def validate_tokens(required: Iterable[str] | None = None) -> None:
 
     required_vars = list(required or [])
     missing = []
+
+    if "TELEGRAM_TOKEN" in required_vars:
+        reload_settings()
+
     for var in required_vars:
         if var == "TELEGRAM_TOKEN":
-            if not settings.telegram_token:
+            if not get_settings().telegram_token:
                 missing.append(var)
         elif not os.getenv(var):
             missing.append(var)
