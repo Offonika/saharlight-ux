@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
+from services.api.app.telegram_auth import check_token
 
 
 def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -24,7 +25,7 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)
     monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
-    server.app.dependency_overrides[server.require_tg_user] = lambda: {"id": 1}
+    server.app.dependency_overrides[check_token] = lambda: {"id": 1}
 
     with TestClient(server.app) as client:
         resp = client.patch(

@@ -18,7 +18,7 @@ from ..services.profile import (
     patch_user_settings,
     save_profile,
 )
-from ..telegram_auth import require_tg_user
+from ..telegram_auth import check_token
 
 
 logger = logging.getLogger(__name__)
@@ -27,14 +27,14 @@ router = APIRouter()
 
 
 @router.get("/profile/self")
-async def profile_self(user: UserContext = Depends(require_tg_user)) -> UserContext:
+async def profile_self(user: UserContext = Depends(check_token)) -> UserContext:
     """Return current user context."""
 
     return user
 
 
 @router.get("/profile", response_model=ProfileSchema)
-async def profile(user: UserContext = Depends(require_tg_user)) -> ProfileSchema:
+async def profile(user: UserContext = Depends(check_token)) -> ProfileSchema:
     """Return current profile settings."""
 
     def _get(session: Session) -> User | None:
@@ -53,7 +53,7 @@ async def profile(user: UserContext = Depends(require_tg_user)) -> ProfileSchema
 async def profile_patch(
     data: ProfileSettingsIn,
     device_tz: str | None = Query(None, alias="deviceTz"),
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> ProfileSchema:
     """Update profile settings."""
 
@@ -63,7 +63,7 @@ async def profile_patch(
 @router.post("/profile")
 async def profile_post(
     data: ProfileSchema,
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> dict[str, str]:
     """Create or overwrite full profile settings."""
 
