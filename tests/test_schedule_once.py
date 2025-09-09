@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import timedelta
 from types import SimpleNamespace
-from typing import Callable
+from typing import Callable, Coroutine
 
+import functools
 import pytest
 
-from services.api.app.diabetes.utils.jobs import schedule_once
+from services.api.app.diabetes.utils.jobs import JobCallback, schedule_once
 
 
 async def dummy_cb(context: object) -> None:  # pragma: no cover - simple callback
@@ -247,3 +248,32 @@ def test_schedule_once_propagates_internal_type_error_without_timezone() -> None
     jq = QueueNoTimezoneTypeError()
     with pytest.raises(TypeError):
         schedule_once(jq, dummy_cb, when=timedelta(seconds=1))
+
+
+async def callback_with_flag(context: object, *, flag: bool) -> None:  # pragma: no cover - helper
+    return None
+
+
+def decorator(
+    fn: Callable[[object], Coroutine[object, object, None]]
+) -> Callable[[object], Coroutine[object, object, None]]:
+    @functools.wraps(fn)
+    async def wrapper(*a: object, **kw: object) -> None:
+        await fn(*a, **kw)
+
+    return wrapper
+
+
+partial_cb = functools.partial(callback_with_flag, flag=True)
+
+
+@decorator
+async def decorated_cb(context: object) -> None:  # pragma: no cover - helper
+    return None
+
+
+@pytest.mark.parametrize("cb", [partial_cb, decorated_cb])
+def test_schedule_once_accepts_wrapped_coroutines(cb: JobCallback) -> None:
+    jq = QueueWithTimezone()
+    schedule_once(jq, cb, when=timedelta(seconds=1))
+    assert jq.args.callback is cb

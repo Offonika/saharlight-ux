@@ -6,6 +6,7 @@ which exposes job IDs and names for debug purposes.
 
 from __future__ import annotations
 
+import asyncio
 import inspect
 import logging
 from collections.abc import Callable, Coroutine, Iterable
@@ -73,7 +74,8 @@ def schedule_once(
     explicitly; otherwise the timezone is derived from the job queue's
     application or scheduler.
     """
-    if not inspect.iscoroutinefunction(callback):
+    cb = inspect.unwrap(callback)
+    if not callable(cb) or not asyncio.iscoroutinefunction(cb):
         msg = "Job callback must be async"
         raise TypeError(msg)
     tz = _derive_timezone(job_queue, timezone)
@@ -129,7 +131,8 @@ def schedule_daily(
     explicitly; otherwise the timezone is derived from the job queue's
     application or scheduler.
     """
-    if not inspect.iscoroutinefunction(callback):
+    cb = inspect.unwrap(callback)
+    if not callable(cb) or not asyncio.iscoroutinefunction(cb):
         msg = "Job callback must be async"
         raise TypeError(msg)
     tz = _derive_timezone(job_queue, timezone)
