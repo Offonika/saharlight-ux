@@ -94,7 +94,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
         profile: Mapping[str, str | None],
         prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        return "step1?", False
+        return f"{disclaimer()}\n\nstep1?", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -168,7 +168,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
         profile: Mapping[str, str | None],
         prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        return "step1?", False
+        return f"{disclaimer()}\n\nstep1?", False
 
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson

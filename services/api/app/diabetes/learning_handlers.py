@@ -18,7 +18,7 @@ from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
-from . import curriculum_engine  # noqa: F401
+from . import curriculum_engine
 from .learning_prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
 from .services.gpt_client import (
@@ -38,8 +38,6 @@ BUSY_KEY = "learn_busy"
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
-
-LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -243,8 +241,33 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.info(
         "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
     )
-    text = await generate_step_text(profile, slug, 1, None)
-    if text == BUSY_MESSAGE:
+    try:
+        progress = await curriculum_engine.start_lesson(user.id, slug)
+        text, _completed = await curriculum_engine.next_step(
+            user.id, progress.lesson_id, profile
+        )
+    except curriculum_engine.LessonNotFoundError:
+        await message.reply_text(
+            "Не нашёл учебные записи, пробую динамический режим…",
+            reply_markup=build_main_keyboard(),
+        )
+        logger.warning(
+            "no_static_lessons; run dynamic",
+            extra={"hint": "make load-lessons"},
+        )
+        text = await generate_step_text(profile, slug, 1, None)
+        if text == BUSY_MESSAGE:
+            await message.reply_text(
+                BUSY_MESSAGE, reply_markup=build_main_keyboard()
+            )
+            return
+        if not text.startswith(disclaimer()):
+            text = f"{disclaimer()}\n\n{text}"
+    except (SQLAlchemyError, OpenAIError, httpx.HTTPError, RuntimeError) as exc:
+        logger.exception("lesson start failed: %s", exc)
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
+    if text is None or text == BUSY_MESSAGE:
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
     plan = generate_learning_plan(text)
@@ -285,12 +308,35 @@ async def _start_lesson(
     logger.info(
         "learn_start", extra={"content_mode": "dynamic", "branch": "dynamic"}
     )
-    text = await generate_step_text(profile, topic_slug, 1, None)
-    if text == BUSY_MESSAGE:
+    try:
+        progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
+        text, _completed = await curriculum_engine.next_step(
+            from_user.id, progress.lesson_id, profile
+        )
+    except curriculum_engine.LessonNotFoundError:
+        await message.reply_text(
+            "Не нашёл учебные записи, пробую динамический режим…",
+            reply_markup=build_main_keyboard(),
+        )
+        logger.warning(
+            "no_static_lessons; run dynamic",
+            extra={"hint": "make load-lessons"},
+        )
+        text = await generate_step_text(profile, topic_slug, 1, None)
+        if text == BUSY_MESSAGE:
+            await message.reply_text(
+                BUSY_MESSAGE, reply_markup=build_main_keyboard()
+            )
+            return
+        if not text.startswith(disclaimer()):
+            text = f"{disclaimer()}\n\n{text}"
+    except (SQLAlchemyError, OpenAIError, httpx.HTTPError, RuntimeError) as exc:
+        logger.exception("lesson start failed: %s", exc)
         await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
         return
-    if not text.startswith(disclaimer()):
-        text = f"{disclaimer()}\n\n{text}"
+    if text is None or text == BUSY_MESSAGE:
+        await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
+        return
     plan = generate_learning_plan(text)
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = 0
