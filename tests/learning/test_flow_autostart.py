@@ -33,6 +33,10 @@ class DummyBot(Bot):
     def username(self) -> str:  # pragma: no cover - simple proxy
         return "bot"
 
+    @property
+    def id(self) -> int:  # pragma: no cover - simple proxy
+        return 0
+
     async def send_message(self, chat_id: int, text: str, **kwargs: Any) -> Message:
         msg = Message(
             message_id=len(self.sent) + 1,
@@ -57,16 +61,12 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
-    captured_profile: Mapping[str, str | None] = {}
-
     async def fake_next_step(
         user_id: int,
         lesson_id: int,
         profile: Mapping[str, str | None],
         prev_summary: str | None = None,
     ) -> tuple[str, bool]:
-        nonlocal captured_profile
-        captured_profile = profile
         return "шаг1", False
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
@@ -79,6 +79,30 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
     monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    async def fake_generate_step_text(*_a: object, **_k: object) -> str:
+        return "шаг1"
+
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    async def _noop(*_a: object, **_k: object) -> None:
+        return None
+
+    async def _create(*a: object, **k: object) -> SimpleNamespace:
+        return SimpleNamespace(id=1)
+
+    monkeypatch.setattr(
+        learning_handlers,
+        "plans_repo",
+        SimpleNamespace(
+            get_active_plan=_noop,
+            create_plan=_create,
+            update_plan=_noop,
+        ),
+    )
+    monkeypatch.setattr(
+        learning_handlers,
+        "progress_service",
+        SimpleNamespace(upsert_progress=_noop, cleanup_progress=_noop),
+    )
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
@@ -115,8 +139,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         )
     )
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
-    await app.process_update(Update(update_id=3, message=_msg(3, "2")))
-    await app.process_update(Update(update_id=4, message=_msg(4, "0")))
+    await app.process_update(Update(update_id=3, message=_msg(3, "0")))
 
     assert bot.sent[-1] == "шаг1"
     assert all(
@@ -125,10 +148,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
         and "Доступные темы" not in s
         for s in bot.sent
     )
-    assert captured_profile == {
-        "age_group": "adult",
-        "diabetes_type": "T2",
-        "learning_level": "novice",
-    }
+    overrides = app.user_data.get(user.id, {}).get("learn_profile_overrides")
+    assert overrides == {"age_group": "adult", "learning_level": "novice"}
 
     await app.shutdown()
