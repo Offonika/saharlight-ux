@@ -191,7 +191,8 @@ async def test_dispose_http_client_resets_all(
     assert openai_utils._async_http_client == {}
 
 
-def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_http_client = Mock()
     http_client_mock = Mock(return_value=fake_http_client)
     openai_mock = Mock()
@@ -204,7 +205,7 @@ def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(httpx, "Client", http_client_mock)
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
 
-    with openai_utils.openai_client_ctx() as client:
+    async with openai_utils.openai_client_ctx() as client:
         assert client is openai_mock.return_value
 
     fake_http_client.close.assert_called_once()
@@ -222,10 +223,9 @@ async def test_openai_client_ctx_disposes_with_running_loop(
     run_mock = Mock(side_effect=RuntimeError("asyncio.run should not be called"))
     monkeypatch.setattr(asyncio, "run", run_mock)
 
-    with openai_utils.openai_client_ctx():
+    async with openai_utils.openai_client_ctx():
         pass
 
-    await asyncio.sleep(0)
     dispose_mock.assert_awaited_once()
     run_mock.assert_not_called()
 
@@ -312,4 +312,3 @@ async def test_build_async_http_client_returns_separate_clients_for_each_proxy(
     await openai_utils.dispose_http_client()
     fake_async_client1.aclose.assert_awaited_once()
     fake_async_client2.aclose.assert_awaited_once()
-
