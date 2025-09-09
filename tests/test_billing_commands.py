@@ -2,6 +2,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import httpx
+import logging
 import pytest
 from telegram import Update
 from telegram.ext import CallbackContext
@@ -36,7 +37,9 @@ async def test_trial_command_success(monkeypatch: pytest.MonkeyPatch) -> None:
         async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
             pass
 
-        async def post(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+        async def post(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
             assert url == "http://api.test/api/billing/trial"
             assert params == {"user_id": 42}
             req = httpx.Request("POST", url)
@@ -93,7 +96,9 @@ async def test_trial_command_error(monkeypatch: pytest.MonkeyPatch) -> None:
         async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
             pass
 
-        async def post(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+        async def post(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
             raise httpx.HTTPError("boom")
 
     monkeypatch.setattr(billing_handlers.httpx, "AsyncClient", lambda: FailingClient())
@@ -133,11 +138,17 @@ async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> 
         async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
             pass
 
-        async def post(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+        async def post(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
             req = httpx.Request("POST", url)
-            return httpx.Response(409, request=req, json={"detail": "Trial already active"})
+            return httpx.Response(
+                409, request=req, json={"detail": "Trial already active"}
+            )
 
-        async def get(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+        async def get(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
             req = httpx.Request("GET", url)
             return httpx.Response(
                 200,
@@ -150,7 +161,9 @@ async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> 
     message = DummyMessage()
     update = cast(
         Update,
-        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=42), callback_query=None),
+        SimpleNamespace(
+            message=message, effective_user=SimpleNamespace(id=42), callback_query=None
+        ),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -167,7 +180,9 @@ async def test_trial_command_already_active(monkeypatch: pytest.MonkeyPatch) -> 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("payload", [{}, {"endDate": "oops"}, {"endDate": 123}])
-async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]) -> None:
+async def test_trial_command_bad_end_date(
+    monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
+) -> None:
     monkeypatch.setenv("API_URL", "http://api.test/api")
     monkeypatch.setenv("SUBSCRIPTION_URL", "")
     config.reload_settings()
@@ -179,7 +194,9 @@ async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, paylo
         async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
             pass
 
-        async def post(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+        async def post(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
             req = httpx.Request("POST", url)
             return httpx.Response(200, request=req, json=payload)
 
@@ -208,6 +225,65 @@ async def test_trial_command_bad_end_date(monkeypatch: pytest.MonkeyPatch, paylo
 
 
 @pytest.mark.asyncio
+async def test_trial_command_status_parse_error_logs(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("API_URL", "http://api.test/api")
+    monkeypatch.setenv("SUBSCRIPTION_URL", "")
+    config.reload_settings()
+
+    class DummyClient:
+        async def __aenter__(self) -> "DummyClient":
+            return self
+
+        async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+            pass
+
+        async def post(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
+            req = httpx.Request("POST", url)
+            return httpx.Response(
+                409, request=req, json={"detail": "Trial already active"}
+            )
+
+        async def get(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
+            req = httpx.Request("GET", url)
+            return httpx.Response(
+                200,
+                request=req,
+                json={"subscription": {"endDate": "bad"}},
+            )
+
+    monkeypatch.setattr(billing_handlers.httpx, "AsyncClient", lambda: DummyClient())
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(
+            message=message,
+            effective_user=SimpleNamespace(id=1),
+            callback_query=None,
+        ),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(),
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await billing_handlers.trial_command(update, context)
+
+    assert message.texts == ["🎁 Пробный период уже активен"]
+    assert any("failed to fetch trial status" in r.message for r in caplog.records)
+    monkeypatch.delenv("API_URL")
+    monkeypatch.delenv("SUBSCRIPTION_URL", raising=False)
+    config.reload_settings()
+
+
+@pytest.mark.asyncio
 async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PUBLIC_ORIGIN", "http://example.org")
     monkeypatch.setenv("SUBSCRIPTION_URL", "")
@@ -216,7 +292,9 @@ async def test_upgrade_command(monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = cast(
         Update,
-        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1), callback_query=None),
+        SimpleNamespace(
+            message=message, effective_user=SimpleNamespace(id=1), callback_query=None
+        ),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -312,7 +390,9 @@ async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None
         async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
             pass
 
-        async def get(self, url: str, params: dict[str, int], timeout: float) -> httpx.Response:
+        async def get(
+            self, url: str, params: dict[str, int], timeout: float
+        ) -> httpx.Response:
             nonlocal idx
             data = statuses[idx]
             idx += 1
@@ -350,7 +430,9 @@ async def test_subscription_status_flow(monkeypatch: pytest.MonkeyPatch) -> None
     trial_btn, upgrade_btn = first_row
     assert trial_btn.text == "🎁 Trial" and trial_btn.callback_data == "trial"
     assert upgrade_btn.text == "💳 Оформить PRO"
-    assert upgrade_btn.web_app and upgrade_btn.web_app.url == config.build_ui_url("/subscription")
+    assert upgrade_btn.web_app and upgrade_btn.web_app.url == config.build_ui_url(
+        "/subscription"
+    )
     # Subsequent keyboards only offer upgrade
     for kb in message.markups[1:]:
         assert len(kb.inline_keyboard[0]) == 1
