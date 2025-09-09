@@ -255,8 +255,9 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         getattr(profile, field, None) is None for field in ("target", "low", "high")
     ):
         try:
-            profile_service.db.SessionLocal = SessionLocal
-            profile = await profile_service.get_profile(user_id)
+            profile = await profile_service.get_profile(
+                user_id, sessionmaker=SessionLocal
+            )
         except HTTPException as exc:
             if exc.status_code != 404:
                 logger.exception("failed to fetch profile from DB for %s", user_id)
@@ -429,7 +430,10 @@ async def profile_webapp_save(
     if settings is not None or device_tz is not None:
         try:
             await profile_service.patch_user_settings(
-                user_id, settings or ProfileSettingsIn(), device_tz
+                user_id,
+                settings or ProfileSettingsIn(),
+                device_tz,
+                sessionmaker=SessionLocal,
             )
         except HTTPException:
             await eff_msg.reply_text(
@@ -465,7 +469,9 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = cast(Message, query.message)
     await query.answer()
     await message.delete()
-    await message.reply_text("📋 Выберите действие:", reply_markup=build_main_keyboard())
+    await message.reply_text(
+        "📋 Выберите действие:", reply_markup=build_main_keyboard()
+    )
 
 
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
