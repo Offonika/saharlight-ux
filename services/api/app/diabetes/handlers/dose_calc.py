@@ -251,7 +251,15 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         cf=profile.cf,
         target_bg=profile.target_bg,
     )
-    dose = calc_bolus(carbs_g, sugar, patient)
+    try:
+        dose = calc_bolus(carbs_g, sugar, patient)
+    except ValueError:
+        await message.reply_text(
+            "Некорректные коэффициенты в профиле. Настройте их через /profile.",
+            reply_markup=build_main_keyboard(),
+        )
+        user_data.pop("pending_entry", None)
+        return END
     entry["dose"] = dose
 
     user_data["pending_entry"] = entry
@@ -342,18 +350,10 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{DOSE_BUTTON_TEXT}$"), dose_start),
     ],
     states={
-        DoseState.METHOD: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
-        ],
-        DoseState.XE: [
-            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)
-        ],
-        DoseState.CARBS: [
-            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)
-        ],
-        DoseState.SUGAR: [
-            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)
-        ],
+        DoseState.METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
+        DoseState.XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
+        DoseState.CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
+        DoseState.SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
         PHOTO_SUGAR: [
             MessageHandler(
                 filters.Regex(r"^-?\d+(?:[.,]\d+)?$"),
