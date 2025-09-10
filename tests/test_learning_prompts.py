@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from services.api.app.diabetes.learning_prompts import (
+from services.api.app.diabetes.prompts import (
     SYSTEM_TUTOR_RU,
     build_explain_step,
     build_feedback,

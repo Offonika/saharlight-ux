@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
-from .learning_prompts import (
+from .prompts import (
     SYSTEM_TUTOR_RU,
     build_explain_step,
     build_feedback,

@@ -25,6 +25,7 @@ from pydantic import BaseModel, TypeAdapter
 from sqlalchemy.orm import Session
 
 from .models_learning import Lesson, LessonProgress, LessonStep, QuizQuestion
+from .prompts import LESSONS_V0_PATH
 from .services.db import SessionLocal, SessionMaker, init_db, run_db
 from .services.repository import CommitError, commit
 
@@ -49,9 +50,7 @@ class LessonModel(BaseModel):
 LESSON_LIST = TypeAdapter(list[LessonModel])
 
 
-DEFAULT_CONTENT_FILE = (
-    Path(__file__).resolve().parents[4] / "content" / "lessons_v0.json"
-)
+DEFAULT_CONTENT_FILE = LESSONS_V0_PATH
 
 
 async def load_lessons(

@@ -38,6 +38,7 @@ from services.api.app.diabetes.services.gpt_client import (
     create_thread,
 )
 from services.api.app.diabetes.services.repository import CommitError, commit
+from ..prompts import REPORT_ANALYSIS_PROMPT_TEMPLATE
 from services.api.app.diabetes.services.reporting import (
     make_sugar_plot,
     generate_pdf_report,
@@ -334,11 +335,11 @@ async def send_report(
     errors_text = "\n".join(errors) if errors else "нет"
     days_text = "\n".join(day_lines)
 
-    prompt = (
-        "Проанализируй дневник диабета пользователя и предложи краткие рекомендации."
-        "\n\nСводка:\n{summary}\n\nОшибки и критические значения:\n{errors}"
-        "\n\nДанные по дням:\n{days}\n"
-    ).format(summary=summary_text, errors=errors_text, days=days_text)
+    prompt = REPORT_ANALYSIS_PROMPT_TEMPLATE.format(
+        summary=summary_text,
+        errors=errors_text,
+        days=days_text,
+    )
 
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text: str | None = default_gpt_text

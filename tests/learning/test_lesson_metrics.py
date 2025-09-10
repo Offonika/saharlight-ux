@@ -12,6 +12,7 @@ from services.api.app.diabetes.curriculum_engine import (
 )
 from services.api.app.config import settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
+from services.api.app.diabetes.prompts import LESSONS_V0_PATH
 from services.api.app.diabetes.models_learning import (
     Lesson,
     LessonProgress,
@@ -33,7 +34,7 @@ async def test_lesson_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     await load_lessons(
-        "content/lessons_v0.json",
+        LESSONS_V0_PATH,
         sessionmaker=db.SessionLocal,
     )
 

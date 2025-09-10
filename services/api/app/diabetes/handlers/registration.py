@@ -54,8 +54,9 @@ GPT_TIMEOUT = datetime.timedelta(minutes=5)
 
 async def _gpt_timeout(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Clear GPT dialog flag on timeout."""
-    user_id = context.job.data
-    if user_id is None:
+    job = context.job
+    user_id = job.data if job is not None else None
+    if not isinstance(user_id, int):
         return
     user_data = context.application.user_data.get(user_id)
     if isinstance(user_data, dict):
@@ -67,6 +68,8 @@ async def start_gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     message = update.message
     if message is None:
         return
+    if context.user_data is None:
+        context.user_data = {}
     context.user_data[GPT_MODE_KEY] = True
     jq = context.job_queue
     user = update.effective_user
@@ -87,7 +90,8 @@ async def start_gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Cancel current operation and clear GPT dialog flag."""
-    context.user_data.pop(GPT_MODE_KEY, None)
+    if context.user_data is not None:
+        context.user_data.pop(GPT_MODE_KEY, None)
     jq = context.job_queue
     user = update.effective_user
     if jq and user is not None:
