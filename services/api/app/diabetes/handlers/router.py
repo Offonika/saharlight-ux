@@ -48,6 +48,7 @@ async def handle_confirm_entry(
         try:
             commit(session)
         except CommitError:
+            user_data["pending_entry"] = entry_data
             await query.edit_message_text("⚠️ Не удалось сохранить запись.")
             return
     sugar = entry_data.get("sugar_before")

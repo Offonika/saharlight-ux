@@ -186,6 +186,7 @@ async def test_callback_router_commit_failure(
     assert session.rollback.called
     assert "DB commit failed" in caplog.text
     assert query.edited == ["⚠️ Не удалось сохранить запись."]
+    assert context.user_data["pending_entry"] == pending_entry
 
 
 @pytest.mark.asyncio
