@@ -5,12 +5,11 @@ import logging
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone, timedelta
 
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from services.api.app.config import settings
 from services.api.app.assistant.models import LessonLog
-from services.api.app.diabetes.metrics import lesson_log_failures
+from services.api.app.diabetes.metrics import lesson_log_failures, pending_logs_size
 from services.api.app.diabetes.services.db import SessionLocal, run_db, User
 from services.api.app.diabetes.services.monitoring import notify
 from services.api.app.diabetes.services.repository import commit
@@ -48,22 +47,24 @@ async def flush_pending_logs() -> None:
     """Flush accumulated logs to the database."""
     async with pending_logs_lock:
         if not pending_logs:
+            pending_logs_size.set(0)
             return
 
         queued = pending_logs.copy()
         pending_logs.clear()
+        pending_logs_size.set(0)
 
     def _flush(session: Session) -> list[_PendingLog]:
         missing: list[_PendingLog] = []
+        to_insert: list[LessonLog] = []
         for log in queued:
             if session.get(User, log.user_id) is None:
                 missing.append(log)
                 continue
-            session.add(LessonLog(**asdict(log)))
-            try:
-                session.commit()
-            except IntegrityError:
-                session.rollback()
+            to_insert.append(LessonLog(**asdict(log)))
+        if to_insert:
+            session.add_all(to_insert)
+            commit(session)
         return missing
 
     try:
@@ -72,6 +73,7 @@ async def flush_pending_logs() -> None:
         lesson_log_failures.inc(len(queued))
         async with pending_logs_lock:
             pending_logs.extend(queued)
+            pending_logs_size.set(len(pending_logs))
         if settings.learning_logging_required:
             raise
         return
@@ -79,6 +81,7 @@ async def flush_pending_logs() -> None:
     if missing:
         async with pending_logs_lock:
             pending_logs.extend(missing)
+            pending_logs_size.set(len(pending_logs))
 
 
 async def add_lesson_log(
@@ -101,6 +104,7 @@ async def add_lesson_log(
                 content=content,
             )
         )
+        pending_logs_size.set(len(pending_logs))
 
     await flush_pending_logs()
 

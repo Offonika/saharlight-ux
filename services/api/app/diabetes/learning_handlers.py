@@ -36,6 +36,7 @@ from services.api.app.assistant.repositories.logs import (
     pending_logs,
     safe_add_lesson_log,
 )
+from services.api.app.diabetes.metrics import pending_logs_size, step_advance_total
 from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.repositories.learning_profile import (
     get_learning_profile,
@@ -621,15 +622,14 @@ async def lesson_answer_handler(
                     await progress_repo.upsert_progress(telegram_id, plan_id, data)
                 except (SQLAlchemyError, RuntimeError) as exc:
                     logger.exception("persist progress failed: %s", exc)
+        log_user_ok = log_feedback_ok = log_next_ok = False
         if telegram_id is not None:
             module_idx = cast(int, user_data.get("learning_module_idx", 0))
-            for step_idx, role in [
-                (prev_step, "user"),
-                (prev_step, "assistant"),
-                (state.step, "assistant"),
-            ]:
+
+            async def _record(step_idx: int, role: str) -> bool:
+                ok = False
                 try:
-                    await safe_add_lesson_log(
+                    ok = await safe_add_lesson_log(
                         telegram_id,
                         0,
                         module_idx,
@@ -649,6 +649,29 @@ async def lesson_answer_handler(
                             content="",
                         )
                     )
+                    pending_logs_size.set(len(pending_logs))
+                return ok
+
+            log_user_ok = await _record(prev_step, "user")
+            log_feedback_ok = await _record(prev_step, "assistant")
+            log_next_ok = await _record(state.step, "assistant")
+
+        pending_count = len(pending_logs)
+        logger.info(
+            "lesson step advance",
+            extra={
+                "lesson_flow": {
+                    "user_id": telegram_id,
+                    "step_before": prev_step,
+                    "step_after": state.step,
+                    "log_user_ok": log_user_ok,
+                    "log_feedback_ok": log_feedback_ok,
+                    "log_next_ok": log_next_ok,
+                    "pending_count": pending_count,
+                }
+            },
+        )
+        step_advance_total.inc()
     finally:
         user_data[BUSY_KEY] = False
         state.awaiting = True
