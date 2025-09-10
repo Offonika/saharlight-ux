@@ -480,18 +480,18 @@ const Profile = ({ therapyType: therapyTypeProp }: ProfileProps) => {
       }
 
       await saveProfile(payload);
-      if (Object.keys(data.patch).length > 0) {
-        await patchProfileMutation.mutateAsync(data.patch);
-      }
+      await patchProfileMutation.mutateAsync(data.patch);
       queryClient.invalidateQueries({ queryKey: ["profile"] });
       setOriginal(profile);
       if (data.therapyType) {
         setOriginalTherapyType(therapyTypeValue);
       }
-      toast({
-        title: t('profile.saved'),
-        description: t('profile.settingsUpdated'),
-      });
+      const noChanges = Object.keys(data.patch).length === 0;
+      toast(
+        noChanges
+          ? { title: t('profile.noChanges') }
+          : { title: t('profile.saved'), description: t('profile.settingsUpdated') },
+      );
       postOnboardingEvent('profile_saved', onboardingStep, {
         timezone_set: Boolean(profile.timezone),
       }).catch(() => undefined);
