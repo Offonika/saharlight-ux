@@ -18,6 +18,20 @@ export MPLCONFIGDIR="${MPLCONFIGDIR:-/opt/saharlight-ux/data/mpl-cache}"
 mkdir -p "$MPLCONFIGDIR"
 chmod 700 "$MPLCONFIGDIR"
 
+# Validate that Matplotlib uses the configured directory and it's writable
+python - <<'PY'
+import os
+import sys
+import matplotlib
+
+cfg = matplotlib.get_configdir()
+expected = os.environ["MPLCONFIGDIR"]
+if os.path.realpath(cfg) != os.path.realpath(expected):
+    raise SystemExit(f"matplotlib config dir {cfg!r} doesn't match {expected!r}")
+if not os.access(cfg, os.W_OK):
+    raise SystemExit(f"matplotlib config dir {cfg!r} is not writable")
+PY
+
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 
 # basic sanity checks for required configuration

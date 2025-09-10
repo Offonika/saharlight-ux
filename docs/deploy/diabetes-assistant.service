@@ -9,8 +9,7 @@ PermissionsStartOnly=true
 WorkingDirectory=/opt/saharlight-ux
 EnvironmentFile=/opt/saharlight-ux/.env
 Environment=MPLCONFIGDIR=/var/cache/diabetes-bot/mpl
-ExecStartPre=/usr/bin/mkdir -p /var/cache/diabetes-bot/mpl
-ExecStartPre=/usr/bin/chown www-data:www-data /var/cache/diabetes-bot/mpl
+ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /var/cache/diabetes-bot/mpl
 ExecStart=/usr/bin/env uvicorn services.api.app.main:app --host 0.0.0.0 --port 8000 --workers 4
 Restart=on-failure
 RestartSec=5
