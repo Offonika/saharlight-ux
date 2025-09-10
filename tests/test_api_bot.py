@@ -5,16 +5,18 @@ from __future__ import annotations
 import importlib
 import logging
 import sys
+from pathlib import Path
 
 import pytest
 
 
-def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """main builds Application with token and runs polling."""
 
     monkeypatch.setenv("DB_PASSWORD", "pwd")
     monkeypatch.setenv("TELEGRAM_TOKEN", "token")
     monkeypatch.setenv("UI_BASE_URL", "https://ui")
+    monkeypatch.setenv("BOT_PERSISTENCE_PATH", str(tmp_path / "data.pkl"))
 
     sys.modules.pop("services.api.app.bot", None)
     bot = importlib.import_module("services.api.app.bot")
@@ -44,9 +46,14 @@ def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPat
     class DummyBuilder:
         def __init__(self) -> None:
             self.token_value: str | None = None
+            self.persistence_obj: object | None = None
 
         def token(self, value: str) -> "DummyBuilder":
             self.token_value = value
+            return self
+
+        def persistence(self, obj: object) -> "DummyBuilder":
+            self.persistence_obj = obj
             return self
 
         def build(self) -> DummyApp:
@@ -69,9 +76,7 @@ def test_main_attaches_onboarding_handler_and_runs(monkeypatch: pytest.MonkeyPat
     assert captured["url"] == "https://ui"
 
 
-def test_main_fails_without_token(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_main_fails_without_token(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     """main exits with error when TELEGRAM_TOKEN is missing."""
 
     monkeypatch.setenv("DB_PASSWORD", "pwd")
