@@ -5,12 +5,15 @@
 Description=Diabetes Telegram bot
 After=network.target
 
+# Service configuration
 [Service]
 Type=simple
+User=www-data
+PermissionsStartOnly=true
 WorkingDirectory=/srv/diabetes-bot
 EnvironmentFile=/srv/diabetes-bot/.env
-Environment=MPLCONFIGDIR=/opt/saharlight-ux/data/mpl-cache
-ExecStartPre=/usr/bin/install -d -m 700 /opt/saharlight-ux/data/mpl-cache
+Environment=MPLCONFIGDIR=/var/cache/diabetes-bot/mpl
+ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /var/cache/diabetes-bot/mpl
 ExecStartPre=/usr/bin/curl -fsS "$PUBLIC_ORIGIN/health"
 ExecStart=/srv/diabetes-bot/scripts/run_bot.sh
 Restart=on-failure
