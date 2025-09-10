@@ -176,6 +176,37 @@ async def test_save_profile_partial_icr_cf(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 @pytest.mark.asyncio
+async def test_save_profile_marks_onboarding_complete(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
+    monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t", onboarding_complete=False))
+        session.commit()
+
+    profile = ProfileSchema(
+        telegramId=1,
+        icr=1.0,
+        cf=1.0,
+        target=5.0,
+        low=4.0,
+        high=6.0,
+    )
+    await profile_service.save_profile(profile)
+
+    with TestSession() as session:
+        user = session.get(User, 1)
+        assert user is not None and user.onboarding_complete is True
+
+    engine.dispose()
+
+
+@pytest.mark.asyncio
 async def test_profile_view_uses_local_profile_on_stale_api(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

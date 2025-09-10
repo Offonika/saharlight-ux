@@ -66,4 +66,23 @@ def test_profile_get_requires_onboarding(
         session.commit()
     with TestClient(server.app) as client:
         resp = client.get("/api/profile", headers=auth_headers)
-    assert resp.status_code == 422
+        assert resp.status_code == 422
+
+        payload = {
+            "telegramId": 1,
+            "icr": 1.0,
+            "cf": 1.0,
+            "target": 5.0,
+            "low": 4.0,
+            "high": 6.0,
+        }
+        post_resp = client.post("/api/profile", json=payload, headers=auth_headers)
+        assert post_resp.status_code == 200
+
+        resp_ok = client.get("/api/profile", headers=auth_headers)
+        assert resp_ok.status_code == 200
+        assert resp_ok.json()["icr"] == 1.0
+
+    with SessionLocal() as session:
+        user = session.get(db.User, 1)
+        assert user is not None and user.onboarding_complete is True
