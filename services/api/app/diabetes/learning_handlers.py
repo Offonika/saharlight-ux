@@ -24,7 +24,7 @@ from .learning_utils import choose_initial_topic
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
 from .curriculum_engine import LessonNotFoundError, ProgressNotFoundError
-from .learning_prompts import build_system_prompt, disclaimer
+from .prompts import build_system_prompt, disclaimer
 from .llm_router import LLMTask
 from .services.gpt_client import (
     create_learning_chat_completion,

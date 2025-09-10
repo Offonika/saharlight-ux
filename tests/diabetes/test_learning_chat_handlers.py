@@ -9,7 +9,7 @@ from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
 from services.api.app.diabetes import dynamic_tutor, learning_handlers
-from services.api.app.diabetes.learning_prompts import disclaimer
+from services.api.app.diabetes.prompts import disclaimer
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan

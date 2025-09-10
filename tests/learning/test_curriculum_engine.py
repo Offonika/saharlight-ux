@@ -18,7 +18,7 @@ from services.api.app.diabetes.curriculum_engine import (
 )
 from services.api.app.diabetes.dynamic_tutor import BUSY_MESSAGE
 from services.api.app.diabetes.learning_fixtures import load_lessons
-from services.api.app.diabetes.learning_prompts import disclaimer
+from services.api.app.diabetes.prompts import LESSONS_V0_PATH, disclaimer
 from services.api.app.diabetes.models_learning import (
     Lesson,
     LessonProgress,
@@ -47,7 +47,7 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     await load_lessons(
-        "content/lessons_v0.json",
+        LESSONS_V0_PATH,
         sessionmaker=db.SessionLocal,
     )
 

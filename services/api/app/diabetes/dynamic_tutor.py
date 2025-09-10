@@ -7,7 +7,7 @@ import httpx
 from openai import OpenAIError
 from openai.types.chat import ChatCompletionMessageParam
 
-from .learning_prompts import build_system_prompt, build_user_prompt_step
+from .prompts import build_system_prompt, build_user_prompt_step
 from .llm_router import LLMTask
 from .services.gpt_client import create_learning_chat_completion
 

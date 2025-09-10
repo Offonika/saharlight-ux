@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import logging
@@ -10,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes import learning_fixtures
 from services.api.app.diabetes.models_learning import Lesson, QuizQuestion
+from services.api.app.diabetes.prompts import LESSONS_V0_PATH
 from services.api.app.diabetes.services import db
 
 
@@ -23,7 +23,7 @@ async def test_load_lessons_v0() -> None:
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
     try:
-        path = Path(__file__).resolve().parents[2] / "content/lessons_v0.json"
+        path = LESSONS_V0_PATH
         await learning_fixtures.load_lessons(path, sessionmaker=db.SessionLocal)
         with db.SessionLocal() as session:
             lessons = session.query(Lesson).all()
@@ -56,7 +56,7 @@ async def test_main_loads_lessons(
         db.SessionLocal.configure(bind=engine)
         db.Base.metadata.create_all(bind=engine)
 
-    path = Path(__file__).resolve().parents[2] / "content/lessons_v0.json"
+    path = LESSONS_V0_PATH
     with patch(
         "services.api.app.diabetes.learning_fixtures.init_db", side_effect=fake_init_db
     ) as init_db_mock, caplog.at_level(logging.INFO):

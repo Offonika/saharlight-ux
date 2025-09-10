@@ -23,6 +23,7 @@ from services.api.app.diabetes.services.gpt_client import (
 from services.api.app.diabetes.services.repository import CommitError, commit
 from services.api.app.diabetes.utils.functions import extract_nutrition_info
 from services.api.app.ui.keyboard import build_main_keyboard
+from ..prompts import PHOTO_ANALYSIS_PROMPT
 
 from . import EntryData, UserData
 
@@ -134,19 +135,7 @@ async def photo_handler(
         try:
             run = await send_message(
                 thread_id=thread_id,
-                content=(
-                    "Определи название блюда, вес порции и его пищевую "
-                    "ценность (белки, жиры, углеводы, калории, хлебные "
-                    "единицы). Учитывай изображение и текстовое описание, "
-                    "если они есть. Ответ на русском языке в формате:\n"
-                    "<название блюда>\n"
-                    "Вес: <...> г\n"
-                    "Белки: <...> г\n"
-                    "Жиры: <...> г\n"
-                    "Углеводы: <...> г\n"
-                    "Калории: <...> ккал\n"
-                    "ХЕ: <...>"
-                ),
+                content=PHOTO_ANALYSIS_PROMPT,
                 image_bytes=file_bytes,
             )
         except asyncio.TimeoutError:

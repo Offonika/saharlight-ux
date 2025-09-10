@@ -1,10 +1,11 @@
-"""Prompt templates for diabetes learning module."""
+"""Central storage for GPT prompt templates and instructions."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
+from pathlib import Path
 from textwrap import dedent
-
 
 MAX_PROMPT_LEN = 1_500
 
@@ -17,6 +18,7 @@ def _trim(text: str, limit: int = MAX_PROMPT_LEN) -> str:
 
 def disclaimer() -> str:
     """Return the standard medical warning."""
+
     return "Проконсультируйтесь с врачом."
 
 
@@ -31,12 +33,14 @@ SYSTEM_TUTOR_RU = (
 
 def build_explain_step(step: str) -> str:
     """Build a prompt asking and explaining a learning step."""
+
     prompt = f"Что ты знаешь о {step}? Объясни.".strip()
     return prompt
 
 
 def build_quiz_check(question: str, options: list[str]) -> str:
     """Build a prompt that checks knowledge with multiple options."""
+
     opts = "; ".join(options)
     prompt = f"{question}? Варианты: {opts}. Выбери один.".strip()
     return prompt
@@ -44,6 +48,7 @@ def build_quiz_check(question: str, options: list[str]) -> str:
 
 def build_feedback(correct: bool, explanation: str) -> str:
     """Build feedback for quiz answers."""
+
     prefix = "Верно." if correct else "Неверно."
     prompt = f"{prefix} {explanation}".strip()
     return prompt
@@ -93,3 +98,45 @@ def build_user_prompt_step(topic_slug: str, step_idx: int, prev_summary: str | N
         "Сначала объясни, затем задай один вопрос. Ответ не показывай."
     )
     return _trim(prompt)
+
+
+PHOTO_ANALYSIS_PROMPT = (
+    "Определи название блюда, вес порции и его пищевую "
+    "ценность (белки, жиры, углеводы, калории, хлебные "
+    "единицы). Учитывай изображение и текстовое описание, "
+    "если они есть. Ответ на русском языке в формате:\n"
+    "<название блюда>\n"
+    "Вес: <...> г\n"
+    "Белки: <...> г\n"
+    "Жиры: <...> г\n"
+    "Углеводы: <...> г\n"
+    "Калории: <...> ккал\n"
+    "ХЕ: <...>"
+)
+
+REPORT_ANALYSIS_PROMPT_TEMPLATE = (
+    "Проанализируй дневник диабета пользователя и предложи краткие рекомендации."
+    "\n\nСводка:\n{summary}\n\nОшибки и критические значения:\n{errors}"
+    "\n\nДанные по дням:\n{days}\n"
+)
+
+LESSONS_V0_PATH = Path(__file__).resolve().parents[5] / "content" / "lessons_v0.json"
+
+with LESSONS_V0_PATH.open(encoding="utf-8") as fp:
+    LESSONS_V0_DATA = json.load(fp)
+
+__all__ = [
+    "MAX_PROMPT_LEN",
+    "disclaimer",
+    "SYSTEM_TUTOR_RU",
+    "build_explain_step",
+    "build_quiz_check",
+    "build_feedback",
+    "build_system_prompt",
+    "build_user_prompt_step",
+    "PHOTO_ANALYSIS_PROMPT",
+    "REPORT_ANALYSIS_PROMPT_TEMPLATE",
+    "LESSONS_V0_PATH",
+    "LESSONS_V0_DATA",
+]
+

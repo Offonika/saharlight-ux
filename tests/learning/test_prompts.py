@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from services.api.app.diabetes.learning_prompts import (
+from services.api.app.diabetes.prompts import (
     build_system_prompt,
     build_user_prompt_step,
 )
