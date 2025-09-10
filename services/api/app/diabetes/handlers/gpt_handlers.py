@@ -37,6 +37,7 @@ from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.diabetes.services import gpt_client
 from services.api.app.config import settings
 from services.api.app.assistant.services import memory_service
+from .registration import GPT_MODE_KEY
 
 from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
@@ -629,6 +630,10 @@ async def freeform_handler(
     raw_text = text.strip()
     user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
+
+    if user_data.get(GPT_MODE_KEY):
+        await chat_with_gpt(update, context)
+        return
 
     if await _handle_report_request(
         raw_text,
