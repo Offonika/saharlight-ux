@@ -2,6 +2,7 @@ const profile = {
   title: 'Мой профиль',
   save: 'Сохранить настройки',
   saved: 'Профиль сохранен',
+  noChanges: 'Изменений не было',
   settingsUpdated: 'Ваши настройки успешно обновлены',
   updated: 'Профиль обновлен',
   timezoneUpdated: 'Часовой пояс обновлен',
