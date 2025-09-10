@@ -94,9 +94,7 @@ def test_profiles_get_db_connection_error_returns_503(
     assert resp.json() == {"detail": "database temporarily unavailable"}
 
 
-def test_profiles_post_user_missing_returns_404(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_profiles_post_creates_user(monkeypatch: pytest.MonkeyPatch) -> None:
     app = FastAPI()
     app.include_router(router, prefix="/api")
     engine = create_engine(
@@ -119,7 +117,12 @@ def test_profiles_post_user_missing_returns_404(
     }
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    with TestSession() as session:
+        user = session.get(db.User, 777)
+        assert user is not None
+        assert user.thread_id == "api"
+        assert user.onboarding_complete is True
     engine.dispose()
 
 
