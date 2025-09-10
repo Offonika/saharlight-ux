@@ -69,8 +69,8 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
     inserted: list[LessonLog] = []
 
     class DummySession:
-        def add_all(self, objs: list[LessonLog]) -> None:
-            inserted.extend(objs)
+        def add(self, obj: LessonLog) -> None:  # pragma: no cover - test helper
+            inserted.append(obj)
 
         def get(self, *args: object, **kwargs: object) -> object | None:
             return object()
@@ -100,8 +100,8 @@ async def test_flush_does_not_block_new_logs(
     inserted: list[LessonLog] = []
 
     class DummySession:
-        def add_all(self, objs: list[LessonLog]) -> None:
-            inserted.extend(objs)
+        def add(self, obj: LessonLog) -> None:  # pragma: no cover - test helper
+            inserted.append(obj)
 
         def get(self, *args: object, **kwargs: object) -> object | None:
             return object()

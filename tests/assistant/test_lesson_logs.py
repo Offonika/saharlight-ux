@@ -138,3 +138,37 @@ async def test_cleanup_old_logs(session_factory: sessionmaker[Session]) -> None:
             log.content for log in session.query(LessonLog).order_by(LessonLog.id)
         ]
         assert contents == ["new"]
+
+
+@pytest.mark.asyncio
+async def test_reflushing_same_log_drops_duplicates(
+    session_factory: sessionmaker[Session],
+) -> None:
+    logs.pending_logs.clear()
+
+    with session_factory() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.add(
+            LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1)
+        )
+        session.commit()
+
+    log = logs._PendingLog(
+        user_id=1,
+        plan_id=1,
+        module_idx=0,
+        step_idx=0,
+        role="assistant",
+        content="hello",
+    )
+
+    async with logs.pending_logs_lock:
+        logs.pending_logs.append(log)
+    await flush_pending_logs()
+
+    async with logs.pending_logs_lock:
+        logs.pending_logs.append(log)
+    await flush_pending_logs()
+
+    with session_factory() as session:
+        assert session.query(LessonLog).count() == 1

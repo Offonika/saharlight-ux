@@ -33,7 +33,17 @@ class LessonLog(Base):
     """Stores conversation steps within a learning plan."""
 
     __tablename__ = "lesson_logs"
-    __table_args__ = (sa.Index("ix_lesson_logs_user_plan", "user_id", "plan_id"),)
+    __table_args__ = (
+        sa.Index("ix_lesson_logs_user_plan", "user_id", "plan_id"),
+        sa.UniqueConstraint(
+            "user_id",
+            "plan_id",
+            "module_idx",
+            "step_idx",
+            "role",
+            name="uq_lesson_logs_user_plan_module_step_role",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(

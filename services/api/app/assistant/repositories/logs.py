@@ -5,13 +5,14 @@ import logging
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone, timedelta
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from services.api.app.config import settings
 from services.api.app.assistant.models import LessonLog
 from services.api.app.diabetes.metrics import lesson_log_failures
 from services.api.app.diabetes.services.db import SessionLocal, run_db, User
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 
 logger = logging.getLogger(__name__)
 
@@ -52,15 +53,17 @@ async def flush_pending_logs() -> None:
 
     def _flush(session: Session) -> list[_PendingLog]:
         missing: list[_PendingLog] = []
-        entries: list[LessonLog] = []
         for log in queued:
             if session.get(User, log.user_id) is None:
                 missing.append(log)
                 continue
-            entries.append(LessonLog(**asdict(log)))
-        if entries:
-            session.add_all(entries)
-            commit(session)
+            session.add(LessonLog(**asdict(log)))
+            try:
+                commit(session)
+            except CommitError as exc:
+                if isinstance(exc.__cause__, IntegrityError):
+                    continue
+                raise
         return missing
 
     try:
