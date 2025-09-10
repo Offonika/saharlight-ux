@@ -67,3 +67,34 @@ def test_profile_get_requires_onboarding(
     with TestClient(server.app) as client:
         resp = client.get("/api/profile", headers=auth_headers)
     assert resp.status_code == 422
+
+
+def test_profile_post_enables_get(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with SessionLocal() as session:
+        session.add(db.User(telegram_id=1, thread_id="t", onboarding_complete=False))
+        session.commit()
+
+    payload = {
+        "telegramId": 1,
+        "icr": 1.0,
+        "cf": 1.0,
+        "target": 5.0,
+        "low": 4.0,
+        "high": 6.0,
+        "therapyType": "insulin",
+    }
+
+    with TestClient(server.app) as client:
+        resp_post = client.post("/api/profile", json=payload, headers=auth_headers)
+        assert resp_post.status_code == 200
+        resp_get = client.get("/api/profile", headers=auth_headers)
+
+    assert resp_get.status_code == 200
+    assert resp_get.json()["icr"] == 1.0
+
+    with SessionLocal() as session:
+        user = session.get(db.User, 1)
+        assert user is not None and user.onboarding_complete is True

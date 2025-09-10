@@ -243,7 +243,8 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
     _validate_profile(data)
 
     def _save(session: SessionProtocol) -> None:
-        if session.get(User, data.telegramId) is None:
+        user = cast(User | None, session.get(User, data.telegramId))
+        if user is None:
             raise HTTPException(status_code=404, detail="user not found")
 
         profile = cast(Profile | None, session.get(Profile, data.telegramId))
@@ -293,6 +294,8 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
                 set_=update_values,
             )
         )
+
+        user.onboarding_complete = True
 
         try:
             commit(cast(Session, session))
