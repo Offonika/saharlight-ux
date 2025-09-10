@@ -216,7 +216,7 @@ async def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> No
 async def test_openai_client_ctx_disposes_with_running_loop(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    dispose_mock = Mock()
+    dispose_mock = AsyncMock()
     monkeypatch.setattr(openai_utils, "dispose_http_client", dispose_mock)
     monkeypatch.setattr(openai_utils, "get_openai_client", Mock())
 

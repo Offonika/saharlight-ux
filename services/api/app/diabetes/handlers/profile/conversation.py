@@ -6,7 +6,7 @@ import json
 import logging
 from datetime import time as dt_time
 from collections.abc import Awaitable, Callable
-from typing import cast
+from typing import Any, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import sqlalchemy as sa
@@ -330,6 +330,9 @@ async def profile_webapp_save(
     except json.JSONDecodeError:
         await eff_msg.reply_text(error_msg, reply_markup=build_main_keyboard())
         return
+    init_data = data.get("init_data")
+    if isinstance(init_data, str):
+        cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
     if {
         "icr",
         "cf",
@@ -502,7 +505,18 @@ async def profile_timezone_save(
         return END
     web_app = getattr(message, "web_app_data", None)
     if web_app is not None:
-        raw = web_app.data
+        raw_data = web_app.data
+        try:
+            payload = json.loads(raw_data)
+        except json.JSONDecodeError:
+            payload = raw_data
+        if isinstance(payload, dict):
+            init_data = payload.get("init_data")
+            if isinstance(init_data, str):
+                cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+            raw = str(payload.get("timezone", "")).strip()
+        else:
+            raw = str(payload).strip()
     elif message.text is not None:
         raw = message.text.strip()
     else:
