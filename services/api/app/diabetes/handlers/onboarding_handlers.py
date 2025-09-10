@@ -177,7 +177,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     video_url = config.ONBOARDING_VIDEO_URL
     if video_url:
         try:
-            await message.reply_video(video_url)
+            reply_video = getattr(message, "reply_video", None)
+            if callable(reply_video):
+                await reply_video(video_url)
+            else:  # pragma: no cover - simple fallback
+                await message.reply_text(video_url)
         except telegram.error.TelegramError as exc:  # pragma: no cover - fallback
             logger.warning("Failed to send onboarding video: %s", exc)
             await message.reply_text(video_url)
