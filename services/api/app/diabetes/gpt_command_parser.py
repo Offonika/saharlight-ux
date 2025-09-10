@@ -117,10 +117,9 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
             i += 1
             continue
         if isinstance(obj, list):
-            dict_count = sum(1 for item in obj if isinstance(item, dict))
-            if dict_count > 1:
-                i = end
-                continue
+            for item in obj:
+                if isinstance(item, dict):
+                    return item
 
         i = end
         queue: deque[object] = deque([obj])
