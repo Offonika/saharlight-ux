@@ -9,6 +9,8 @@ After=network.target
 Type=simple
 WorkingDirectory=/srv/diabetes-bot
 EnvironmentFile=/srv/diabetes-bot/.env
+Environment=MPLCONFIGDIR=/opt/saharlight-ux/data/mpl-cache
+ExecStartPre=/usr/bin/install -d -m 700 /opt/saharlight-ux/data/mpl-cache
 ExecStartPre=/usr/bin/curl -fsS "$PUBLIC_ORIGIN/health"
 ExecStart=/srv/diabetes-bot/scripts/run_bot.sh
 Restart=on-failure
