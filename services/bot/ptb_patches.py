@@ -7,13 +7,18 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
+
+
+logger = logging.getLogger(__name__)
 
 def apply_jobqueue_stop_workaround() -> None:
     try:
         # Импортируем внутренности PTB — да, это «приватный» модуль.
         import telegram.ext._jobqueue as jq_mod  # type: ignore[attr-defined]
-    except Exception:
+    except ImportError:
+        logger.warning("telegram.ext._jobqueue not found; JobQueue stop workaround not applied", exc_info=True)
         return
 
     if getattr(jq_mod.JobQueue.stop, "_patched_asyncio_executor_fix", False):  # уже пропатчено
@@ -33,7 +38,7 @@ def apply_jobqueue_stop_workaround() -> None:
                     if hasattr(self, "scheduler") and self.scheduler:
                         self.scheduler.shutdown(wait=False)
                 except Exception:
-                    pass
+                    logger.exception("Unexpected error while shutting down scheduler")
                 return
             raise
 
