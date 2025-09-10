@@ -5,12 +5,13 @@ After=network.target
 [Service]
 Type=simple
 User=www-data
-PermissionsStartOnly=true
+# systemd will create /var/lib/diabetes-bot and expose it via STATE_DIRECTORY
+StateDirectory=diabetes-bot
+# use systemd-managed cache directory for matplotlib config
+CacheDirectory=diabetes-bot
 WorkingDirectory=/opt/saharlight-ux
 EnvironmentFile=/opt/saharlight-ux/.env
-Environment=MPLCONFIGDIR=/var/cache/diabetes-bot/mpl
-ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /var/lib/diabetes-bot
-ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /var/cache/diabetes-bot/mpl
+Environment=MPLCONFIGDIR=%C/mpl
 ExecStart=/opt/saharlight-ux/scripts/run_bot.sh
 Restart=on-failure
 RestartSec=5
