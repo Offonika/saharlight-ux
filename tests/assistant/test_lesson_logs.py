@@ -37,16 +37,12 @@ def session_factory(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
 
 
 @pytest.mark.asyncio
-async def test_add_and_flush_logs(
-    session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch
-) -> None:
+async def test_add_and_flush_logs(session_factory: sessionmaker[Session], monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_logging_required", False)
 
     with session_factory() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
-        session.add(
-            LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1)
-        )
+        session.add(LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1))
         session.commit()
 
     logs.pending_logs.clear()
@@ -84,9 +80,7 @@ async def test_flush_skips_missing_user(
     with session_factory() as session:
         assert session.query(LessonLog).count() == 0
         session.add(db.User(telegram_id=1, thread_id="t"))
-        session.add(
-            LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1)
-        )
+        session.add(LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1))
         session.commit()
 
     await flush_pending_logs()
@@ -103,9 +97,7 @@ async def test_cleanup_old_logs(session_factory: sessionmaker[Session]) -> None:
     now = datetime.now(timezone.utc)
     with session_factory() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
-        session.add(
-            LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1)
-        )
+        session.add(LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1))
         session.flush()
         session.add(
             LessonLog(
@@ -134,7 +126,27 @@ async def test_cleanup_old_logs(session_factory: sessionmaker[Session]) -> None:
     await cleanup_old_logs(ttl=timedelta(days=1))
 
     with session_factory() as session:
-        contents = [
-            log.content for log in session.query(LessonLog).order_by(LessonLog.id)
-        ]
+        contents = [log.content for log in session.query(LessonLog).order_by(LessonLog.id)]
         assert contents == ["new"]
+
+
+@pytest.mark.asyncio
+async def test_reflush_does_not_duplicate(
+    session_factory: sessionmaker[Session],
+) -> None:
+    with session_factory() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
+        session.add(LearningPlan(id=1, user_id=1, plan_json=[], is_active=True, version=1))
+        session.commit()
+
+    logs.pending_logs.clear()
+    dup = logs._PendingLog(1, 1, 0, 1, "assistant", "a")
+    logs.pending_logs.append(dup)
+    await flush_pending_logs()
+
+    logs.pending_logs.append(dup)
+    await flush_pending_logs()
+
+    with session_factory() as session:
+        assert session.query(LessonLog).count() == 1
+    assert not logs.pending_logs
