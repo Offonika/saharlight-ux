@@ -287,6 +287,31 @@ def test_dispose_http_client_sync(monkeypatch: pytest.MonkeyPatch) -> None:
     assert openai_utils._http_client == {}
 
 
+def test_dispose_http_client_sync_creates_event_loop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_loop = Mock()
+    fake_loop.is_running.return_value = True
+    fake_loop.run_until_complete = Mock()
+    fake_loop.close = Mock()
+
+    monkeypatch.setattr(asyncio, "get_event_loop", Mock(side_effect=RuntimeError()))
+    monkeypatch.setattr(asyncio, "new_event_loop", Mock(return_value=fake_loop))
+    set_loop = Mock()
+    monkeypatch.setattr(asyncio, "set_event_loop", set_loop)
+
+    dispose_mock = AsyncMock()
+    monkeypatch.setattr(openai_utils, "dispose_http_client", dispose_mock)
+    monkeypatch.setattr(openai_utils, "_http_client", {})
+    monkeypatch.setattr(openai_utils, "_async_http_client", {})
+
+    openai_utils._dispose_http_client_sync()
+
+    set_loop.assert_called_once_with(fake_loop)
+    fake_loop.run_until_complete.assert_called_once()
+    fake_loop.close.assert_called_once()
+
+
 @pytest.mark.asyncio
 async def test_build_http_client_returns_separate_clients_for_each_proxy(
     monkeypatch: pytest.MonkeyPatch,
