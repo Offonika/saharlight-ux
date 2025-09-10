@@ -76,6 +76,22 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
     return params
 
 
+def get_tg_user(init_data: str) -> UserContext:
+    """Validate ``init_data`` and return Telegram ``user`` info."""
+    token: str | None = settings.telegram_token
+    if not token:
+        logger.error("telegram token not configured")
+        raise HTTPException(
+            status_code=503, detail="telegram token not configured"
+        )
+    data: dict[str, object] = parse_and_verify_init_data(init_data, token)
+    user_raw = data.get("user")
+    user = user_raw if isinstance(user_raw, dict) else None
+    if user is None or not isinstance(user.get("id"), int):
+        raise HTTPException(status_code=401, detail="invalid user")
+    return cast(UserContext, user)
+
+
 def require_tg_user(
     init_data: str | None = Header(None, alias=TG_INIT_DATA_HEADER),
 ) -> UserContext:
@@ -83,17 +99,7 @@ def require_tg_user(
     if not init_data:
         raise HTTPException(status_code=401, detail="missing init data")
 
-    token: str | None = settings.telegram_token
-    if not token:
-        logger.error("telegram token not configured")
-        raise HTTPException(status_code=503, detail="telegram token not configured")
-
-    data: dict[str, object] = parse_and_verify_init_data(init_data, token)
-    user_raw = data.get("user")
-    user = user_raw if isinstance(user_raw, dict) else None
-    if user is None or not isinstance(user.get("id"), int):
-        raise HTTPException(status_code=401, detail="invalid user")
-    return cast(UserContext, user)
+    return get_tg_user(init_data)
 
 
 def check_token(authorization: str | None = Header(None)) -> UserContext:
@@ -101,13 +107,4 @@ def check_token(authorization: str | None = Header(None)) -> UserContext:
     if not authorization or not authorization.startswith("tg "):
         raise HTTPException(status_code=401, detail="missing init data")
     init_data = authorization[3:]
-    token: str | None = settings.telegram_token
-    if not token:
-        logger.error("telegram token not configured")
-        raise HTTPException(status_code=503, detail="telegram token not configured")
-    data: dict[str, object] = parse_and_verify_init_data(init_data, token)
-    user_raw = data.get("user")
-    user = user_raw if isinstance(user_raw, dict) else None
-    if user is None or not isinstance(user.get("id"), int):
-        raise HTTPException(status_code=401, detail="invalid user")
-    return cast(UserContext, user)
+    return get_tg_user(init_data)
