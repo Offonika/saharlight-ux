@@ -12,6 +12,8 @@ from services.api.app.config import settings
 from services.api.app.schemas.user import UserContext
 from services.api.app.telegram_auth import (
     AUTH_DATE_MAX_AGE,
+    check_token,
+    get_tg_user,
     parse_and_verify_init_data,
     require_tg_user,
 )
@@ -159,3 +161,44 @@ def test_require_tg_user_future(monkeypatch: pytest.MonkeyPatch) -> None:
         require_tg_user(init_data)
     assert exc.value.status_code == 401
     assert exc.value.detail == "invalid auth date"
+
+
+def test_get_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data: str = build_init_data()
+    user: UserContext = get_tg_user(init_data)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+
+def test_check_token_valid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data: str = build_init_data()
+    header = f"tg {init_data}"
+    user: UserContext = check_token(header)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+
+def test_check_token_invalid_prefix() -> None:
+    with pytest.raises(HTTPException) as exc:
+        check_token("bearer bad")
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "missing init data"
+
+
+def test_check_token_invalid_user(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data: str = build_init_data(user_id="bad")
+    header = f"tg {init_data}"
+    with pytest.raises(HTTPException) as exc:
+        check_token(header)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "invalid user"
+
+
+def test_check_token_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "telegram_token", "")
+    with pytest.raises(HTTPException) as exc:
+        check_token("tg whatever")
+    assert exc.value.status_code == 503
