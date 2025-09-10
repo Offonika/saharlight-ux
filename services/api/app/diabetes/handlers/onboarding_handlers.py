@@ -87,17 +87,26 @@ VARIANT_ORDER: dict[str | None, list[int]] = {
 
 def _step_num(step: int, variant: str | None) -> int:
     order = VARIANT_ORDER.get(variant, VARIANT_ORDER[None])
+    if step not in order:
+        logger.warning("Step %s not in variant order %s", step, variant)
+        return 1
     return order.index(step) + 1
 
 
 def _next_step(step: int, variant: str | None) -> int | None:
     order = VARIANT_ORDER.get(variant, VARIANT_ORDER[None])
+    if step not in order:
+        logger.warning("Step %s not in variant order %s", step, variant)
+        return None
     idx = order.index(step)
     return order[idx + 1] if idx + 1 < len(order) else None
 
 
 def _prev_step(step: int, variant: str | None) -> int | None:
     order = VARIANT_ORDER.get(variant, VARIANT_ORDER[None])
+    if step not in order:
+        logger.warning("Step %s not in variant order %s", step, variant)
+        return None
     idx = order.index(step)
     return order[idx - 1] if idx > 0 else None
 
