@@ -74,7 +74,7 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     async def fake_start_lesson(user_id: int, topic_slug: str) -> object:
         return SimpleNamespace(lesson_id=1)

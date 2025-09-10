@@ -96,7 +96,7 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
     async def ok_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", ok_add_log)
+    monkeypatch.setattr(dynamic_handlers, "safe_add_lesson_log", ok_add_log)
 
     async def fake_get_active_plan(user_id: int) -> None:
         return None
@@ -175,7 +175,7 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
     async def ok_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", ok_add_log)
+    monkeypatch.setattr(dynamic_handlers, "safe_add_lesson_log", ok_add_log)
 
     async def fake_get_active_plan(user_id: int) -> None:
         return None

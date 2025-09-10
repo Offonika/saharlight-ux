@@ -114,20 +114,48 @@ async def safe_add_lesson_log(
 ) -> bool:
     """Safely add a lesson log entry.
 
-    Returns ``True`` on success. If an error occurs and
-    ``learning_logging_required`` is ``True``, the error is logged and an
-    alert is sent, but ``False`` is returned so that the caller can
-    continue without interruption.
+    The log is first enqueued and then a flush is attempted.  If the flush
+    fails the entry remains in :data:`pending_logs` so it can be retried on
+    the next call.
+
+    Parameters mirror :func:`add_lesson_log`.
+
+    Returns ``True`` when the log was flushed, otherwise ``False``.
     """
 
+    log = _PendingLog(
+        user_id=user_id,
+        plan_id=plan_id,
+        module_idx=module_idx,
+        step_idx=step_idx,
+        role=role,
+        content=content,
+    )
+
+    async with pending_logs_lock:
+        pending_logs.append(log)
+
     try:
-        await add_lesson_log(user_id, plan_id, module_idx, step_idx, role, content)
-    except Exception as exc:  # pragma: no cover - simple pass through
+        await flush_pending_logs()
+    except Exception as exc:  # pragma: no cover - robustness
+        lesson_log_failures.inc()
+        logger.warning(
+            "Failed to add lesson log",
+            extra={
+                "user_id": user_id,
+                "plan_id": plan_id,
+                "module_idx": module_idx,
+                "step_idx": step_idx,
+            },
+            exc_info=exc,
+        )
         if settings.learning_logging_required:
             logger.error("Failed to add lesson log", exc_info=exc)
             notify("lesson_log_failure")
         return False
-    return True
+
+    async with pending_logs_lock:
+        return log not in pending_logs
 
 
 async def _flush_periodically(interval: float) -> None:

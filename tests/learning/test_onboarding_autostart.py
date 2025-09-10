@@ -85,7 +85,7 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(learning_handlers, "generate_learning_plan", fake_generate_learning_plan)
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", _noop)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "get_active_plan", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "create_plan", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "update_plan", _noop)

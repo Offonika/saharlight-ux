@@ -81,7 +81,7 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
     )
     monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
     monkeypatch.setattr(dynamic_handlers, "disclaimer", lambda: "")
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", _fake_persist)
+    monkeypatch.setattr(dynamic_handlers, "safe_add_lesson_log", _fake_persist)
     monkeypatch.setattr(dynamic_handlers.plans_repo, "get_active_plan", _fake_persist)
     monkeypatch.setattr(dynamic_handlers.plans_repo, "create_plan", _fake_persist)
     monkeypatch.setattr(dynamic_handlers.plans_repo, "update_plan", _fake_persist)

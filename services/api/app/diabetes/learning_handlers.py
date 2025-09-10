@@ -30,7 +30,7 @@ from .services.gpt_client import (
     create_learning_chat_completion,
     format_reply,
 )
-from services.api.app.assistant.repositories.logs import add_lesson_log
+from services.api.app.assistant.repositories.logs import safe_add_lesson_log
 from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.repositories.learning_profile import (
     get_learning_profile,
@@ -336,7 +336,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
+    await safe_add_lesson_log(
         user.id,
         0,
         cast(int, user_data.get("learning_module_idx", 0)),
@@ -410,7 +410,7 @@ async def _start_lesson(
     )
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
+    await safe_add_lesson_log(
         from_user.id,
         0,
         cast(int, user_data.get("learning_module_idx", 0)),
@@ -525,7 +525,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     user_text = message.text.strip()
     if telegram_id is not None:
         try:
-            await add_lesson_log(
+            await safe_add_lesson_log(
                 telegram_id,
                 0,
                 cast(int, user_data.get("learning_module_idx", 0)),
@@ -553,7 +553,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
             return
         if telegram_id is not None:
             try:
-                await add_lesson_log(
+                await safe_add_lesson_log(
                     telegram_id,
                     0,
                     cast(int, user_data.get("learning_module_idx", 0)),
@@ -595,7 +595,7 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
             try:
-                await add_lesson_log(
+                await safe_add_lesson_log(
                     telegram_id,
                     0,
                     cast(int, user_data.get("learning_module_idx", 0)),
