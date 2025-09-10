@@ -33,7 +33,12 @@ def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
     return {"Authorization": f"tg {build_init_data()}"}
 
 
-def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
+def setup_db(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    add_user: bool = True,
+    onboarding_complete: bool = True,
+) -> sessionmaker[Session]:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -42,9 +47,16 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     SessionLocal = sessionmaker(bind=engine, class_=Session)
     db.Base.metadata.create_all(bind=engine)
 
-    with SessionLocal() as session:
-        session.add(db.User(telegram_id=1, thread_id="t", onboarding_complete=True))
-        session.commit()
+    if add_user:
+        with SessionLocal() as session:
+            session.add(
+                db.User(
+                    telegram_id=1,
+                    thread_id="t",
+                    onboarding_complete=onboarding_complete,
+                )
+            )
+            session.commit()
 
     async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
@@ -282,3 +294,43 @@ def test_profile_patch_returns_full_profile(
         assert prof.target_bg == 6
         assert prof.low_threshold == 4
         assert prof.high_threshold == 9
+
+
+def test_profile_patch_creates_user_and_completes_onboarding(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch, add_user=False)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={"timezone": "UTC"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+
+    with SessionLocal() as session:
+        user = session.get(db.User, 1)
+        assert user is not None
+        assert user.thread_id == "api"
+        assert user.onboarding_complete is True
+        profile = session.get(db.Profile, 1)
+        assert profile is not None
+        assert profile.timezone == "UTC"
+
+
+def test_profile_patch_marks_existing_onboarding_complete(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
+    SessionLocal = setup_db(monkeypatch, onboarding_complete=False)
+    with TestClient(server.app) as client:
+        resp = client.patch(
+            "/api/profile",
+            json={"timezone": "UTC"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+
+    with SessionLocal() as session:
+        user = session.get(db.User, 1)
+        assert user is not None
+        assert user.onboarding_complete is True
