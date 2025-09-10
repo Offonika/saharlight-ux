@@ -90,6 +90,7 @@ class DbActionResult:
 PLAN_LIMITS = {
     SubscriptionPlan.FREE: 5,
     SubscriptionPlan.PRO: 10,
+    SubscriptionPlan.FAMILY: 20,
 }
 
 

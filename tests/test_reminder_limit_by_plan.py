@@ -30,9 +30,15 @@ class DummyMessage:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "plan, limit",
-    [(SubscriptionPlan.FREE, 5), (SubscriptionPlan.PRO, 10)],
+    [
+        (SubscriptionPlan.FREE, 5),
+        (SubscriptionPlan.PRO, 10),
+        (SubscriptionPlan.FAMILY, 20),
+    ],
 )
-async def test_reminder_limit_free_vs_pro(plan: SubscriptionPlan, limit: int, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_reminder_limit_by_plan(
+    plan: SubscriptionPlan, limit: int, monkeypatch: pytest.MonkeyPatch
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
