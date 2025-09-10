@@ -16,9 +16,24 @@ from sqlalchemy.orm import Session, sessionmaker
 from services.api.app.diabetes import curriculum_engine
 from services.api.app.diabetes import learning_handlers as _dynamic_learning_handlers
 
+pytest_plugins = ("pytest_asyncio",)
+
 # Ensure dynamic learning handlers expose ``curriculum_engine`` for tests that
 # monkeypatch it.
 setattr(_dynamic_learning_handlers, "curriculum_engine", curriculum_engine)
+
+
+@pytest.fixture(autouse=True)
+def _fake_learning_profile(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stub profile lookups to avoid external API calls in tests."""
+
+    class _StubProfiles:
+        async def get_profile_for_user(
+            self, _user_id: int, _ctx: object
+        ) -> dict[str, object]:
+            return {}
+
+    monkeypatch.setattr(_dynamic_learning_handlers, "profiles", _StubProfiles())
 
 dummy = ModuleType("telegram.ext._basehandler")
 
