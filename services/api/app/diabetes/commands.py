@@ -62,21 +62,39 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
 
     async def _reset_timeout() -> None:
-        await asyncio.sleep(45)
-        user_data.pop("_onb_reset_confirm", None)
-        user_data.pop("_onb_reset_task", None)
         try:
-            await message.reply_text(
-                "⏱ Сброс онбординга не подтверждён. Отправьте /reset_onboarding снова.",
-            )
-        except telegram.error.TelegramError as exc:
+            await asyncio.sleep(45)
+            user_data.pop("_onb_reset_confirm", None)
+            user_data.pop("_onb_reset_task", None)
+            try:
+                await message.reply_text(
+                    "⏱ Сброс онбординга не подтверждён. Отправьте /reset_onboarding снова.",
+                )
+            except telegram.error.TelegramError as exc:
+                logger.exception(
+                    "Failed to notify about onboarding reset timeout: %s",
+                    exc,
+                )
+        except Exception:
             logger.exception(
-                "Failed to notify about onboarding reset timeout: %s",
-                exc,
+                "Reset onboarding timeout task failed",
             )
 
     user_data["_onb_reset_confirm"] = True
-    user_data["_onb_reset_task"] = asyncio.create_task(_reset_timeout())
+    task = asyncio.create_task(_reset_timeout())
+
+    def _log_timeout_failure(t: asyncio.Task[None]) -> None:
+        if exc := t.exception():
+            logger.exception(
+                "Reset onboarding timeout task failed",
+                exc_info=exc,
+            )
+
+    add_done_callback = getattr(task, "add_done_callback", None)
+    if callable(add_done_callback):
+        add_done_callback(_log_timeout_failure)
+
+    user_data["_onb_reset_task"] = task
     try:
         await message.reply_text(
             "⚠️ Это сбросит прогресс онбординга. Профиль и напоминания не"
@@ -88,9 +106,7 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         try:
             await context.bot.send_message(
                 chat_id=message.chat_id,
-                text=(
-                    "Не удалось отправить предупреждение о сбросе. " "Попробуйте снова."
-                ),
+                text=("Не удалось отправить предупреждение о сбросе. Попробуйте снова."),
             )
         except telegram.error.TelegramError as exc2:
             logger.exception(
