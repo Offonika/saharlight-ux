@@ -30,7 +30,12 @@ from .services.gpt_client import (
     create_learning_chat_completion,
     format_reply,
 )
-from services.api.app.assistant.repositories.logs import add_lesson_log
+from services.api.app.assistant.repositories.logs import (
+    add_lesson_log,
+    pending_logs,
+    safe_add_lesson_log,
+)
+from services.api.app.diabetes.metrics import step_advance_total
 from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.repositories.learning_profile import (
     get_learning_profile,
@@ -523,22 +528,19 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
     profile = _get_profile(user_data)
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
+    step_before = state.step
+    log_user_ok = True
+    log_feedback_ok = True
+    log_next_ok = True
     if telegram_id is not None:
-        try:
-            await add_lesson_log(
-                telegram_id,
-                0,
-                cast(int, user_data.get("learning_module_idx", 0)),
-                state.step,
-                "user",
-                "",
-            )
-        except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
-            logger.exception("lesson log failed: %s", exc)
-            await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-            state.awaiting = True
-            set_state(user_data, state)
-            return
+        log_user_ok = await safe_add_lesson_log(
+            telegram_id,
+            0,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            state.step,
+            "user",
+            "",
+        )
     state.awaiting = False
     user_data[BUSY_KEY] = True
     set_state(user_data, state)
@@ -552,19 +554,14 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         if feedback == BUSY_MESSAGE:
             return
         if telegram_id is not None:
-            try:
-                await add_lesson_log(
-                    telegram_id,
-                    0,
-                    cast(int, user_data.get("learning_module_idx", 0)),
-                    state.step,
-                    "assistant",
-                    "",
-                )
-            except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
-                logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                return
+            log_feedback_ok = await safe_add_lesson_log(
+                telegram_id,
+                0,
+                cast(int, user_data.get("learning_module_idx", 0)),
+                state.step,
+                "assistant",
+                "",
+            )
         lesson_id = user_data.get("lesson_id")
         try:
             if isinstance(lesson_id, int):
@@ -594,20 +591,16 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         next_text = format_reply(next_text)
         await message.reply_text(next_text, reply_markup=build_main_keyboard())
         if telegram_id is not None:
-            try:
-                await add_lesson_log(
-                    telegram_id,
-                    0,
-                    cast(int, user_data.get("learning_module_idx", 0)),
-                    state.step + 1,
-                    "assistant",
-                    "",
-                )
-            except (SQLAlchemyError, httpx.HTTPError, RuntimeError) as exc:
-                logger.exception("lesson log failed: %s", exc)
-                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
-                return
+            log_next_ok = await safe_add_lesson_log(
+                telegram_id,
+                0,
+                cast(int, user_data.get("learning_module_idx", 0)),
+                state.step + 1,
+                "assistant",
+                "",
+            )
         state.step += 1
+        step_advance_total.inc()
         state.last_step_text = next_text
         state.prev_summary = feedback
     finally:
@@ -617,6 +610,20 @@ async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TY
         set_state(user_data, state)
         if from_user is not None:
             await _persist(from_user.id, user_data, context.bot_data)
+        logger.info(
+            "lesson flow",
+            extra={
+                "lesson_flow": {
+                    "user_id": telegram_id,
+                    "step_before": step_before,
+                    "step_after": state.step,
+                    "log_user_ok": log_user_ok,
+                    "log_feedback_ok": log_feedback_ok,
+                    "log_next_ok": log_next_ok,
+                    "pending_count": len(pending_logs),
+                }
+            },
+        )
 
 
 async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
