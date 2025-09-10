@@ -63,7 +63,7 @@ async def test_dynamic_learn_command_busy(monkeypatch: pytest.MonkeyPatch) -> No
     async def fail_add_log(*args: object, **kwargs: object) -> None:
         raise AssertionError("should not be called")
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
+    monkeypatch.setattr(dynamic_handlers, "safe_add_lesson_log", fail_add_log)
 
     msg = DummyMessage()
     update = make_update(message=msg)
