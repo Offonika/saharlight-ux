@@ -2,6 +2,8 @@
 
 ## Environment flags
 
+- `API_URL` — базовый URL внешнего API;
+- `INTERNAL_API_KEY` — ключ для внутренней аутентификации бота;
 - `SUBSCRIPTION_URL` — страница подписки в WebApp;
 - `UI_BASE_URL`/`VITE_API_BASE` — базовые пути фронтенда и API;
 - `BILLING_ENABLED`, `BILLING_TEST_MODE`, `BILLING_PROVIDER` — настройки биллинга;
