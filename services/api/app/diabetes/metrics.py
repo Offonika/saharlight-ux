@@ -42,6 +42,13 @@ lesson_log_failures_last: Gauge = Gauge(
     multiprocess_mode="max",
 )
 
+pending_logs_size: Gauge = Gauge(
+    "pending_logs_size", "Number of lesson log entries waiting to be flushed",
+)
+step_advance_total: Counter = Counter(
+    "step_advance_total", "Total number of lesson step advancements",
+)
+
 learning_prompt_cache_hit: Counter = Counter(
     "learning_prompt_cache_hit", "Number of learning prompt cache hits",
 )
