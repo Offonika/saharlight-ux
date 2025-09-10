@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-import json
+import hashlib
+import hmac
 import importlib
+import json
+import time
+import urllib.parse
 from datetime import time as dt_time
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -15,14 +20,55 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 import services.api.app.diabetes.services.db as db
+import services.api.app.main as server
+from services.api.app.config import settings
 from services.api.app.diabetes.services.db import Base, User
 import services.api.app.services.profile as profile_service
 from services.api.app.schemas.profile import ProfileSchema
 from services.api.app.diabetes.schemas.profile import TherapyType
 
-handlers = importlib.import_module(
-    "services.api.app.diabetes.handlers.profile.conversation"
-)
+handlers = importlib.import_module("services.api.app.diabetes.handlers.profile.conversation")
+
+
+TOKEN = "test-token"
+
+
+def build_init_data(user_id: int = 1) -> str:
+    user = json.dumps({"id": user_id, "first_name": "A"}, separators=(",", ":"))
+    params = {"auth_date": str(int(time.time())), "query_id": "abc", "user": user}
+    data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
+    secret = hmac.new(b"WebAppData", TOKEN.encode(), hashlib.sha256).digest()
+    params["hash"] = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
+    return urllib.parse.urlencode(params)
+
+
+@pytest.fixture
+def auth_headers(monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    return {"Authorization": f"tg {build_init_data()}"}
+
+
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    SessionLocal = sessionmaker(bind=engine, class_=Session)
+    Base.metadata.create_all(bind=engine)
+
+    original_run_db = db.run_db
+
+    async def run_db_wrapper(fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        kwargs["sessionmaker"] = SessionLocal
+        return await original_run_db(fn, *args, **kwargs)
+
+    monkeypatch.setattr(server, "run_db", run_db_wrapper)
+    import services.api.app.routers.profile as profile_router
+
+    monkeypatch.setattr(profile_router.db_module, "run_db", run_db_wrapper)
+    monkeypatch.setattr(db, "SessionLocal", SessionLocal, raising=False)
+    return SessionLocal
 
 
 class DummyMessage:
@@ -63,9 +109,7 @@ async def test_webapp_save_negative_value(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
     monkeypatch.setattr(handlers, "post_profile", post_mock)
     msg = DummyMessage()
-    msg.web_app_data = SimpleNamespace(
-        data=json.dumps({"icr": -1, "cf": 3, "target": 6, "low": 4, "high": 9})
-    )
+    msg.web_app_data = SimpleNamespace(data=json.dumps({"icr": -1, "cf": 3, "target": 6, "low": 4, "high": 9}))
     update = cast(
         Update,
         SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
@@ -95,9 +139,7 @@ async def test_webapp_save_comma_decimal(monkeypatch: pytest.MonkeyPatch) -> Non
 
     msg = DummyMessage()
     msg.web_app_data = SimpleNamespace(
-        data=json.dumps(
-            {"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"}
-        )
+        data=json.dumps({"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"})
     )
     update = cast(
         Update,
@@ -117,17 +159,13 @@ async def test_webapp_save_comma_decimal(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_parse_profile_values_comma() -> None:
-    result = handlers.parse_profile_values(
-        {"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"}
-    )
+    result = handlers.parse_profile_values({"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"})
     assert result == (8.5, 3.0, 6.0, 4.2, 9.0)
 
 
 def test_parse_profile_values_invalid_number() -> None:
     with pytest.raises(ValueError):
-        handlers.parse_profile_values(
-            {"icr": "x", "cf": "3", "target": "6", "low": "4", "high": "9"}
-        )
+        handlers.parse_profile_values({"icr": "x", "cf": "3", "target": "6", "low": "4", "high": "9"})
 
 
 @pytest.mark.asyncio
@@ -218,9 +256,7 @@ async def test_profile_view_uses_local_profile_on_stale_api(
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, uid: outdated)
 
     msg_view = DummyMessage()
-    update_view = cast(
-        Update, SimpleNamespace(message=msg_view, effective_user=SimpleNamespace(id=1))
-    )
+    update_view = cast(Update, SimpleNamespace(message=msg_view, effective_user=SimpleNamespace(id=1)))
     await handlers.profile_view(update_view, context)
 
     text = msg_view.texts[0]
@@ -287,49 +323,32 @@ async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) ->
 
 
 @pytest.mark.asyncio
-async def test_webapp_save_enables_profile_get(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    engine = create_engine(
-        "sqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(engine, tables=[db.User.__table__, db.Profile.__table__])
-    TestSession = sessionmaker(bind=engine, class_=Session)
-    monkeypatch.setattr(db, "SessionLocal", TestSession)
-    monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
-
-    async def run_db(func, *args, sessionmaker, **kwargs):
-        with sessionmaker() as session:
-            return func(session, *args, **kwargs)
-
-    monkeypatch.setattr(profile_service.db, "run_db", run_db)
-
-    import services.api.app.routers.profile as profile_router
-    monkeypatch.setattr(profile_router.db_module, "run_db", run_db)
-
-    with TestSession() as session:
+async def test_webapp_save_enables_profile_get(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
+    SessionLocal = setup_db(monkeypatch)
+    with SessionLocal() as session:
         session.add(User(telegram_id=1, thread_id="t", onboarding_complete=False))
         session.commit()
 
-    data = ProfileSchema(
-        telegramId=1,
-        icr=1.0,
-        cf=1.0,
-        target=5.0,
-        low=4.0,
-        high=6.0,
-        therapyType=TherapyType.INSULIN,
-    )
-    await profile_service.save_profile(data)
+    payload = {
+        "telegramId": 1,
+        "icr": 1.0,
+        "cf": 1.0,
+        "target": 5.0,
+        "low": 4.0,
+        "high": 6.0,
+        "therapyType": TherapyType.INSULIN.value,
+    }
 
-    result = await profile_router.profile(user={"id": 1})
-    assert result.icr == 1.0
-    assert result.cf == 1.0
+    with TestClient(server.app) as client:
+        resp_post = client.post("/api/profile", json=payload, headers=auth_headers)
+        assert resp_post.status_code == 200
+        resp_get = client.get("/api/profile", headers=auth_headers)
 
-    with TestSession() as session:
+    assert resp_get.status_code == 200
+    body = resp_get.json()
+    assert body["icr"] == 1.0
+    assert body["cf"] == 1.0
+
+    with SessionLocal() as session:
         user = session.get(User, 1)
         assert user is not None and user.onboarding_complete is True
-
-    engine.dispose()

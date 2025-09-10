@@ -56,9 +56,7 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     return SessionLocal
 
 
-def test_profile_get_requires_onboarding(
-    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
-) -> None:
+def test_profile_get_requires_onboarding(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
     SessionLocal = setup_db(monkeypatch)
     with SessionLocal() as session:
         session.add(db.User(telegram_id=1, thread_id="t", onboarding_complete=False))
@@ -69,9 +67,7 @@ def test_profile_get_requires_onboarding(
     assert resp.status_code == 422
 
 
-def test_profile_post_enables_get(
-    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
-) -> None:
+def test_profile_post_enables_get(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
     SessionLocal = setup_db(monkeypatch)
     with SessionLocal() as session:
         session.add(db.User(telegram_id=1, thread_id="t", onboarding_complete=False))
@@ -93,7 +89,10 @@ def test_profile_post_enables_get(
         resp_get = client.get("/api/profile", headers=auth_headers)
 
     assert resp_get.status_code == 200
-    assert resp_get.json()["icr"] == 1.0
+    data = resp_get.json()
+    assert data["icr"] == 1.0
+    assert data["cf"] == 1.0
+    assert data["target"] == 5.0
 
     with SessionLocal() as session:
         user = session.get(db.User, 1)
