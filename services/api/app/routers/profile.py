@@ -61,7 +61,10 @@ async def profile(user: UserContext = Depends(check_token)) -> ProfileSchema:
     if db_user is None:
         raise HTTPException(status_code=404, detail="user not found")
     if not db_user.onboarding_complete:
-        raise HTTPException(status_code=422, detail="onboarding incomplete")
+        raise HTTPException(
+            status_code=422,
+            detail="Завершите онбординг, чтобы просматривать и сохранять профиль",
+        )
 
     return await get_profile_settings(user["id"])
 

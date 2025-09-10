@@ -65,6 +65,10 @@ def test_profile_get_requires_onboarding(monkeypatch: pytest.MonkeyPatch, auth_h
     with TestClient(server.app) as client:
         resp = client.get("/api/profile", headers=auth_headers)
     assert resp.status_code == 422
+    assert (
+        resp.json()["detail"]
+        == "Завершите онбординг, чтобы просматривать и сохранять профиль"
+    )
 
 
 def test_profile_post_enables_get(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
