@@ -9,6 +9,7 @@ PermissionsStartOnly=true
 WorkingDirectory=/opt/saharlight-ux
 EnvironmentFile=/opt/saharlight-ux/.env
 Environment=MPLCONFIGDIR=/var/cache/diabetes-bot/mpl
+ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /var/lib/diabetes-bot
 ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /var/cache/diabetes-bot/mpl
 ExecStart=/opt/saharlight-ux/scripts/run_bot.sh
 Restart=on-failure
