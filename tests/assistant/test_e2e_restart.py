@@ -141,7 +141,7 @@ async def test_hydrate_generates_snapshot_and_persists(
     async def fake_add_log(*_a: object, **_k: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     calls: list[dict[str, Any]] = []
     orig_upsert = progress_repo.upsert_progress

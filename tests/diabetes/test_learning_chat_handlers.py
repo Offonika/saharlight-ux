@@ -106,7 +106,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -148,7 +148,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     async def fake_ensure_overrides(update: object, context: object) -> bool:
         return True
@@ -313,7 +313,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
     update = make_update(message=msg, user_id=7)
@@ -369,7 +369,7 @@ async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> No
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     user_data: dict[str, Any] = {}
@@ -419,7 +419,7 @@ async def test_lesson_answer_handler_error_keeps_state(
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage(text="ans")
     user_data: dict[str, Any] = {}
@@ -454,7 +454,7 @@ async def test_lesson_answer_handler_add_log_failure(
     ) -> tuple[bool, str]:
         raise AssertionError("should not be called")
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fail_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fail_add_log)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fail_check_user_answer)
 
     msg = DummyMessage(text="ans")

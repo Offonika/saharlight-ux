@@ -93,7 +93,7 @@ async def test_plan_button_flow(
     async def fake_add_log(*_a: object, **_k: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg_learn = DummyMessage(text="/learn")
     update_learn = SimpleNamespace(

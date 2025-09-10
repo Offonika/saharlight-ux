@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "add_lesson_log",
+    "safe_add_lesson_log",
     "get_lesson_logs",
     "flush_pending_logs",
     "start_flush_task",
@@ -101,6 +102,59 @@ async def add_lesson_log(
         )
 
     await flush_pending_logs()
+
+
+async def safe_add_lesson_log(
+    user_id: int,
+    plan_id: int,
+    module_idx: int,
+    step_idx: int,
+    role: str,
+    content: str,
+) -> bool:
+    """Add a lesson log and swallow persistence errors.
+
+    The log is re-queued for later flushing when an exception occurs.
+    """
+
+    log = _PendingLog(
+        user_id=user_id,
+        plan_id=plan_id,
+        module_idx=module_idx,
+        step_idx=step_idx,
+        role=role,
+        content=content,
+    )
+
+    try:
+        await add_lesson_log(
+            user_id,
+            plan_id,
+            module_idx,
+            step_idx,
+            role,
+            content,
+        )
+    except Exception as exc:  # pragma: no cover - exercised in tests
+        async with pending_logs_lock:
+            if log not in pending_logs:
+                pending_logs.append(log)
+        lesson_log_failures.inc()
+        logger.warning(
+            "Failed to persist lesson log user_id=%s plan_id=%s module_idx=%s step_idx=%s role=%s",
+            user_id,
+            plan_id,
+            module_idx,
+            step_idx,
+            role,
+            exc_info=exc,
+        )
+        if settings.learning_logging_required:
+            logger.error(
+                "learning logging required; dropping lesson log", exc_info=exc
+            )
+        return False
+    return True
 
 
 async def _flush_periodically(interval: float) -> None:

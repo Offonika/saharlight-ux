@@ -76,7 +76,7 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     message = DummyMessage()
     update = make_update(message=message)

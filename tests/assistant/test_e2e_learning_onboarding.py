@@ -101,7 +101,7 @@ async def test_first_run_restart_and_type_questions(
     async def fake_add_log(*_a: object, **_k: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage(text="/learn")
     update = SimpleNamespace(message=msg, effective_user=msg.from_user)

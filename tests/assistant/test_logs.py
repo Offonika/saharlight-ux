@@ -7,7 +7,8 @@ from typing import Callable
 import pytest
 
 from services.api.app.assistant.repositories import logs
-from services.api.app.assistant.repositories.logs import add_lesson_log
+from services.api.app.assistant.repositories.logs import add_lesson_log, safe_add_lesson_log
+from services.api.app.diabetes.metrics import get_metric_value, lesson_log_failures
 from services.api.app.assistant.models import LessonLog
 from services.api.app.config import settings
 
@@ -139,6 +140,71 @@ async def test_flush_does_not_block_new_logs(
 
     assert {log.step_idx for log in inserted} == {1, 2}
     assert not logs.pending_logs
+
+
+@pytest.mark.asyncio
+async def test_safe_add_lesson_log_returns_true(monkeypatch: pytest.MonkeyPatch) -> None:
+    """safe_add_lesson_log should return True on success."""
+
+    async def ok_add(*_a: object, **_k: object) -> None:
+        return None
+
+    monkeypatch.setattr(logs, "add_lesson_log", ok_add)
+    logs.pending_logs.clear()
+    lesson_log_failures._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
+
+    ok = await safe_add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+
+    assert ok is True
+    assert not logs.pending_logs
+    assert get_metric_value(lesson_log_failures) == 0
+
+
+@pytest.mark.asyncio
+async def test_safe_add_lesson_log_handles_error(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """safe_add_lesson_log should requeue logs and return False on error."""
+
+    monkeypatch.setattr(settings, "learning_logging_required", False)
+
+    async def fail(*_a: object, **_k: object) -> None:
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(logs, "add_lesson_log", fail)
+    logs.pending_logs.clear()
+    lesson_log_failures._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
+
+    with caplog.at_level(logging.WARNING):
+        ok = await safe_add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+
+    assert ok is False
+    assert len(logs.pending_logs) == 1
+    assert "Failed to persist lesson log" in caplog.text
+    assert get_metric_value(lesson_log_failures) == 1
+
+
+@pytest.mark.asyncio
+async def test_safe_add_lesson_log_escalates_when_required(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """safe_add_lesson_log should log at error level when required."""
+
+    monkeypatch.setattr(settings, "learning_logging_required", True)
+
+    async def fail(*_a: object, **_k: object) -> None:
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(logs, "add_lesson_log", fail)
+    logs.pending_logs.clear()
+    lesson_log_failures._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
+
+    with caplog.at_level(logging.ERROR):
+        ok = await safe_add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+
+    assert ok is False
+    assert len(logs.pending_logs) == 1
+    assert any(rec.levelno >= logging.ERROR for rec in caplog.records)
 
 
 @pytest.mark.asyncio
