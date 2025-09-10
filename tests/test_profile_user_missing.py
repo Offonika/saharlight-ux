@@ -38,9 +38,14 @@ async def test_patch_user_settings_user_missing(monkeypatch: pytest.MonkeyPatch)
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     monkeypatch.setattr(db, "SessionLocal", TestSession)
+    await profile_service.patch_user_settings(1, ProfileSettingsIn(timezone="UTC"))
 
-    with pytest.raises(HTTPException) as exc:
-        await profile_service.patch_user_settings(1, ProfileSettingsIn(timezone="UTC"))
-    assert exc.value.status_code == 404
-    assert exc.value.detail == "user not found"
+    with TestSession() as session:
+        user = session.get(db.User, 1)
+        assert user is not None
+        assert user.thread_id == "api"
+        assert user.onboarding_complete is True
+        profile = session.get(db.Profile, 1)
+        assert profile is not None
+        assert profile.timezone == "UTC"
     engine.dispose()

@@ -67,7 +67,8 @@ async def patch_user_settings(
     def _patch(session: SessionProtocol) -> ProfileSchema:
         user = cast(User | None, session.get(User, telegram_id))
         if user is None:
-            raise HTTPException(status_code=404, detail="user not found")
+            user = User(telegram_id=telegram_id, thread_id="api")
+            cast(Session, session).add(user)
 
         profile = cast(Profile | None, session.get(Profile, telegram_id))
         if profile is None:
@@ -124,6 +125,9 @@ async def patch_user_settings(
             and profile.timezone != device_tz
         ):
             profile.timezone = device_tz
+
+        if not user.onboarding_complete:
+            user.onboarding_complete = True
 
         try:
             commit(cast(Session, session))
