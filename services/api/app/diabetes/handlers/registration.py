@@ -5,6 +5,7 @@ import logging
 import os
 import re
 
+from telegram import Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -46,6 +47,57 @@ LEARN_BUTTON_PATTERN: re.Pattern[str] = re.compile(
 )
 
 logger = logging.getLogger(__name__)
+
+GPT_MODE_KEY = "gpt_mode"
+GPT_TIMEOUT = datetime.timedelta(minutes=5)
+
+
+async def _gpt_timeout(context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Clear GPT dialog flag on timeout."""
+    user_id = context.job.data
+    if user_id is None:
+        return
+    user_data = context.application.user_data.get(user_id)
+    if isinstance(user_data, dict):
+        user_data.pop(GPT_MODE_KEY, None)
+
+
+async def start_gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Activate GPT dialog mode and schedule its timeout."""
+    message = update.message
+    if message is None:
+        return
+    context.user_data[GPT_MODE_KEY] = True
+    jq = context.job_queue
+    user = update.effective_user
+    if jq and user is not None:
+        job_name = f"gpt_timeout_{user.id}"
+        for job in jq.get_jobs_by_name(job_name):
+            job.schedule_removal()
+        jq.run_once(
+            _gpt_timeout,
+            when=GPT_TIMEOUT,
+            name=job_name,
+            data=user.id,
+        )
+    await message.reply_text(
+        "💬 GPT режим активирован. Напишите сообщение или /cancel для выхода."
+    )
+
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Cancel current operation and clear GPT dialog flag."""
+    context.user_data.pop(GPT_MODE_KEY, None)
+    jq = context.job_queue
+    user = update.effective_user
+    if jq and user is not None:
+        job_name = f"gpt_timeout_{user.id}"
+        for job in jq.get_jobs_by_name(job_name):
+            job.schedule_removal()
+    from . import dose_calc
+
+    await dose_calc.dose_cancel(update, context)
+
 
 if TYPE_CHECKING:
     CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
@@ -190,12 +242,12 @@ def register_handlers(
     register_profile_handlers(app)
     app.add_handler(sugar_handlers.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
-    app.add_handler(CommandHandlerT("cancel", dose_calc.dose_cancel))
+    app.add_handler(CommandHandlerT("cancel", cancel))
     app.add_handler(CommandHandlerT("help", help_command))
     app.add_handler(CommandHandlerT("reset_onboarding", bot_commands.reset_onboarding))
     if learning_enabled:
         learning_handlers.register_handlers(app)
-    app.add_handler(CommandHandlerT("gpt", gpt_handlers.chat_with_gpt))
+    app.add_handler(CommandHandlerT("gpt", start_gpt_dialog))
     app.add_handler(CommandHandlerT("reset", bot_commands.reset_command))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))

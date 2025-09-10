@@ -24,6 +24,8 @@ from services.api.app.diabetes.handlers.registration import (
     register_handlers,
     register_profile_handlers,
     register_reminder_handlers,
+    start_gpt_dialog,
+    cancel,
 )
 from services.api.app.diabetes.handlers.router import callback_router
 from services.api.app.diabetes.handlers import (
@@ -63,7 +65,7 @@ def test_register_handlers_attaches_expected_handlers(
     assert photo_handlers.photo_handler in callbacks
     assert photo_handlers.doc_handler in callbacks
     assert photo_handlers.prompt_photo in callbacks
-    assert dose_calc.dose_cancel in callbacks
+    assert cancel in callbacks
     assert sugar_handlers.prompt_sugar not in callbacks
     assert callback_router in callbacks
     assert reporting_handlers.report_period_callback in callbacks
@@ -77,7 +79,7 @@ def test_register_handlers_attaches_expected_handlers(
         and "history" in h.commands
         for h in handlers
     )
-    assert gpt_handlers.chat_with_gpt in callbacks
+    assert start_gpt_dialog in callbacks
     assert security_handlers.hypo_alert_faq in callbacks
     assert billing_handlers.trial_command in callbacks
     assert billing_handlers.upgrade_command in callbacks
@@ -252,9 +254,7 @@ def test_register_handlers_attaches_expected_handlers(
     assert not sugar_cmd
 
     cancel_cmd = [
-        h
-        for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is dose_calc.dose_cancel
+        h for h in handlers if isinstance(h, CommandHandler) and h.callback is cancel
     ]
     assert cancel_cmd and "cancel" in cancel_cmd[0].commands
 
@@ -284,7 +284,7 @@ def test_register_handlers_attaches_expected_handlers(
     gpt_cmd = [
         h
         for h in handlers
-        if isinstance(h, CommandHandler) and h.callback is gpt_handlers.chat_with_gpt
+        if isinstance(h, CommandHandler) and h.callback is start_gpt_dialog
     ]
     assert gpt_cmd and "gpt" in gpt_cmd[0].commands
 
