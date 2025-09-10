@@ -57,7 +57,9 @@ class DummyBot(Bot):
         self.sent.append(text)
         return msg
 
-    async def answer_callback_query(self, callback_query_id: str, **kwargs: object) -> bool:
+    async def answer_callback_query(
+        self, callback_query_id: str, **kwargs: object
+    ) -> bool:
         return True
 
 
@@ -67,14 +69,17 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_ui_show_topics", True)
     steps = iter(["step1", "step2"])
 
-    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
+    async def fake_check_user_answer(
+        *args: object, **kwargs: object
+    ) -> tuple[bool, str]:
         return True, "feedback"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     async def fake_start_lesson(user_id: int, topic_slug: str) -> object:
         return SimpleNamespace(lesson_id=1)
@@ -84,8 +89,12 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> tuple[str, bool]:
         return next(steps), False
 
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
 
     async def fake_ensure_overrides(*args: object, **kwargs: object) -> bool:
         return True
@@ -98,7 +107,9 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     app.add_handler(CommandHandler("learn", learning_handlers.learn_command))
     app.add_handler(CallbackQueryHandler(learning_handlers.lesson_callback))
     app.add_handler(
-        MessageHandler(filters.TEXT & (~filters.COMMAND), learning_handlers.lesson_answer_handler)
+        MessageHandler(
+            filters.TEXT & (~filters.COMMAND), learning_handlers.lesson_answer_handler
+        )
     )
     await app.initialize()
 
@@ -128,14 +139,16 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     callback._bot = bot
     await app.process_update(Update(update_id=2, callback_query=callback))
 
-    ans_msg = Message(message_id=3, date=datetime.now(), chat=chat, from_user=user, text="42")
+    ans_msg = Message(
+        message_id=3, date=datetime.now(), chat=chat, from_user=user, text="42"
+    )
     ans_msg._bot = bot
     await app.process_update(Update(update_id=3, message=ans_msg))
     plan = learning_handlers.generate_learning_plan("step1")
     assert bot.sent == [
         "Выберите тему:",
         "Доступные темы:",
-        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
         "step1",
         "feedback",
         "step2",
@@ -156,7 +169,9 @@ async def test_static_mode_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
         "settings",
         SimpleNamespace(learning_content_mode="static", learning_mode_enabled=True),
     )
-    monkeypatch.setattr(learning_handlers.legacy_handlers, "learn_command", fake_learn_command)
+    monkeypatch.setattr(
+        learning_handlers.legacy_handlers, "learn_command", fake_learn_command
+    )
 
     upd = cast(Update, SimpleNamespace(message=object()))
     ctx = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())

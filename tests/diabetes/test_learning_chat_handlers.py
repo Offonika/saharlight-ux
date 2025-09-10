@@ -106,7 +106,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -126,7 +126,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     await learning_handlers.lesson_callback(update_cb, context_cb)
     plan = learning_handlers.generate_learning_plan(f"{disclaimer()}\n\nstep1?")
     assert msg2.replies == [
-        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
         f"{disclaimer()}\n\nstep1?",
     ]
     assert isinstance(msg2.markups[0], ReplyKeyboardMarkup)
@@ -148,7 +148,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     async def fake_ensure_overrides(update: object, context: object) -> bool:
         return True
@@ -185,7 +185,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await learning_handlers.lesson_command(update, context)
     expected_plan = generate_learning_plan(f"{disclaimer()}\n\nstep1?")
-    plan_text = f"\U0001F5FA План обучения\n{pretty_plan(expected_plan)}"
+    plan_text = f"\U0001f5fa План обучения\n{pretty_plan(expected_plan)}"
     assert msg.replies == [plan_text, f"{disclaimer()}\n\nstep1?"]
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
 
@@ -313,7 +313,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
     update = make_update(message=msg, user_id=7)
@@ -322,7 +322,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
     await learning_handlers.learn_command(update, context)
     plan = learning_handlers.generate_learning_plan("first")
     assert msg.replies == [
-        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
         "first",
     ]
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
@@ -366,10 +366,11 @@ async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         learning_handlers, "generate_step_text", fake_generate_step_text
     )
+
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     user_data: dict[str, Any] = {}
@@ -419,7 +420,7 @@ async def test_lesson_answer_handler_error_keeps_state(
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage(text="ans")
     user_data: dict[str, Any] = {}
@@ -449,13 +450,37 @@ async def test_lesson_answer_handler_add_log_failure(
     async def fail_add_log(*args: object, **kwargs: object) -> None:
         raise SQLAlchemyError("db error")
 
-    async def fail_check_user_answer(
+    calls: list[tuple[object, ...]] = []
+
+    async def fake_check_user_answer(
         *args: object, **kwargs: object
     ) -> tuple[bool, str]:
-        raise AssertionError("should not be called")
+        calls.append(args)
+        return True, "feedback"
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fail_add_log)
-    monkeypatch.setattr(learning_handlers, "check_user_answer", fail_check_user_answer)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fail_add_log)
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+
+    async def fake_generate_step_text(*_a: object, **_k: object) -> str:
+        return "step2"
+
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
+
+    async def fake_next_step(
+        user_id: int,
+        lesson_id: int,
+        profile: Mapping[str, str | None],
+        prev_summary: str | None = None,
+    ) -> tuple[str, bool]:
+        return "step2", False
+
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
+    monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
+    monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
 
     msg = DummyMessage(text="ans")
     user_data: dict[str, Any] = {}
@@ -467,10 +492,10 @@ async def test_lesson_answer_handler_add_log_failure(
     context = make_context(user_data=user_data)
 
     await learning_handlers.lesson_answer_handler(update, context)
-
-    assert msg.replies == [dynamic_tutor.BUSY_MESSAGE]
+    assert calls, "check_user_answer should be called"
+    assert msg.replies == ["feedback", "step2"]
     state = get_state(user_data)
     assert state is not None
-    assert state.step == 1
+    assert state.step == 2
     assert state.awaiting
     assert not context.user_data.get("learn_busy", False)

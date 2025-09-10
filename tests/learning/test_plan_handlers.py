@@ -76,7 +76,7 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     message = DummyMessage()
     update = make_update(message=message)
@@ -86,7 +86,9 @@ async def test_learn_command_stores_plan(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert context.user_data["learning_plan_index"] == 0
     assert context.user_data["learning_plan"][0] == "step1"
-    plan_text = f"\U0001F5FA План обучения\n{pretty_plan(context.user_data['learning_plan'])}"
+    plan_text = (
+        f"\U0001f5fa План обучения\n{pretty_plan(context.user_data['learning_plan'])}"
+    )
     assert message.replies == [plan_text, "step1"]
 
 
@@ -154,7 +156,7 @@ async def test_plan_command_respects_existing_plan(
         learning_handlers.plans_repo, "get_active_plan", fail_get_active_plan
     )
     monkeypatch.setattr(
-        learning_handlers.progress_service, "get_progress", fail_get_progress
+        learning_handlers.progress_repo, "get_progress", fail_get_progress
     )
 
     await learning_handlers.plan_command(update, context)
