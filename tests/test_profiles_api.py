@@ -46,7 +46,10 @@ def test_profiles_get_missing_profile_logs_warning(
     with TestClient(app) as client, caplog.at_level(logging.WARNING):
         resp = client.get("/api/profiles", params={"telegramId": 1})
     assert resp.status_code == 404
-    assert any(rec.levelno == logging.WARNING and "failed to fetch profile" in rec.message for rec in caplog.records)
+    assert any(
+        rec.levelno == logging.WARNING and "failed to fetch profile" in rec.message
+        for rec in caplog.records
+    )
     assert "Traceback" not in caplog.text
     engine.dispose()
 
@@ -94,7 +97,7 @@ def test_profiles_get_db_connection_error_returns_503(
     assert resp.json() == {"detail": "database temporarily unavailable"}
 
 
-def test_profiles_post_user_missing_returns_404(
+def test_profiles_post_user_missing_creates_user(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app = FastAPI()
@@ -119,7 +122,14 @@ def test_profiles_post_user_missing_returns_404(
     }
     with TestClient(app) as client:
         resp = client.post("/api/profiles", json=payload)
-    assert resp.status_code == 404
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["telegramId"] == 777
+    with TestSession() as session:
+        user = session.get(db.User, 777)
+        assert user is not None
+        assert user.thread_id == "api"
+        assert user.onboarding_complete is True
     engine.dispose()
 
 

@@ -25,15 +25,22 @@ async def test_save_profile_user_missing(monkeypatch: pytest.MonkeyPatch) -> Non
         low=4.0,
         high=6.0,
     )
-    with pytest.raises(HTTPException) as exc:
-        await profile_service.save_profile(data)
-    assert exc.value.status_code == 404
-    assert exc.value.detail == "user not found"
+    await profile_service.save_profile(data)
+    with TestSession() as session:
+        user = session.get(db.User, 1)
+        assert user is not None
+        assert user.thread_id == "api"
+        assert user.onboarding_complete is True
+        profile = session.get(db.Profile, 1)
+        assert profile is not None
+        assert profile.icr == 1.0
     engine.dispose()
 
 
 @pytest.mark.asyncio
-async def test_patch_user_settings_user_missing(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_patch_user_settings_user_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
     TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)

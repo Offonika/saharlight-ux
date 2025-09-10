@@ -102,10 +102,10 @@ def test_profile_post_invalid_icr_returns_422(
     assert resp.json() == {"detail": "icr must be greater than 0"}
 
 
-def test_profile_post_user_missing_returns_404(
+def test_profile_post_user_missing_creates_user(
     monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
 ) -> None:
-    setup_db(monkeypatch)
+    SessionLocal = setup_db(monkeypatch)
     payload = {
         "telegramId": 1,
         "icr": 1.0,
@@ -117,5 +117,10 @@ def test_profile_post_user_missing_returns_404(
     }
     with TestClient(server.app) as client:
         resp = client.post("/api/profile", json=payload, headers=auth_headers)
-    assert resp.status_code == 404
-    assert resp.json() == {"detail": "user not found"}
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+    with SessionLocal() as session:
+        user = session.get(db.User, 1)
+        assert user is not None
+        assert user.thread_id == "api"
+        assert user.onboarding_complete is True
