@@ -16,16 +16,12 @@ _original_get_async_openai_client = openai_utils.get_async_openai_client
 @pytest.fixture(autouse=True)
 def _restore_openai_utils(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(openai_utils, "get_openai_client", _original_get_openai_client)
-    monkeypatch.setattr(
-        openai_utils, "get_async_openai_client", _original_get_async_openai_client
-    )
+    monkeypatch.setattr(openai_utils, "get_async_openai_client", _original_get_async_openai_client)
 
 
 def test_get_openai_client_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(openai_utils, "_http_client", {})
-    fake_settings = SimpleNamespace(
-        openai_api_key="", openai_proxy=None, openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="", openai_proxy=None, openai_assistant_id=None)
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     with pytest.raises(RuntimeError):
         openai_utils.get_openai_client()
@@ -39,9 +35,7 @@ async def test_get_openai_client_uses_proxy(
     http_client_mock = Mock(return_value=fake_http_client)
     openai_mock = Mock()
 
-    fake_settings = SimpleNamespace(
-        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None)
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", {})
     monkeypatch.setattr(httpx, "Client", http_client_mock)
@@ -58,13 +52,9 @@ async def test_get_openai_client_uses_proxy(
     fake_http_client.close.assert_called_once()
 
 
-def test_get_openai_client_logs_assistant(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+def test_get_openai_client_logs_assistant(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     openai_mock = Mock()
-    fake_settings = SimpleNamespace(
-        openai_api_key="key", openai_proxy=None, openai_assistant_id="assistant"
-    )
+    fake_settings = SimpleNamespace(openai_api_key="key", openai_proxy=None, openai_assistant_id="assistant")
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", {})
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
@@ -79,9 +69,7 @@ def test_get_openai_client_without_proxy(monkeypatch: pytest.MonkeyPatch) -> Non
     openai_mock = Mock()
     http_client_mock = Mock()
 
-    fake_settings = SimpleNamespace(
-        openai_api_key="key", openai_proxy=None, openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="key", openai_proxy=None, openai_assistant_id=None)
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", {})
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
@@ -109,9 +97,7 @@ async def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
 
     dummy_lock = DummyLock()
     fake_http_client = Mock()
-    fake_settings = SimpleNamespace(
-        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None)
 
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client_lock", dummy_lock)
@@ -133,9 +119,7 @@ def test_get_async_openai_client_requires_api_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
-    fake_settings = SimpleNamespace(
-        openai_api_key="", openai_proxy=None, openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="", openai_proxy=None, openai_assistant_id=None)
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     with pytest.raises(RuntimeError):
         openai_utils.get_async_openai_client()
@@ -151,9 +135,7 @@ async def test_get_async_openai_client_uses_proxy(
 
     openai_mock = Mock()
 
-    fake_settings = SimpleNamespace(
-        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None)
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
 
@@ -197,9 +179,7 @@ async def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> No
     http_client_mock = Mock(return_value=fake_http_client)
     openai_mock = Mock()
 
-    fake_settings = SimpleNamespace(
-        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None)
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", {})
     monkeypatch.setattr(httpx, "Client", http_client_mock)
@@ -239,9 +219,7 @@ async def test_async_openai_client_ctx_disposes(
     async_client_mock = Mock(return_value=fake_async_client)
     openai_mock = Mock()
 
-    fake_settings = SimpleNamespace(
-        openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
-    )
+    fake_settings = SimpleNamespace(openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None)
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
     monkeypatch.setattr(openai_utils, "_http_client", {})
@@ -260,9 +238,7 @@ async def test_async_openai_client_ctx_logs_dispose_error(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     fake_client = object()
-    monkeypatch.setattr(
-        openai_utils, "get_async_openai_client", Mock(return_value=fake_client)
-    )
+    monkeypatch.setattr(openai_utils, "get_async_openai_client", Mock(return_value=fake_client))
     dispose_mock = AsyncMock(side_effect=RuntimeError("boom"))
     monkeypatch.setattr(openai_utils, "dispose_http_client", dispose_mock)
 
@@ -271,9 +247,7 @@ async def test_async_openai_client_ctx_logs_dispose_error(
             assert client is fake_client
 
     dispose_mock.assert_awaited_once()
-    assert any(
-        "Failed to dispose HTTP client" in record.message for record in caplog.records
-    )
+    assert any("Failed to dispose HTTP client" in record.message for record in caplog.records)
 
 
 def test_dispose_http_client_sync(monkeypatch: pytest.MonkeyPatch) -> None:
