@@ -90,6 +90,7 @@ async def test_hydrate_generates_snapshot_and_persists(
     monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(learning_handlers, "build_main_keyboard", lambda: None)
     monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
+
     async def fake_profile(*_: object) -> dict[str, str | None]:
         return {}
 
@@ -135,13 +136,15 @@ async def test_hydrate_generates_snapshot_and_persists(
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
-    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
+    monkeypatch.setattr(
+        learning_handlers, "generate_step_text", fake_generate_step_text
+    )
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
 
     async def fake_add_log(*_a: object, **_k: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     calls: list[dict[str, Any]] = []
     orig_upsert = progress_repo.upsert_progress
@@ -159,14 +162,14 @@ async def test_hydrate_generates_snapshot_and_persists(
     context = SimpleNamespace(user_data={}, bot_data={})
     await learning_handlers.learn_command(update, context)
     plan = generate_learning_plan("Шаг 1")
-    assert msg_learn.sent == [f"\U0001F5FA План обучения\n{pretty_plan(plan)}", "Шаг 1"]
+    assert msg_learn.sent == [f"\U0001f5fa План обучения\n{pretty_plan(plan)}", "Шаг 1"]
     assert len(calls) == 1
 
     msg_ans = DummyMessage(text="Не знаю")
     upd_ans = SimpleNamespace(message=msg_ans, effective_user=msg_ans.from_user)
     await learning_handlers.lesson_answer_handler(upd_ans, context)
     assert msg_ans.sent == ["feedback", "Шаг 2"]
-    assert len(calls) == 2
+    assert len(calls) == 3
 
     with setup_db() as session:  # type: ignore[misc]
         progress = session.query(LearningProgress).one()
@@ -180,7 +183,7 @@ async def test_hydrate_generates_snapshot_and_persists(
     await learning_handlers.plan_command(upd_plan, context2)
 
     assert context2.user_data.get("learning_plan_index") == 1
-    assert len(calls) == 3
+    assert len(calls) == 4
     assert gen_calls == [1, 2, 2]
 
     msg_learn2 = DummyMessage(text="/learn")

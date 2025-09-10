@@ -52,16 +52,22 @@ async def _noop(*args: object, **kwargs: object) -> None:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_onboarding_completion_triggers_plan(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(settings, "learning_ui_show_topics", False)
 
-    async def fake_get_profile_for_user(user_id: int, ctx: Any) -> Mapping[str, str | None]:
+    async def fake_get_profile_for_user(
+        user_id: int, ctx: Any
+    ) -> Mapping[str, str | None]:
         return {}
 
     from services.api.app.diabetes import learning_onboarding as onboarding_utils
 
-    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile_for_user)
+    monkeypatch.setattr(
+        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile_for_user
+    )
     monkeypatch.setattr(
         learning_handlers.profiles, "get_profile_for_user", fake_get_profile_for_user
     )
@@ -83,19 +89,20 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
     def fake_generate_learning_plan(first_step: str | None = None) -> list[str]:
         return [first_step or "first", "second"]
 
-    monkeypatch.setattr(learning_handlers, "generate_learning_plan", fake_generate_learning_plan)
+    monkeypatch.setattr(
+        learning_handlers, "generate_learning_plan", fake_generate_learning_plan
+    )
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", _noop)
+    monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "get_active_plan", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "create_plan", _noop)
     monkeypatch.setattr(learning_handlers.plans_repo, "update_plan", _noop)
-    monkeypatch.setattr(learning_handlers.progress_service, "upsert_progress", _noop)
+    monkeypatch.setattr(learning_handlers.progress_repo, "upsert_progress", _noop)
+
     async def _start(*args: object, **kwargs: object) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
 
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", _start
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", _start)
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
@@ -111,7 +118,9 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
     user = User(id=1, is_bot=False, first_name="T")
     chat = Chat(id=1, type="private")
 
-    def _msg(mid: int, text: str, *, entities: list[MessageEntity] | None = None) -> Message:
+    def _msg(
+        mid: int, text: str, *, entities: list[MessageEntity] | None = None
+    ) -> Message:
         m = Message(
             message_id=mid,
             date=datetime.now(),
@@ -123,13 +132,18 @@ async def test_onboarding_completion_triggers_plan(monkeypatch: pytest.MonkeyPat
         m._bot = bot
         return m
 
-    await app.process_update(Update(update_id=1, message=_msg(1, "/learn", entities=[MessageEntity("bot_command", 0, 6)])))
+    await app.process_update(
+        Update(
+            update_id=1,
+            message=_msg(1, "/learn", entities=[MessageEntity("bot_command", 0, 6)]),
+        )
+    )
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
     await app.process_update(Update(update_id=3, message=_msg(3, "0")))
 
     plan = fake_generate_learning_plan("first")
     assert app.user_data[1]["learning_plan"] == plan
-    assert bot.sent[-2] == f"\U0001F5FA План обучения\n{pretty_plan(plan)}"
+    assert bot.sent[-2] == f"\U0001f5fa План обучения\n{pretty_plan(plan)}"
     assert bot.sent[-1] == "first"
 
     await app.shutdown()
