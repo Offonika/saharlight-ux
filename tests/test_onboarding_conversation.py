@@ -111,6 +111,10 @@ class DummyMessage:
         self.replies.append(text)
         self.kwargs.append(kwargs)
 
+    async def reply_video(self, video: Any, **kwargs: Any) -> None:
+        self.replies.append(video)
+        self.kwargs.append(kwargs)
+
     def get_bot(self) -> Any:
         return SimpleNamespace(set_my_commands=AsyncMock())
 

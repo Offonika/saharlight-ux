@@ -29,6 +29,9 @@ class DummyMessage:
     async def reply_text(self, text: str, **_kwargs: Any) -> None:
         self.sent.append(text)
 
+    async def reply_video(self, video: Any, **_kwargs: Any) -> None:
+        self.sent.append(video)
+
 
 @pytest.fixture()
 def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:

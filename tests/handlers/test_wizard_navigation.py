@@ -20,6 +20,7 @@ class DummyMessage:
     def __init__(self, text: str | None = None) -> None:
         self.text = text
         self.texts: list[str] = []
+        self.videos: list[Any] = []
         self.polls: list[tuple[str, list[str]]] = []
         self.reply_markups: list[Any] = []
         self.deleted = False
@@ -28,6 +29,9 @@ class DummyMessage:
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.texts.append(text)
         self.reply_markups.append(kwargs.get("reply_markup"))
+
+    async def reply_video(self, video: Any, **kwargs: Any) -> None:
+        self.videos.append(video)
 
     async def reply_poll(self, question: str, options: list[str], **kwargs: Any) -> Any:
         self.polls.append((question, options))

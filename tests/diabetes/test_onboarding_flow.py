@@ -107,6 +107,9 @@ class DummyMessage:
     async def reply_text(self, text: str, **_: Any) -> None:  # noqa: ANN401
         self.replies.append(text)
 
+    async def reply_video(self, video: Any, **_: Any) -> None:  # noqa: ANN401
+        self.replies.append(video)
+
     def get_bot(self) -> Any:
         return SimpleNamespace(set_my_commands=AsyncMock())
 

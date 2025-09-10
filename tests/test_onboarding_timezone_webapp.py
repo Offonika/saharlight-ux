@@ -23,6 +23,9 @@ class DummyMessage:
     async def reply_text(self, text: str, **kwargs: Any) -> None:
         self.replies.append(text)
 
+    async def reply_video(self, video: Any, **kwargs: Any) -> None:
+        self.replies.append(video)
+
 
 @pytest.fixture()
 def session_local(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[SASession]:
