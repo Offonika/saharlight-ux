@@ -21,19 +21,25 @@ class AssistantMemory(Base):
         index=True,
     )
     turn_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    last_turn_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False
-    )
-    summary_text: Mapped[str] = mapped_column(
-        String(1024), nullable=False, default=""
-    )
+    last_turn_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
+    summary_text: Mapped[str] = mapped_column(String(1024), nullable=False, default="")
 
 
 class LessonLog(Base):
     """Stores conversation steps within a learning plan."""
 
     __tablename__ = "lesson_logs"
-    __table_args__ = (sa.Index("ix_lesson_logs_user_plan", "user_id", "plan_id"),)
+    __table_args__ = (
+        sa.Index("ix_lesson_logs_user_plan", "user_id", "plan_id"),
+        sa.UniqueConstraint(
+            "user_id",
+            "plan_id",
+            "module_idx",
+            "step_idx",
+            "role",
+            name="uq_lesson_logs_user_plan_module_step_role",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(
@@ -41,16 +47,12 @@ class LessonLog(Base):
         ForeignKey("users.telegram_id", ondelete="CASCADE"),
         nullable=False,
     )
-    plan_id: Mapped[int] = mapped_column(
-        ForeignKey("learning_plans.id", ondelete="CASCADE"), nullable=False
-    )
+    plan_id: Mapped[int] = mapped_column(ForeignKey("learning_plans.id", ondelete="CASCADE"), nullable=False)
     module_idx: Mapped[int] = mapped_column(Integer, nullable=False)
     step_idx: Mapped[int] = mapped_column(Integer, nullable=False)
     role: Mapped[str] = mapped_column(String, nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False)
 
 
 __all__ = ["AssistantMemory", "LessonLog"]
