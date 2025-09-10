@@ -5,6 +5,7 @@ import logging
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone, timedelta
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from services.api.app.config import settings
@@ -12,7 +13,7 @@ from services.api.app.assistant.models import LessonLog
 from services.api.app.diabetes.metrics import lesson_log_failures, pending_logs_size
 from services.api.app.diabetes.services.db import SessionLocal, run_db, User
 from services.api.app.diabetes.services.monitoring import notify
-from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.repository import CommitError, commit
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,17 @@ async def flush_pending_logs() -> None:
 
     try:
         missing = await run_db(_flush, sessionmaker=SessionLocal)
+    except CommitError as exc:
+        if isinstance(exc.__cause__, IntegrityError):
+            missing = []
+        else:  # pragma: no cover - logging only
+            lesson_log_failures.inc(len(queued))
+            async with pending_logs_lock:
+                pending_logs.extend(queued)
+                pending_logs_size.set(len(pending_logs))
+            if settings.learning_logging_required:
+                raise
+            return
     except Exception:  # pragma: no cover - logging only
         lesson_log_failures.inc(len(queued))
         async with pending_logs_lock:
