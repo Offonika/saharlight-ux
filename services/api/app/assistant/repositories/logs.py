@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "add_lesson_log",
+    "safe_add_lesson_log",
     "get_lesson_logs",
     "flush_pending_logs",
     "start_flush_task",
@@ -101,6 +102,30 @@ async def add_lesson_log(
         )
 
     await flush_pending_logs()
+
+
+async def safe_add_lesson_log(
+    user_id: int,
+    plan_id: int,
+    module_idx: int,
+    step_idx: int,
+    role: str,
+    content: str,
+) -> None:
+    """A thin wrapper around :func:`add_lesson_log`.
+
+    It exists so callers can patch a dedicated name and provide their own
+    error-handling strategy.
+    """
+
+    await add_lesson_log(
+        user_id=user_id,
+        plan_id=plan_id,
+        module_idx=module_idx,
+        step_idx=step_idx,
+        role=role,
+        content=content,
+    )
 
 
 async def _flush_periodically(interval: float) -> None:

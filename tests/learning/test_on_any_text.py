@@ -51,7 +51,9 @@ async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers.lesson_log, "safe_add_lesson_log", fake_add_log
+    )
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     msg = DummyMessage("ans")
@@ -99,7 +101,9 @@ async def test_on_any_text_idontknow(monkeypatch: pytest.MonkeyPatch) -> None:
         learning_handlers, "generate_step_text", fake_generate_step_text
     )
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers.lesson_log, "safe_add_lesson_log", fake_add_log
+    )
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     msg = DummyMessage("Не знаю")
@@ -180,7 +184,9 @@ async def test_on_any_text_within_grace(monkeypatch: pytest.MonkeyPatch) -> None
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers.lesson_log, "safe_add_lesson_log", fake_add_log
+    )
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
 
     msg = DummyMessage("ans")

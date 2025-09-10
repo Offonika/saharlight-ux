@@ -79,7 +79,9 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers.lesson_log, "safe_add_lesson_log", fake_add_log
+    )
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
@@ -118,7 +120,7 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     await app.process_update(Update(update_id=2, message=_msg(2, "49")))
     await app.process_update(Update(update_id=3, message=_msg(3, "0")))
     expected_plan = generate_learning_plan("шаг1")
-    assert bot.sent[-2] == f"\U0001F5FA План обучения\n{pretty_plan(expected_plan)}"
+    assert bot.sent[-2] == f"\U0001f5fa План обучения\n{pretty_plan(expected_plan)}"
     assert bot.sent[-1] == "шаг1"
     assert all(
         title not in s and "Выберите тему" not in s and "Доступные темы" not in s
@@ -130,5 +132,3 @@ async def test_flow_autostart(monkeypatch: pytest.MonkeyPatch) -> None:
     }
 
     await app.shutdown()
-
-

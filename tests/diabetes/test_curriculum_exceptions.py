@@ -82,7 +82,9 @@ async def test_learn_command_start_lesson_exception(
     async def fail_add_log(*args: object, **kwargs: object) -> None:
         raise AssertionError("should not be called")
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
+    monkeypatch.setattr(
+        dynamic_handlers.lesson_log, "safe_add_lesson_log", fail_add_log
+    )
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -141,7 +143,9 @@ async def test_learn_command_next_step_exception(
     async def fail_add_log(*args: object, **kwargs: object) -> None:
         raise AssertionError("should not be called")
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
+    monkeypatch.setattr(
+        dynamic_handlers.lesson_log, "safe_add_lesson_log", fail_add_log
+    )
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -235,7 +239,9 @@ async def test_lesson_command_next_step_exception(
     async def fail_add_log(*args: object, **kwargs: object) -> None:
         raise AssertionError("should not be called")
 
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fail_add_log)
+    monkeypatch.setattr(
+        dynamic_handlers.lesson_log, "safe_add_lesson_log", fail_add_log
+    )
 
     msg = DummyMessage()
     update = make_update(message=msg)

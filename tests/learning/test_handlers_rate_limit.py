@@ -85,7 +85,7 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
     await learning_handlers.lesson_callback(update1, context1)
     plan = learning_handlers.generate_learning_plan("step1")
     assert msg1.replies == [
-        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
         "step1",
     ]
 
@@ -104,10 +104,8 @@ async def test_lesson_answer_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None
     async def _noop(*_a: object, **_k: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", _noop)
-    monkeypatch.setattr(
-        learning_handlers, "_rate_limited", lambda *_args, **_kw: True
-    )
+    monkeypatch.setattr(learning_handlers.lesson_log, "safe_add_lesson_log", _noop)
+    monkeypatch.setattr(learning_handlers, "_rate_limited", lambda *_args, **_kw: True)
 
     user_data: dict[str, object] = {}
     learning_handlers.set_state(

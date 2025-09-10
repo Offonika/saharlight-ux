@@ -93,7 +93,9 @@ async def test_plan_button_flow(
     async def fake_add_log(*_a: object, **_k: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers.lesson_log, "safe_add_lesson_log", fake_add_log
+    )
 
     msg_learn = DummyMessage(text="/learn")
     update_learn = SimpleNamespace(
@@ -102,19 +104,15 @@ async def test_plan_button_flow(
     context = SimpleNamespace(user_data={}, bot_data={})
     await learning_handlers.learn_command(update_learn, context)
     plan = generate_learning_plan("Шаг 1")
-    assert msg_learn.sent == [f"\U0001F5FA План обучения\n{pretty_plan(plan)}", "Шаг 1"]
+    assert msg_learn.sent == [f"\U0001f5fa План обучения\n{pretty_plan(plan)}", "Шаг 1"]
 
     msg_ans = DummyMessage(text="Не знаю")
-    update_ans = SimpleNamespace(
-        message=msg_ans, effective_user=msg_ans.from_user
-    )
+    update_ans = SimpleNamespace(message=msg_ans, effective_user=msg_ans.from_user)
     await learning_handlers.lesson_answer_handler(update_ans, context)
     assert msg_ans.sent == ["feedback", "Шаг 2"]
 
     plan_msg = DummyMessage()
-    plan_update = SimpleNamespace(
-        message=plan_msg, effective_user=plan_msg.from_user
-    )
+    plan_update = SimpleNamespace(message=plan_msg, effective_user=plan_msg.from_user)
     await learning_handlers.plan_command(plan_update, context)
     assert plan_msg.sent
     assert "Шаг 2" in plan_msg.sent[0]

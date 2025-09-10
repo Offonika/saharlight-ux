@@ -71,9 +71,7 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(
         dynamic_handlers.curriculum_engine, "start_lesson", raise_start_lesson
     )
-    monkeypatch.setattr(
-        dynamic_handlers.curriculum_engine, "next_step", fail_next_step
-    )
+    monkeypatch.setattr(dynamic_handlers.curriculum_engine, "next_step", fail_next_step)
     monkeypatch.setattr(
         dynamic_handlers,
         "generate_learning_plan",
@@ -81,17 +79,23 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
     )
     monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
     monkeypatch.setattr(dynamic_handlers, "disclaimer", lambda: "")
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", _fake_persist)
+    monkeypatch.setattr(
+        dynamic_handlers.lesson_log, "safe_add_lesson_log", _fake_persist
+    )
     monkeypatch.setattr(dynamic_handlers.plans_repo, "get_active_plan", _fake_persist)
     monkeypatch.setattr(dynamic_handlers.plans_repo, "create_plan", _fake_persist)
     monkeypatch.setattr(dynamic_handlers.plans_repo, "update_plan", _fake_persist)
-    monkeypatch.setattr(dynamic_handlers.progress_service, "upsert_progress", _fake_persist)
+    monkeypatch.setattr(
+        dynamic_handlers.progress_repo, "upsert_progress", _fake_persist
+    )
 
     async def fake_ensure_overrides(*_a: object, **_k: object) -> bool:
         return True
 
     monkeypatch.setattr(dynamic_handlers, "ensure_overrides", fake_ensure_overrides)
-    monkeypatch.setattr(dynamic_handlers, "choose_initial_topic", lambda _p: ("slug", "t"))
+    monkeypatch.setattr(
+        dynamic_handlers, "choose_initial_topic", lambda _p: ("slug", "t")
+    )
 
     bot = DummyBot()
     app = Application.builder().bot(bot).build()
@@ -112,7 +116,7 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
     await app.process_update(Update(update_id=1, message=msg))
 
     assert bot.sent == [
-        "\U0001F5FA План обучения\n1. step1\n2. step2",
+        "\U0001f5fa План обучения\n1. step1\n2. step2",
         "step1",
     ]
 
@@ -120,7 +124,9 @@ async def test_dynamic_mode_empty_lessons(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 @pytest.mark.asyncio
-async def test_static_mode_empty_lessons_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_static_mode_empty_lessons_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Static /learn should fall back to dynamic when no lessons."""
 
     monkeypatch.setattr(settings, "learning_content_mode", "static")

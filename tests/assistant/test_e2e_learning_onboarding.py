@@ -67,7 +67,9 @@ async def test_first_run_restart_and_type_questions(
     monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(learning_handlers, "build_main_keyboard", lambda: None)
     monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
-    monkeypatch.setattr(learning_handlers, "choose_initial_topic", lambda _p: ("intro", "Intro"))
+    monkeypatch.setattr(
+        learning_handlers, "choose_initial_topic", lambda _p: ("intro", "Intro")
+    )
 
     async def fake_start_lesson(user_id: int, slug: str) -> SimpleNamespace:
         return SimpleNamespace(lesson_id=1)
@@ -90,18 +92,27 @@ async def test_first_run_restart_and_type_questions(
     ) -> tuple[bool, str]:
         return False, "feedback"
 
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
     monkeypatch.setattr(
-        learning_handlers, "generate_learning_plan", lambda first_step=None: [first_step or "Шаг 1", "Шаг 2"]
+        learning_handlers,
+        "generate_learning_plan",
+        lambda first_step=None: [first_step or "Шаг 1", "Шаг 2"],
     )
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
+
     async def fake_add_log(*_a: object, **_k: object) -> None:
         return None
 
-    monkeypatch.setattr(learning_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(
+        learning_handlers.lesson_log, "safe_add_lesson_log", fake_add_log
+    )
 
     msg = DummyMessage(text="/learn")
     update = SimpleNamespace(message=msg, effective_user=msg.from_user)
@@ -120,7 +131,7 @@ async def test_first_run_restart_and_type_questions(
     from services.api.app.diabetes.planner import pretty_plan
 
     plan = ["Шаг 1", "Шаг 2"]
-    assert msg_level.sent == [f"\U0001F5FA План обучения\n{pretty_plan(plan)}", "Шаг 1"]
+    assert msg_level.sent == [f"\U0001f5fa План обучения\n{pretty_plan(plan)}", "Шаг 1"]
 
     msg_q = DummyMessage(text=question)
     upd_q = SimpleNamespace(message=msg_q, effective_user=msg_q.from_user)
