@@ -131,7 +131,7 @@ async def test_skip_flow_finishes(monkeypatch: pytest.MonkeyPatch) -> None:
     update = cast(Update, SimpleNamespace(message=message, effective_user=user))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None),
     )
 
     state = await onboarding.start_command(update, context)
@@ -170,7 +170,7 @@ async def test_back_and_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
     update = cast(Update, SimpleNamespace(message=message, effective_user=user))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None),
     )
 
     await onboarding.start_command(update, context)
@@ -198,7 +198,7 @@ async def test_variant_b_starts_from_timezone(monkeypatch: pytest.MonkeyPatch) -
     update = cast(Update, SimpleNamespace(message=message, effective_user=user))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None),
     )
 
     state = await onboarding.start_command(update, context)
@@ -210,4 +210,19 @@ async def test_variant_b_starts_from_timezone(monkeypatch: pytest.MonkeyPatch) -
     state = await onboarding.timezone_text(update_tz, context)
     assert state == onboarding.PROFILE
     assert message.replies[-1].startswith("Шаг 2/3")
+
+
+@pytest.mark.asyncio
+async def test_start_requires_init_data() -> None:
+    message = DummyMessage()
+    user = SimpleNamespace(id=1)
+    update = cast(Update, SimpleNamespace(message=message, effective_user=user))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, job_queue=None),
+    )
+
+    state = await onboarding.start_command(update, context)
+    assert state == ConversationHandler.END
+    assert message.replies == ["⚠️ Откройте приложение через /start и вернитесь"]
 

@@ -27,7 +27,8 @@ async def test_start_webapp_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], SimpleNamespace()
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"tg_init_data": "t"}),
     )
 
     await handler.callback(update, context)
@@ -50,10 +51,26 @@ async def test_start_webapp_relative(monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], SimpleNamespace()
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"tg_init_data": "t"}),
     )
 
     await handler.callback(update, context)
 
     buttons = message.kwargs[0]["reply_markup"].inline_keyboard
     assert buttons[0][0].web_app.url.startswith("https://bot.example/ui/")
+
+
+@pytest.mark.asyncio
+async def test_start_webapp_prompts_without_init_data(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("UI_BASE_URL", "https://ui.example")
+    handler = build_start_handler()
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    await handler.callback(update, context)
+    assert message.replies == ["⚠️ Откройте приложение по кнопке ниже"]

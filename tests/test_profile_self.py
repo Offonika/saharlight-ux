@@ -4,6 +4,7 @@ import json
 import time
 import urllib.parse
 
+import logging
 import pytest
 from fastapi.testclient import TestClient
 from fastapi import FastAPI
@@ -39,12 +40,13 @@ def test_profile_self_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp.json()["id"] == 42
 
 
-def test_profile_self_missing_header() -> None:
+def test_profile_self_missing_header(caplog: pytest.LogCaptureFixture) -> None:
     app = FastAPI()
     app.include_router(profile_router)
-    with TestClient(app) as client:
+    with TestClient(app) as client, caplog.at_level(logging.WARNING):
         resp = client.get("/profile/self")
     assert resp.status_code == 401
+    assert "/profile/self called without tg_init_data" in caplog.text
 
 
 def test_profile_self_invalid_header(monkeypatch: pytest.MonkeyPatch) -> None:

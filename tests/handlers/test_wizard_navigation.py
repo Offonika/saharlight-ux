@@ -113,7 +113,7 @@ async def test_start_triggers_onboarding(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, bot_data={}),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, bot_data={}),
     )
 
     state = await onboarding.start_command(update, context)
@@ -161,7 +161,7 @@ async def test_variant_b_starts_with_timezone(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, bot_data={}),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, bot_data={}),
     )
 
     state = await onboarding.start_command(update, context)
@@ -222,7 +222,7 @@ async def test_onboarding_skip_sends_final(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, bot_data={}),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, bot_data={}),
     )
 
     state = await onboarding.onboarding_skip(update, context)

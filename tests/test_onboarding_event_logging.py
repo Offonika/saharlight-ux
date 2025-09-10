@@ -88,7 +88,7 @@ async def test_profile_step_logs_event(monkeypatch: pytest.MonkeyPatch) -> None:
     update = cast(Update, SimpleNamespace(message=message, effective_user=user))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None, args=[]),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None, args=[]),
     )
 
     await onboarding.start_command(update, context)
@@ -116,7 +116,7 @@ async def test_cancel_logs_event(monkeypatch: pytest.MonkeyPatch) -> None:
     update = cast(Update, SimpleNamespace(message=message, effective_user=user))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None, args=[]),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None, args=[]),
     )
 
     await onboarding.start_command(update, context)

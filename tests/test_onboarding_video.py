@@ -71,7 +71,7 @@ async def test_start_command_sends_video(monkeypatch: pytest.MonkeyPatch) -> Non
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None),
     )
 
     await onboarding.start_command(update, context)
@@ -109,7 +109,7 @@ async def test_start_command_sends_link_on_failure(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None),
     )
 
     with caplog.at_level(logging.WARNING):

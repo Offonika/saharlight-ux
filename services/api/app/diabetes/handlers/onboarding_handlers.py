@@ -175,6 +175,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     user = update.effective_user
     if message is None or user is None:
         return ConversationHandler.END
+    user_data = cast(dict[str, Any], context.user_data)
+    if "tg_init_data" not in user_data:
+        await message.reply_text("⚠️ Откройте приложение через /start и вернитесь")
+        return ConversationHandler.END
     video_url = config.ONBOARDING_VIDEO_URL
     if video_url:
         try:
@@ -188,7 +192,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
             await message.reply_text(video_url)
     user_id = user.id
     await ensure_user_exists(user_id)
-    user_data = cast(dict[str, Any], context.user_data)
     args = getattr(context, "args", [])
     variant = args[0] if args else None
     state = await onboarding_state.load_state(user_id)
