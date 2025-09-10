@@ -14,6 +14,10 @@ if [[ -f .env ]]; then
   set +a
 fi
 
+export MPLCONFIGDIR="${MPLCONFIGDIR:-/opt/saharlight-ux/data/mpl-cache}"
+mkdir -p "$MPLCONFIGDIR"
+chmod 700 "$MPLCONFIGDIR"
+
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 
 # basic sanity checks for required configuration
