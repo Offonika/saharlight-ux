@@ -245,13 +245,10 @@ async def report_period_callback(update: Update, context: ContextTypes.DEFAULT_T
         date_from = (now - datetime.timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
         await send_report(update, context, date_from, "последний месяц", query=query)
     elif period == "custom":
-        user_data_raw = context.user_data
-        if user_data_raw is None:
-            context.user_data = {}
-            user_data_raw = context.user_data
-        if user_data_raw is None:  # pragma: no cover - defensive
+        context.user_data = context.user_data or {}
+        if context.user_data is None:  # pragma: no cover - defensive
             raise RuntimeError("context.user_data could not be initialized")
-        user_data = cast(UserData, user_data_raw)
+        user_data = cast(UserData, context.user_data)
         user_data["awaiting_report_date"] = True
         await query.edit_message_text("Введите дату начала отчёта в формате YYYY-MM-DD\nОтправьте «назад» для отмены.")
         await message.reply_text(
@@ -326,13 +323,10 @@ async def send_report(
 
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text: str | None = default_gpt_text
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        context.user_data = {}
-        user_data_raw = context.user_data
-    if user_data_raw is None:  # pragma: no cover - defensive
+    context.user_data = context.user_data or {}
+    if context.user_data is None:  # pragma: no cover - defensive
         raise RuntimeError("context.user_data could not be initialized")
-    user_data = cast(UserData, user_data_raw)
+    user_data = cast(UserData, context.user_data)
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
         with SessionLocal() as session:
