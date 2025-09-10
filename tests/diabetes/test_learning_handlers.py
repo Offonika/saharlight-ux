@@ -215,7 +215,7 @@ async def test_plan_precedes_step(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     monkeypatch.setattr(dynamic_handlers, "pretty_plan", lambda p: "|".join(p))
     monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(dynamic_handlers, "safe_add_lesson_log", fake_add_log)
     monkeypatch.setattr(dynamic_handlers, "_persist", fake_persist)
 
     message = DummyMessage()
@@ -304,7 +304,7 @@ async def test_reenter_after_onboarding(monkeypatch: pytest.MonkeyPatch) -> None
     )
     monkeypatch.setattr(dynamic_handlers, "pretty_plan", lambda p: "|".join(p))
     monkeypatch.setattr(dynamic_handlers, "format_reply", lambda t: t)
-    monkeypatch.setattr(dynamic_handlers, "add_lesson_log", fake_add_log)
+    monkeypatch.setattr(dynamic_handlers, "safe_add_lesson_log", fake_add_log)
     monkeypatch.setattr(dynamic_handlers, "_persist", fake_persist)
 
     user_data: dict[str, Any] = {

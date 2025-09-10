@@ -32,7 +32,6 @@ from .services.gpt_client import (
 )
 from services.api.app.assistant.repositories.logs import (
     _PendingLog,
-    add_lesson_log,
     pending_logs,
     safe_add_lesson_log,
 )
@@ -353,7 +352,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     )
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
+    await safe_add_lesson_log(
         user.id,
         0,
         cast(int, user_data.get("learning_module_idx", 0)),
@@ -429,7 +428,7 @@ async def _start_lesson(
     )
     text = format_reply(plan[0])
     await message.reply_text(text, reply_markup=build_main_keyboard())
-    await add_lesson_log(
+    await safe_add_lesson_log(
         from_user.id,
         0,
         cast(int, user_data.get("learning_module_idx", 0)),

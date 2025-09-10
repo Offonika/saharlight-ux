@@ -56,7 +56,7 @@ async def test_add_lesson_log_raises_when_required(
 async def test_safe_add_lesson_log_handles_failure_not_required(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """safe_add_lesson_log returns True and keeps state when logging optional."""
+    """safe_add_lesson_log returns False and keeps state when logging optional."""
 
     monkeypatch.setattr(settings, "learning_logging_required", False)
 
@@ -69,7 +69,7 @@ async def test_safe_add_lesson_log_handles_failure_not_required(
 
     ok = await safe_add_lesson_log(1, 1, 0, 1, "assistant", "hi")
 
-    assert ok is True
+    assert ok is False
     assert len(logs.pending_logs) == 1
     assert lesson_log_failures._value.get() == 1  # type: ignore[attr-defined]
 
