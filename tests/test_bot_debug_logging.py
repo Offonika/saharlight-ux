@@ -28,6 +28,7 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Stub external interactions
     monkeypatch.setattr(bot, "init_db", lambda: None)
+    monkeypatch.setattr(bot, "build_persistence", lambda: object())
 
     class DummyJobQueue:
         class _Scheduler:
@@ -76,6 +77,9 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class DummyBuilder:
         def token(self, _: str) -> "DummyBuilder":
+            return self
+
+        def persistence(self, _: object) -> "DummyBuilder":
             return self
 
         def post_init(self, _: object) -> "DummyBuilder":

@@ -2,14 +2,22 @@
 """Bot entry point and configuration."""
 
 import logging
+import os
 import sys
 from datetime import timedelta
+from pathlib import Path
 from typing import TYPE_CHECKING, TypeAlias
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
-from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
+from telegram.ext import (
+    Application,
+    ContextTypes,
+    ExtBot,
+    JobQueue,
+    PicklePersistence,
+)
 
 from services.api.app.billing.jobs import schedule_subscription_expiration
 from services.api.app.config import settings
@@ -65,6 +73,27 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
+def build_persistence() -> PicklePersistence[
+    dict[str, object], dict[str, object], dict[str, object]
+]:
+    """Create PicklePersistence with configurable path.
+
+    Path can be overridden via ``BOT_PERSISTENCE_PATH``. By default it is
+    created inside ``$STATE_DIRECTORY`` (``/var/lib/diabetes-bot`` if missing).
+    The directory is created if it does not exist and must be writable.
+    """
+
+    state_dir = os.environ.get("STATE_DIRECTORY", "/var/lib/diabetes-bot")
+    default_path = os.path.join(state_dir, "bot_persistence.pkl")
+    persistence_path = Path(os.environ.get("BOT_PERSISTENCE_PATH", default_path))
+    persistence_path.parent.mkdir(parents=True, exist_ok=True)
+    if not os.access(persistence_path.parent, os.W_OK):
+        raise RuntimeError(
+            f"Persistence directory is not writable: {persistence_path.parent}"
+        )
+    return PicklePersistence(str(persistence_path), single_file=True)
+
+
 def main() -> None:  # pragma: no cover
     level = settings.log_level
     if isinstance(level, str):  # pragma: no cover - runtime config
@@ -90,6 +119,7 @@ def main() -> None:  # pragma: no cover
         sys.exit(1)
 
     # ---- Build application
+    persistence = build_persistence()
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
@@ -97,7 +127,13 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         dict[str, object],
         DefaultJobQueue,
-    ] = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    ] = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .persistence(persistence)
+        .post_init(post_init)
+        .build()
+    )
 
     application.add_handler(build_start_handler(), group=0)
     logger.info("✅ /start → WebApp CTA mode enabled")
@@ -142,7 +178,7 @@ def main() -> None:  # pragma: no cover
     application.run_polling()
 
 
-__all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN"]
+__all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN", "build_persistence"]
 
 if __name__ == "__main__":  # pragma: no cover
     main()

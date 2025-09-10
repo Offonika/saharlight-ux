@@ -21,6 +21,7 @@ def test_single_test_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(bot.settings, "admin_id", 1, raising=False)
     monkeypatch.setattr(bot, "TELEGRAM_TOKEN", "token")
     monkeypatch.setattr(bot, "init_db", lambda: None)
+    monkeypatch.setattr(bot, "build_persistence", lambda: object())
 
     class DummyJobQueue:
         class _Scheduler:
@@ -79,6 +80,9 @@ def test_single_test_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class DummyBuilder:
         def token(self, _: str) -> "DummyBuilder":
+            return self
+
+        def persistence(self, _: object) -> "DummyBuilder":
             return self
 
         def post_init(self, _: object) -> "DummyBuilder":
