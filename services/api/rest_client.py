@@ -3,9 +3,13 @@ from __future__ import annotations
 from typing import cast
 
 import httpx
+import logging
 from telegram.ext import ContextTypes
 
 from .app.config import get_settings
+
+
+logger = logging.getLogger(__name__)
 
 
 async def get_json(
@@ -26,6 +30,9 @@ async def get_json(
             init_data = user_data.get("tg_init_data")
             if isinstance(init_data, str):
                 headers["Authorization"] = f"tg {init_data}"
+
+    if "Authorization" not in headers:
+        logger.warning("No Authorization header for %s", path)
 
     async with httpx.AsyncClient() as client:
         resp = await client.get(url, headers=headers or None)

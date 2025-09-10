@@ -53,3 +53,17 @@ async def test_get_profile_for_user_unauthorized(
     ctx = DummyCtx({"learn_profile_overrides": {"learning_level": "expert"}})
     with pytest.raises(httpx.HTTPStatusError):
         await profiles.get_profile_for_user(123, ctx)
+
+
+@pytest.mark.asyncio
+async def test_get_profile_for_user_passes_tg_init_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get_json(path: str, ctx: object | None = None) -> dict[str, object]:
+        assert isinstance(ctx, DummyCtx)
+        assert ctx.user_data["tg_init_data"] == "abc"
+        return {}
+
+    monkeypatch.setattr(profiles, "get_json", fake_get_json)
+    ctx = DummyCtx({"tg_init_data": "abc"})
+    await profiles.get_profile_for_user(1, ctx)
