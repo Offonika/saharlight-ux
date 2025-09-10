@@ -27,7 +27,7 @@ from sqlalchemy import (
 )
 import sqlalchemy as sa
 from sqlalchemy.engine import URL, Engine
-from sqlalchemy.exc import UnboundExecutionError
+from sqlalchemy.exc import SQLAlchemyError, UnboundExecutionError
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -553,7 +553,11 @@ def init_db() -> None:
         if engine is None or engine.url != database_url:
             if engine is not None:
                 engine.dispose()
-            engine = create_engine(database_url)
+            try:
+                engine = create_engine(database_url)
+            except SQLAlchemyError as exc:
+                logger.error("Failed to initialize database engine: %s", exc)
+                raise RuntimeError("Failed to initialize database engine") from exc
             SessionLocal.configure(bind=engine)
 
     if engine is None:
