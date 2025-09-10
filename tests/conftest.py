@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import Iterator
 import sqlite3
 import subprocess
 from typing import Any, Callable, cast
@@ -8,6 +8,7 @@ import warnings
 import sys
 from types import ModuleType
 
+import asyncio
 import pytest
 import sqlalchemy
 from sqlalchemy.orm import Session, sessionmaker
@@ -281,9 +282,9 @@ def _stub_openai_clients() -> Iterator[None]:
 
 
 @pytest.fixture(autouse=True)
-async def _dispose_openai_clients_after_test() -> AsyncIterator[None]:
+def _dispose_openai_clients_after_test() -> Iterator[None]:
     """Dispose OpenAI clients after each test."""
     yield
     from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
 
-    await dispose_openai_clients()
+    asyncio.run(dispose_openai_clients())
