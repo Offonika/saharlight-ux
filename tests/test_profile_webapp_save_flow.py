@@ -9,7 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 from telegram import Update
 from telegram.ext import CallbackContext
 
@@ -17,6 +18,7 @@ import services.api.app.diabetes.services.db as db
 from services.api.app.diabetes.services.db import Base, User
 import services.api.app.services.profile as profile_service
 from services.api.app.schemas.profile import ProfileSchema
+from services.api.app.diabetes.schemas.profile import TherapyType
 
 handlers = importlib.import_module(
     "services.api.app.diabetes.handlers.profile.conversation"
@@ -130,9 +132,13 @@ def test_parse_profile_values_invalid_number() -> None:
 
 @pytest.mark.asyncio
 async def test_save_profile_partial_icr_cf(monkeypatch: pytest.MonkeyPatch) -> None:
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine, tables=[db.User.__table__, db.Profile.__table__])
+    TestSession = sessionmaker(bind=engine, class_=Session)
     monkeypatch.setattr(db, "SessionLocal", TestSession)
 
     with TestSession() as session:
@@ -277,4 +283,53 @@ async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.dia == 12
     assert settings.carbUnits.value == "xe"
     assert settings.glucoseUnits.value == "mg/dL"
+    engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_enables_profile_get(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine, tables=[db.User.__table__, db.Profile.__table__])
+    TestSession = sessionmaker(bind=engine, class_=Session)
+    monkeypatch.setattr(db, "SessionLocal", TestSession)
+    monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
+
+    async def run_db(func, *args, sessionmaker, **kwargs):
+        with sessionmaker() as session:
+            return func(session, *args, **kwargs)
+
+    monkeypatch.setattr(profile_service.db, "run_db", run_db)
+
+    import services.api.app.routers.profile as profile_router
+    monkeypatch.setattr(profile_router.db_module, "run_db", run_db)
+
+    with TestSession() as session:
+        session.add(User(telegram_id=1, thread_id="t", onboarding_complete=False))
+        session.commit()
+
+    data = ProfileSchema(
+        telegramId=1,
+        icr=1.0,
+        cf=1.0,
+        target=5.0,
+        low=4.0,
+        high=6.0,
+        therapyType=TherapyType.INSULIN,
+    )
+    await profile_service.save_profile(data)
+
+    result = await profile_router.profile(user={"id": 1})
+    assert result.icr == 1.0
+    assert result.cf == 1.0
+
+    with TestSession() as session:
+        user = session.get(User, 1)
+        assert user is not None and user.onboarding_complete is True
+
     engine.dispose()
