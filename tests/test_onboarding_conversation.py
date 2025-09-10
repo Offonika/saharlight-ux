@@ -136,7 +136,7 @@ async def test_happy_path() -> None:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None),
     )
 
     state = await onboarding.start_command(update, context)
@@ -188,7 +188,7 @@ async def test_navigation_buttons() -> None:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, job_queue=None),
     )
 
     state = await onboarding.start_command(update, context)
@@ -232,7 +232,7 @@ async def test_resume_from_saved_step() -> None:
     update = cast(Update, SimpleNamespace(message=message, effective_user=user))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, args=[], job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, args=[], job_queue=None),
     )
     await onboarding.start_command(update, context)
     query = DummyQuery(message, f"{onboarding.CB_PROFILE_PREFIX}t2")
@@ -243,7 +243,7 @@ async def test_resume_from_saved_step() -> None:
     update2 = cast(Update, SimpleNamespace(message=message2, effective_user=user))
     context2 = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}, args=[], job_queue=None),
+        SimpleNamespace(user_data={"tg_init_data": "t"}, args=[], job_queue=None),
     )
     state = await onboarding.start_command(update2, context2)
     assert state == onboarding.TIMEZONE

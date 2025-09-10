@@ -19,7 +19,9 @@ class DummyMessage:
         self.kwargs.append(kwargs)
 
 
-async def _invoke_handler(variant: str) -> tuple[DummyMessage, list[list[Any]]]:
+async def _invoke_handler(
+    variant: str, user_data: dict[str, Any] | None = None
+) -> tuple[DummyMessage, list[list[Any]]]:
     handler = build_start_handler("https://ui.example")
     message = DummyMessage()
     update = cast(
@@ -28,7 +30,7 @@ async def _invoke_handler(variant: str) -> tuple[DummyMessage, list[list[Any]]]:
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(),
+        SimpleNamespace(user_data=user_data or {}),
     )
     start_handlers.choose_variant = lambda _uid: variant  # type: ignore[assignment]
 
@@ -39,7 +41,7 @@ async def _invoke_handler(variant: str) -> tuple[DummyMessage, list[list[Any]]]:
 
 @pytest.mark.asyncio
 async def test_start_variant_a() -> None:
-    message, buttons = await _invoke_handler("A")
+    message, buttons = await _invoke_handler("A", {"tg_init_data": "t"})
 
     assert message.replies == ["👋 Добро пожаловать! Быстрая настройка в приложении:"]
     assert buttons[0][0].web_app.url == (
@@ -52,7 +54,7 @@ async def test_start_variant_a() -> None:
 
 @pytest.mark.asyncio
 async def test_start_variant_b() -> None:
-    message, buttons = await _invoke_handler("B")
+    message, buttons = await _invoke_handler("B", {"tg_init_data": "t"})
 
     assert message.replies == ["👋 Добро пожаловать! Быстрая настройка в приложении:"]
     assert buttons[0][0].web_app.url == (
@@ -61,3 +63,9 @@ async def test_start_variant_b() -> None:
     assert buttons[1][0].web_app.url == (
         "https://ui.example/profile?flow=onboarding&step=profile&variant=B"
     )
+
+
+@pytest.mark.asyncio
+async def test_start_prompts_without_init_data() -> None:
+    message, _ = await _invoke_handler("A", {})
+    assert message.replies == ["⚠️ Откройте приложение по кнопке ниже"]

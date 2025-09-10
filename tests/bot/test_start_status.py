@@ -67,7 +67,8 @@ async def test_start_renders_cta(monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
-        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]], SimpleNamespace()
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"tg_init_data": "t"}),
     )
 
     await handler.callback(update, context)

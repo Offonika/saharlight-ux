@@ -46,10 +46,13 @@ def build_start_handler(ui_base_url: str) -> CommandHandlerT:
             buttons = buttons[::-1]
 
         kb = InlineKeyboardMarkup([[btn] for btn in buttons])
+
+        user_data = getattr(context, "user_data", {})
+        text = "👋 Добро пожаловать! Быстрая настройка в приложении:"
+        if not isinstance(user_data, dict) or "tg_init_data" not in user_data:
+            text = "⚠️ Откройте приложение по кнопке ниже"
+
         if update.message:
-            await update.message.reply_text(
-                "👋 Добро пожаловать! Быстрая настройка в приложении:",
-                reply_markup=kb,
-            )
+            await update.message.reply_text(text, reply_markup=kb)
 
     return CommandHandlerT("start", _start)

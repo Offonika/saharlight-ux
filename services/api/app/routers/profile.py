@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import cast
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..diabetes.schemas.profile import ProfileSettingsIn
@@ -27,8 +27,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _check_token_with_log(authorization: str | None = Header(None)) -> UserContext:
+    if not authorization or not authorization.startswith("tg "):
+        logger.warning(
+            "/profile/self called without tg_init_data; ask user to reopen the WebApp"
+        )
+    return check_token(authorization)
+
+
 @router.get("/profile/self")
-async def profile_self(user: UserContext = Depends(check_token)) -> UserContext:
+async def profile_self(user: UserContext = Depends(_check_token_with_log)) -> UserContext:
     """Return current user context including learning profile fields."""
 
     profile = await get_learning_profile(user["id"])
