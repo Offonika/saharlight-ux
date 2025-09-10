@@ -38,6 +38,9 @@ class DummyMessage:
         self.replies.append(text)
         self.markups.append(kwargs.get("reply_markup"))
 
+    async def reply_video(self, video: Any, **kwargs: Any) -> None:
+        self.replies.append(video)
+
 
 class DummyCallbackQuery:
     def __init__(self, data: str, message: DummyMessage) -> None:

@@ -23,6 +23,9 @@ class DummyMessage:
     ) -> None:  # pragma: no cover - fails intentionally
         raise telegram.error.TelegramError("fail")
 
+    async def reply_video(self, video: Any, **_: Any) -> None:  # noqa: ANN401
+        raise telegram.error.TelegramError("fail")
+
 
 class DummyBot:
     def __init__(self) -> None:

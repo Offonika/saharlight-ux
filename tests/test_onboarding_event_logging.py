@@ -21,6 +21,9 @@ class DummyMessage:
     async def reply_text(self, text: str, **_: Any) -> None:
         self.replies.append(text)
 
+    async def reply_video(self, video: Any, **_: Any) -> None:  # noqa: ANN401
+        self.replies.append(video)
+
 
 class DummyQuery:
     def __init__(self, message: DummyMessage, data: str) -> None:
