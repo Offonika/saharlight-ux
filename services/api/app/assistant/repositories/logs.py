@@ -12,6 +12,7 @@ from services.api.app.assistant.models import LessonLog
 from services.api.app.diabetes.metrics import lesson_log_failures
 from services.api.app.diabetes.services.db import SessionLocal, run_db, User
 from services.api.app.diabetes.services.repository import commit
+from services.api.app.diabetes.services.monitoring import notify
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,7 @@ __all__ = [
     "start_flush_task",
     "stop_flush_task",
     "cleanup_old_logs",
+    "safe_add_lesson_log",
 ]
 
 
@@ -65,13 +67,12 @@ async def flush_pending_logs() -> None:
 
     try:
         missing = await run_db(_flush, sessionmaker=SessionLocal)
-    except Exception as exc:  # pragma: no cover - logging only
-        logger.warning("Failed to flush %s lesson logs", len(queued), exc_info=exc)
+    except Exception:  # pragma: no cover - logging only
         lesson_log_failures.inc(len(queued))
-        if settings.learning_logging_required:
-            raise
         async with pending_logs_lock:
             pending_logs.extend(queued)
+        if settings.learning_logging_required:
+            raise
         return
 
     if missing:
@@ -101,6 +102,32 @@ async def add_lesson_log(
         )
 
     await flush_pending_logs()
+
+
+async def safe_add_lesson_log(
+    user_id: int,
+    plan_id: int,
+    module_idx: int,
+    step_idx: int,
+    role: str,
+    content: str,
+) -> bool:
+    """Safely add a lesson log entry.
+
+    Returns ``True`` on success. If an error occurs and
+    ``learning_logging_required`` is ``True``, the error is logged and an
+    alert is sent, but ``False`` is returned so that the caller can
+    continue without interruption.
+    """
+
+    try:
+        await add_lesson_log(user_id, plan_id, module_idx, step_idx, role, content)
+    except Exception as exc:  # pragma: no cover - simple pass through
+        if settings.learning_logging_required:
+            logger.error("Failed to add lesson log", exc_info=exc)
+            notify("lesson_log_failure")
+        return False
+    return True
 
 
 async def _flush_periodically(interval: float) -> None:
