@@ -8,7 +8,6 @@ from zoneinfo import ZoneInfo
 
 from telegram.ext import ContextTypes, JobQueue
 
-from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.orm.exc import DetachedInstanceError
 
 from services.api.app.diabetes.services.db import Reminder, User
@@ -22,9 +21,7 @@ else:
     DefaultJobQueue = JobQueue
 
 
-def schedule_reminder(
-    rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None
-) -> None:
+def schedule_reminder(rem: Reminder, job_queue: DefaultJobQueue | None, user: User | None) -> None:
     """Schedule a reminder in the provided job queue."""
     if job_queue is None:
         msg = "schedule_reminder called without job_queue"
@@ -117,11 +114,7 @@ def schedule_reminder(
 
         if "days" in run_daily_sig.parameters:
             mask = getattr(rem, "days_mask", 0) or 0
-            days = (
-                tuple(i for i in range(7) if mask & (1 << i))
-                if mask
-                else tuple(range(7))
-            )
+            days = tuple(i for i in range(7) if mask & (1 << i)) if mask else tuple(range(7))
             run_daily_kwargs["days"] = days
 
         if "timezone" in run_daily_sig.parameters:
