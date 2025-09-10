@@ -720,10 +720,26 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data = cast(dict[str, object], context.user_data)
     user_text = message.text
 
+    history = cast(
+        list[str], user_data.get(assistant_state.HISTORY_KEY, [])
+    )[-assistant_state.ASSISTANT_MAX_TURNS :]
+    messages: list[dict[str, str]] = []
+    summary = cast(str | None, user_data.get(assistant_state.SUMMARY_KEY))
+    if summary:
+        messages.append({"role": "system", "content": summary})
+    for turn in history:
+        user_part, _, assistant_part = turn.partition("\nassistant: ")
+        if user_part.startswith("user: "):
+            user_part = user_part[6:]
+        messages.append({"role": "user", "content": user_part})
+        if assistant_part:
+            messages.append({"role": "assistant", "content": assistant_part})
+    messages.append({"role": "user", "content": user_text})
+
     try:
         completion = await gpt_client.create_chat_completion(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": user_text}],
+            messages=messages,
         )
         content = completion.choices[0].message.content or ""
         reply = gpt_client.format_reply(content)

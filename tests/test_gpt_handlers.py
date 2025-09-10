@@ -53,6 +53,39 @@ async def test_chat_with_gpt_replies_and_history(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
+async def test_chat_with_gpt_passes_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[dict[str, str]]] = []
+
+    async def fake_completion(**kwargs: Any) -> Any:
+        calls.append(kwargs["messages"])
+        idx = len(calls)
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content=f"r{idx}"))]
+        )
+
+    monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
+    monkeypatch.setattr(gpt_handlers.gpt_client, "format_reply", lambda text, **kw: text)
+
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+    first = DummyMessage("hi")
+    update1 = cast(Update, SimpleNamespace(message=first, effective_user=None))
+    await gpt_handlers.chat_with_gpt(update1, context)
+
+    second = DummyMessage("how are you?")
+    update2 = cast(Update, SimpleNamespace(message=second, effective_user=None))
+    await gpt_handlers.chat_with_gpt(update2, context)
+
+    assert calls[1] == [
+        {"role": "user", "content": "hi"},
+        {"role": "assistant", "content": "r1"},
+        {"role": "user", "content": "how are you?"},
+    ]
+
+
+@pytest.mark.asyncio
 async def test_chat_with_gpt_handles_openai_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
