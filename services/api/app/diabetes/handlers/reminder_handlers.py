@@ -624,6 +624,10 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     except json.JSONDecodeError:
         data = dict(parse_qsl(raw))
 
+    init_data = data.get("init_data")
+    if isinstance(init_data, str):
+        cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+
     sugar_raw = data.get("sugar")
     if sugar_raw is not None:
         rid = data.get("id")

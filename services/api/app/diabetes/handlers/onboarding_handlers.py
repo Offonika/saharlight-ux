@@ -9,6 +9,7 @@ Implements three steps with navigation and progress hints:
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import time as time_cls
 from typing import Any, Iterable, cast
@@ -336,7 +337,19 @@ async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             if state.step == REMINDERS:
                 return await _prompt_reminders(message, user_id, user_data, variant)
     web_app = cast(WebAppData, message.web_app_data)
-    raw = web_app.data.strip() or "Europe/Moscow"
+    raw_data = web_app.data
+    init_data: str | None = None
+    try:
+        payload = json.loads(raw_data)
+    except json.JSONDecodeError:
+        payload = raw_data
+    if isinstance(payload, dict):
+        init_data = cast(str | None, payload.get("init_data"))
+        raw = str(payload.get("timezone", "")).strip() or "Europe/Moscow"
+    else:
+        raw = str(payload).strip() or "Europe/Moscow"
+    if init_data is not None:
+        user_data["tg_init_data"] = init_data
     try:
         ZoneInfo(raw)
     except ZoneInfoNotFoundError:
