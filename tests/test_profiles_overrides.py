@@ -41,7 +41,9 @@ async def test_get_profile_for_user_overrides(monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.asyncio
-async def test_get_profile_for_user_unauthorized(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_get_profile_for_user_unauthorized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     async def fake_get_json(path: str, _ctx: object | None = None) -> dict[str, object]:
         request = httpx.Request("GET", f"http://example{path}")
         response = httpx.Response(401, request=request)
@@ -49,9 +51,5 @@ async def test_get_profile_for_user_unauthorized(monkeypatch: pytest.MonkeyPatch
 
     monkeypatch.setattr(profiles, "get_json", fake_get_json)
     ctx = DummyCtx({"learn_profile_overrides": {"learning_level": "expert"}})
-    result = await profiles.get_profile_for_user(123, ctx)
-    assert result == {
-        "learning_level": "expert",
-        "age_group": "adult",
-        "diabetes_type": "unknown",
-    }
+    with pytest.raises(httpx.HTTPStatusError):
+        await profiles.get_profile_for_user(123, ctx)

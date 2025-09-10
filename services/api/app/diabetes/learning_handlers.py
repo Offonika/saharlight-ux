@@ -53,6 +53,9 @@ STEP_GRACE_PERIOD = 5 * 60
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
+AUTH_REQUIRED_MESSAGE = (
+    "\U0001f512 Требуется авторизация. Откройте приложение заново или отправьте /start."
+)
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -287,6 +290,14 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data = cast(MutableMapping[str, Any], context.user_data)
     try:
         profile_db = await profiles.get_profile_for_user(user.id, context)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 401:
+            await message.reply_text(
+                AUTH_REQUIRED_MESSAGE, reply_markup=build_main_keyboard()
+            )
+            return
+        logger.exception("Failed to get profile for user %s", user.id)
+        profile_db = {}
     except (httpx.HTTPError, RuntimeError):
         logger.exception("Failed to get profile for user %s", user.id)
         profile_db = {}
