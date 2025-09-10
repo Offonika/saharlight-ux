@@ -5,9 +5,10 @@ from typing import Any
 
 import httpx
 import pytest
-from telegram.ext import Application, CallbackContext, ExtBot, PicklePersistence
+from telegram.ext import Application, CallbackContext, ExtBot
 
 from services.api import rest_client
+from services.bot.main import build_persistence
 
 
 @pytest.mark.asyncio
@@ -23,7 +24,8 @@ async def test_tg_init_data_persisted_after_restart(tmp_path: Path, monkeypatch:
     monkeypatch.setattr(ExtBot, "initialize", dummy_initialize)
     monkeypatch.setattr(ExtBot, "shutdown", dummy_shutdown)
 
-    persistence1 = PicklePersistence(str(persistence_path), single_file=True)
+    monkeypatch.setenv("BOT_PERSISTENCE_PATH", str(persistence_path))
+    persistence1 = build_persistence()
     app1 = Application.builder().token("TOKEN").persistence(persistence1).build()
     await app1.initialize()
 
@@ -31,7 +33,7 @@ async def test_tg_init_data_persisted_after_restart(tmp_path: Path, monkeypatch:
     await app1.persistence.update_user_data(1, app1.user_data[1])
     await app1.persistence.flush()
 
-    persistence2 = PicklePersistence(str(persistence_path), single_file=True)
+    persistence2 = build_persistence()
     app2 = Application.builder().token("TOKEN").persistence(persistence2).build()
     await app2.initialize()
 
@@ -54,14 +56,15 @@ async def test_tg_init_data_persisted_and_used_by_rest_client(
     monkeypatch.setattr(ExtBot, "initialize", dummy_initialize)
     monkeypatch.setattr(ExtBot, "shutdown", dummy_shutdown)
 
-    persistence1 = PicklePersistence(str(persistence_path), single_file=True)
+    monkeypatch.setenv("BOT_PERSISTENCE_PATH", str(persistence_path))
+    persistence1 = build_persistence()
     app1 = Application.builder().token("TOKEN").persistence(persistence1).build()
     await app1.initialize()
     app1.user_data[1]["tg_init_data"] = "secret"
     await app1.persistence.update_user_data(1, app1.user_data[1])
     await app1.persistence.flush()
 
-    persistence2 = PicklePersistence(str(persistence_path), single_file=True)
+    persistence2 = build_persistence()
     app2 = Application.builder().token("TOKEN").persistence(persistence2).build()
     await app2.initialize()
 
