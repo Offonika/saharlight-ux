@@ -60,13 +60,21 @@ async def profile(user: UserContext = Depends(check_token)) -> ProfileSchema:
     db_user = await db_module.run_db(_get, sessionmaker=db_module.SessionLocal)
     if db_user is None:
         raise HTTPException(status_code=404, detail="user not found")
+
+    try:
+        profile = await get_profile_settings(user["id"])
+    except HTTPException as exc:
+        if exc.status_code != 404:
+            raise
+        return ProfileSchema(telegramId=user["id"])
+
     if not db_user.onboarding_complete:
         raise HTTPException(
             status_code=422,
             detail="Завершите онбординг, чтобы просматривать и сохранять профиль",
         )
 
-    return await get_profile_settings(user["id"])
+    return profile
 
 
 @router.patch("/profile", response_model=ProfileSchema)
