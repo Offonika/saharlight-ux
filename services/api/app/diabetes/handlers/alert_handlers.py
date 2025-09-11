@@ -143,6 +143,8 @@ async def _send_alert_message(
                     contact,
                 )
                 chat_id = None
+        elif isinstance(contact_raw, int):
+            chat_id = contact_raw
         else:
             chat_id = None
         if chat_id is not None:
@@ -194,7 +196,9 @@ async def evaluate_sugar(
         low = profile.low_threshold
         high = profile.high_threshold
 
-        active = session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).all()
+        active = session.scalars(
+            sa.select(Alert).filter_by(user_id=user_id, resolved=False)
+        ).all()
 
         if (low is not None and sugar < low) or (high is not None and sugar > high):
             atype = "hypo" if low is not None and sugar < low else "hyper"
@@ -206,7 +210,10 @@ async def evaluate_sugar(
                 logger.error("Failed to commit new alert for user %s", user_id)
                 return False, None
             alerts = session.scalars(
-                sa.select(Alert).filter_by(user_id=user_id, resolved=False).order_by(Alert.ts.desc()).limit(3)
+                sa.select(Alert)
+                .filter_by(user_id=user_id, resolved=False)
+                .order_by(Alert.ts.desc())
+                .limit(3)
             ).all()
             notify = len(alerts) == 3 and all(a.type == atype for a in alerts)
             if notify:
@@ -215,7 +222,9 @@ async def evaluate_sugar(
                 try:
                     commit(session)
                 except CommitError:
-                    logger.error("Failed to commit resolved alerts for user %s", user_id)
+                    logger.error(
+                        "Failed to commit resolved alerts for user %s", user_id
+                    )
                     return False, None
             return True, {
                 "action": "schedule",
@@ -267,9 +276,13 @@ async def evaluate_sugar(
         )
 
 
-async def check_alert(update: Update, context: ContextTypes.DEFAULT_TYPE, sugar: float) -> None:
+async def check_alert(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, sugar: float
+) -> None:
     """Wrapper to evaluate sugar using :func:`evaluate_sugar`."""
-    job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, getattr(context, "job_queue", None))
+    job_queue: DefaultJobQueue | None = cast(
+        DefaultJobQueue | None, getattr(context, "job_queue", None)
+    )
     if job_queue is None:
         job_queue = cast(
             DefaultJobQueue | None,
@@ -317,7 +330,12 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     first_name = data.get("first_name", "")
 
     def has_active_alert(session: Session) -> bool:
-        return session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).first() is not None
+        return (
+            session.scalars(
+                sa.select(Alert).filter_by(user_id=user_id, resolved=False)
+            ).first()
+            is not None
+        )
 
     active = cast(
         bool,
@@ -330,7 +348,9 @@ async def alert_job(context: ContextTypes.DEFAULT_TYPE) -> None:
     if count >= MAX_REPEATS:
 
         def resolve_alerts(session: Session) -> None:
-            alerts = session.scalars(sa.select(Alert).filter_by(user_id=user_id, resolved=False)).all()
+            alerts = session.scalars(
+                sa.select(Alert).filter_by(user_id=user_id, resolved=False)
+            ).all()
             for a in alerts:
                 a.resolved = True
             try:
@@ -365,7 +385,9 @@ async def alert_stats(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     week_ago = now - datetime.timedelta(days=7)
 
     def fetch_alerts(session: Session) -> list[Alert]:
-        return session.scalars(sa.select(Alert).where(Alert.user_id == user_id, Alert.ts >= week_ago)).all()
+        return session.scalars(
+            sa.select(Alert).where(Alert.user_id == user_id, Alert.ts >= week_ago)
+        ).all()
 
     alerts = cast(
         list[Alert],
