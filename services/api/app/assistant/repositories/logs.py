@@ -173,8 +173,10 @@ async def safe_add_lesson_log(
 async def _flush_periodically(interval: float) -> None:
     while True:
         await asyncio.sleep(interval)
-        await flush_pending_logs()
-
+        try:
+            await flush_pending_logs()
+        except Exception as exc:  # pragma: no cover - logging only
+            logger.exception("Failed to flush pending logs", exc_info=exc)
 
 def start_flush_task(interval: float = _FLUSH_INTERVAL) -> None:
     """Start background task that periodically flushes logs."""
