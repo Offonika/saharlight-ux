@@ -627,6 +627,14 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     init_data = data.get("init_data")
     if isinstance(init_data, str):
         cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+        app = getattr(context, "application", None)
+        persistence = getattr(app, "persistence", None) if app else None
+        if persistence is not None:
+            try:
+                await persistence.update_user_data(user.id, context.user_data)
+                await persistence.flush()
+            except Exception as exc:  # pragma: no cover - log only
+                logger.warning("Failed to persist tg_init_data: %s", exc)
 
     sugar_raw = data.get("sugar")
     if sugar_raw is not None:

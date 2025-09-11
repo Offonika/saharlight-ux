@@ -53,6 +53,20 @@ class DummyClient:
         return DummyResponse()
 
 
+class DummyPersistence:
+    def __init__(self) -> None:
+        self.updated: list[tuple[int, dict[str, Any]]] = []
+        self.flushed = False
+
+    async def update_user_data(
+        self, user_id: int, data: dict[str, Any]
+    ) -> None:
+        self.updated.append((user_id, data.copy()))
+
+    async def flush(self) -> None:
+        self.flushed = True
+
+
 class Settings:
     api_url = "http://example"
     internal_api_key: str | None = None
@@ -81,13 +95,16 @@ async def test_timezone_webapp_init_data(monkeypatch: pytest.MonkeyPatch) -> Non
             effective_message=msg, effective_user=SimpleNamespace(id=1)
         ),
     )
+    persistence = DummyPersistence()
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        SimpleNamespace(user_data={}, application=SimpleNamespace(persistence=persistence)),
     )
     state = await onboarding.timezone_webapp(update, ctx)
     assert state == onboarding.TIMEZONE
     assert ctx.user_data["tg_init_data"] == "secret"
+    assert persistence.updated == [(1, ctx.user_data)]
+    assert persistence.flushed
     await _assert_header(ctx, monkeypatch)
 
 
@@ -103,12 +120,15 @@ async def test_profile_webapp_init_data(monkeypatch: pytest.MonkeyPatch) -> None
             effective_message=msg, effective_user=SimpleNamespace(id=1)
         ),
     )
+    persistence = DummyPersistence()
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        SimpleNamespace(user_data={}, application=SimpleNamespace(persistence=persistence)),
     )
     await profile_conv.profile_webapp_save(update, ctx)
     assert ctx.user_data["tg_init_data"] == "secret"
+    assert persistence.updated == [(1, ctx.user_data)]
+    assert persistence.flushed
     await _assert_header(ctx, monkeypatch)
 
 
@@ -121,11 +141,14 @@ async def test_reminder_webapp_init_data(monkeypatch: pytest.MonkeyPatch) -> Non
             effective_message=msg, effective_user=SimpleNamespace(id=1)
         ),
     )
+    persistence = DummyPersistence()
     ctx = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(user_data={}),
+        SimpleNamespace(user_data={}, application=SimpleNamespace(persistence=persistence)),
     )
     await reminder.reminder_webapp_save(update, ctx)
     assert ctx.user_data["tg_init_data"] == "secret"
+    assert persistence.updated == [(1, ctx.user_data)]
+    assert persistence.flushed
     await _assert_header(ctx, monkeypatch)
 
