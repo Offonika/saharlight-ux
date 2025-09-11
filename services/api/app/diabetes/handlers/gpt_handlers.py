@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import logging
+import math
 import re
 from collections.abc import Awaitable, Callable
 from typing import Protocol, TypeVar, cast
@@ -153,6 +154,14 @@ async def _handle_pending_entry(
         try:
             value = float(text)
         except ValueError:
+            if field == "sugar":
+                await message.reply_text("Введите сахар числом в ммоль/л.")
+            elif field == "xe":
+                await message.reply_text("Введите число ХЕ.")
+            else:
+                await message.reply_text("Введите дозу инсулина числом.")
+            return True
+        if not math.isfinite(value):
             if field == "sugar":
                 await message.reply_text("Введите сахар числом в ммоль/л.")
             elif field == "xe":
@@ -720,9 +729,9 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data = cast(dict[str, object], context.user_data)
     user_text = message.text
 
-    history = cast(
-        list[str], user_data.get(assistant_state.HISTORY_KEY, [])
-    )[-assistant_state.ASSISTANT_MAX_TURNS :]
+    history = cast(list[str], user_data.get(assistant_state.HISTORY_KEY, []))[
+        -assistant_state.ASSISTANT_MAX_TURNS :
+    ]
     messages: list[dict[str, str]] = []
     summary = cast(str | None, user_data.get(assistant_state.SUMMARY_KEY))
     if summary:
