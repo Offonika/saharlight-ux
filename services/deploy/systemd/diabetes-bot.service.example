@@ -12,8 +12,8 @@ User=www-data
 PermissionsStartOnly=true
 WorkingDirectory=/srv/diabetes-bot
 EnvironmentFile=/srv/diabetes-bot/.env
-Environment=MPLCONFIGDIR=/var/cache/diabetes-bot/mpl
-ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /var/cache/diabetes-bot/mpl
+Environment=MPLCONFIGDIR=/srv/diabetes-bot/data/mpl-cache
+ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /srv/diabetes-bot/data/mpl-cache
 ExecStartPre=/usr/bin/curl -fsS "$PUBLIC_ORIGIN/health"
 ExecStart=/srv/diabetes-bot/scripts/run_bot.sh
 Restart=on-failure

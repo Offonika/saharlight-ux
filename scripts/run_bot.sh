@@ -14,7 +14,7 @@ if [[ -f .env ]]; then
   set +a
 fi
 
-export MPLCONFIGDIR="${MPLCONFIGDIR:-/opt/saharlight-ux/data/mpl-cache}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-${REPO_ROOT}/data/mpl-cache}"
 mkdir -p "$MPLCONFIGDIR"
 chmod 700 "$MPLCONFIGDIR"
 

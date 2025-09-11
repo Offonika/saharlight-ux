@@ -1,11 +1,17 @@
 # file: services/bot/main.py
 """Bot entry point and configuration."""
 
-import logging
 import os
+from pathlib import Path
+
+os.environ.setdefault(
+    "MPLCONFIGDIR",
+    str(Path(__file__).resolve().parents[2] / "data/mpl-cache"),
+)
+
+import logging
 import sys
 from datetime import timedelta
-from pathlib import Path
 from typing import TYPE_CHECKING, TypeAlias
 from zoneinfo import ZoneInfo
 
