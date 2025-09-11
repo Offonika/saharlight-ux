@@ -71,3 +71,9 @@ services/webapp/ui/udo systemctl status diabetes-bot
 services/webapp/ui/udo systemctl status diabetes-bot --no-pager -l
 -ef | grep python | grep -v 3.12
 libs/ts-sdk/.openapi-generator/
+.cache/
+data/
+backup.sql
+p.jpg
+pnpm-lock.yaml
+
