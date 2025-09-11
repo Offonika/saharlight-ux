@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, cast
@@ -8,9 +9,9 @@ from sqlalchemy import create_engine
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import CallbackContext, ConversationHandler, MessageHandler, filters
 
-from services.api.app.diabetes.handlers import dose_calc
+from services.api.app.diabetes.handlers import dose_calc, photo_handlers
 from services.api.app.diabetes.utils.constants import XE_GRAMS
 
 
@@ -244,3 +245,31 @@ async def test_dose_sugar_invalid_profile(monkeypatch: pytest.MonkeyPatch) -> No
     assert result == dose_calc.END
     assert any("коэффициент" in r.lower() for r in update.message.replies)
     assert context.user_data == {}
+
+
+def _get_regex(state: object) -> str:
+    handlers = dose_calc.dose_conv.states.get(state)
+    assert handlers, "state is missing"
+    regex_handlers = [
+        h
+        for h in handlers
+        if isinstance(h, MessageHandler) and isinstance(h.filters, filters.Regex)
+    ]
+    assert regex_handlers, "no regex handler"
+    regex = regex_handlers[0].filters.pattern
+    if isinstance(regex, str):
+        return regex
+    return regex.pattern
+
+
+def _assert_negative_rejected(state: object) -> None:
+    pattern = _get_regex(state)
+    assert re.fullmatch(pattern, "5")
+    assert not re.fullmatch(pattern, "-5")
+
+
+def test_states_reject_negative_numbers() -> None:
+    _assert_negative_rejected(dose_calc.DoseState.XE)
+    _assert_negative_rejected(dose_calc.DoseState.CARBS)
+    _assert_negative_rejected(dose_calc.DoseState.SUGAR)
+    _assert_negative_rejected(photo_handlers.PHOTO_SUGAR)
