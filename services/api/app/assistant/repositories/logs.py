@@ -1,3 +1,11 @@
+"""In-memory queue and persistence for lesson logs.
+
+Logs are accumulated in :data:`pending_logs` and periodically flushed to the
+database.  To prevent unbounded memory growth, the queue size is limited by
+``PENDING_LOG_LIMIT`` which defaults to the ``PENDING_LOG_LIMIT`` environment
+variable.  When the limit is exceeded the oldest entries are discarded.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -40,8 +48,16 @@ class _PendingLog:
 
 pending_logs: list[_PendingLog] = []
 pending_logs_lock = asyncio.Lock()
+PENDING_LOG_LIMIT = settings.pending_log_limit
 _flush_task: asyncio.Task[None] | None = None
 _FLUSH_INTERVAL = 5.0
+
+
+def _trim_pending_logs() -> None:
+    """Ensure ``pending_logs`` does not exceed :data:`PENDING_LOG_LIMIT`."""
+    if len(pending_logs) > PENDING_LOG_LIMIT:
+        del pending_logs[:-PENDING_LOG_LIMIT]
+    pending_logs_size.set(len(pending_logs))
 
 
 async def flush_pending_logs() -> None:
@@ -77,7 +93,7 @@ async def flush_pending_logs() -> None:
             lesson_log_failures.inc(len(queued))
             async with pending_logs_lock:
                 pending_logs.extend(queued)
-                pending_logs_size.set(len(pending_logs))
+                _trim_pending_logs()
             if settings.learning_logging_required:
                 raise
             return
@@ -85,7 +101,7 @@ async def flush_pending_logs() -> None:
         lesson_log_failures.inc(len(queued))
         async with pending_logs_lock:
             pending_logs.extend(queued)
-            pending_logs_size.set(len(pending_logs))
+            _trim_pending_logs()
         if settings.learning_logging_required:
             raise
         return
@@ -93,7 +109,7 @@ async def flush_pending_logs() -> None:
     if missing:
         async with pending_logs_lock:
             pending_logs.extend(missing)
-            pending_logs_size.set(len(pending_logs))
+            _trim_pending_logs()
 
 
 async def add_lesson_log(
@@ -116,7 +132,7 @@ async def add_lesson_log(
                 content=content,
             )
         )
-        pending_logs_size.set(len(pending_logs))
+        _trim_pending_logs()
 
     await flush_pending_logs()
 
@@ -158,6 +174,7 @@ async def safe_add_lesson_log(
         async with pending_logs_lock:
             if log not in pending_logs:
                 pending_logs.append(log)
+                _trim_pending_logs()
         lesson_log_failures.inc()
         logger.warning("Failed to add lesson log: %s", asdict(log), exc_info=exc)
         if settings.learning_logging_required:

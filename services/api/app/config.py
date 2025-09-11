@@ -101,6 +101,11 @@ class Settings(BaseSettings):
     learning_content_mode: Literal["dynamic", "static"] = Field(default="dynamic", alias="LEARNING_CONTENT_MODE")
     learning_ui_show_topics: bool = Field(default=False, alias="LEARNING_UI_SHOW_TOPICS")
     learning_logging_required: bool = Field(default=False, alias="LEARNING_LOGGING_REQUIRED")
+    pending_log_limit: int = Field(
+        default=100,
+        alias="PENDING_LOG_LIMIT",
+        description="Max pending lesson logs kept in memory",
+    )
     lesson_logs_ttl_days: int = Field(default=14, alias="LESSON_LOGS_TTL_DAYS")
     assistant_memory_ttl_days: int = Field(default=60, alias="ASSISTANT_MEMORY_TTL_DAYS")
     openai_proxy: Optional[str] = Field(default=None, alias="OPENAI_PROXY")

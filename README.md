@@ -161,6 +161,8 @@ curl -H 'Authorization: tg <init-data>' \
 - `UI_BASE_URL` и `VITE_API_BASE` — базовые пути для фронтенда и API;
 - `BILLING_ENABLED`/`BILLING_TEST_MODE`/`BILLING_PROVIDER` — управление биллингом;
 - `LEARNING_MODE_ENABLED` — включает режим обучения.
+- `PENDING_LOG_LIMIT` — максимум логов уроков в памяти; при превышении
+  старые записи удаляются.
 
 Подробнее см. `infra/env/.env.example`.
 
