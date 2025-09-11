@@ -13,8 +13,14 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from sqlalchemy.orm import Session
 
-from services.api.app.diabetes.services.db import SessionLocal, Profile, User
+from services.api.app.diabetes.services.db import (
+    Profile,
+    SessionLocal,
+    User,
+    run_db,
+)
 
 from services.api.app.diabetes.utils.ui import (
     BACK_BUTTON_TEXT,
@@ -32,9 +38,14 @@ from . import dose_calc, _cancel_then
 async def sos_contact_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Prompt user to enter emergency contact."""
     message = update.message
+    chat = getattr(update, "effective_chat", None)
     if message is None:
+        if chat is not None:
+            await chat.send_message(
+                "⚠️ Команда поддерживает только текстовые сообщения.",
+                reply_markup=build_main_keyboard(),
+            )
         return ConversationHandler.END
-    assert message is not None
     await message.reply_text(
         "Введите контакт в Telegram (@username). Телефоны не поддерживаются.",
         reply_markup=back_keyboard,
@@ -52,13 +63,21 @@ def _is_valid_contact(text: str) -> bool:
 async def sos_contact_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Save provided contact to profile."""
     message = update.message
+    chat = getattr(update, "effective_chat", None)
     if message is None:
+        if chat is not None:
+            await chat.send_message(
+                "⚠️ Команда поддерживает только текстовые сообщения.",
+                reply_markup=build_main_keyboard(),
+            )
         return ConversationHandler.END
     text = message.text
     if text is None:
-        return ConversationHandler.END
-    assert message is not None
-    assert text is not None
+        await message.reply_text(
+            "❗ Укажите @username или числовой ID. Телефоны не поддерживаются.",
+            reply_markup=back_keyboard,
+        )
+        return SOS_CONTACT
     contact = text.strip()
     if not _is_valid_contact(contact):
         await message.reply_text(
@@ -71,30 +90,43 @@ async def sos_contact_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return ConversationHandler.END
     user_id = user.id
     user_data = cast(dict[str, Any], context.user_data)
-    with SessionLocal() as session:
+
+    def _save(
+        session: Session,
+        user_id: int,
+        contact: str,
+        thread_id: str | None,
+    ) -> bool:
         db_user = session.get(User, user_id)
         if db_user is None:
-            thread_id = cast(str | None, user_data.get("thread_id"))
             if thread_id is None:
-                await message.reply_text(
-                    "⚠️ Не удалось сохранить контакт.",
-                    reply_markup=build_main_keyboard(),
-                )
-                return ConversationHandler.END
+                return False
             session.add(User(telegram_id=user_id, thread_id=thread_id))
         profile = session.get(Profile, user_id)
-        if not profile:
+        if profile is None:
             profile = Profile(telegram_id=user_id)
             session.add(profile)
         profile.sos_contact = contact
         try:
             commit(session)
         except CommitError:
-            await message.reply_text(
-                "⚠️ Не удалось сохранить контакт.",
-                reply_markup=build_main_keyboard(),
-            )
-            return ConversationHandler.END
+            return False
+        return True
+
+    thread_id = cast(str | None, user_data.get("thread_id"))
+    saved = await run_db(
+        _save,
+        user_id,
+        contact,
+        thread_id,
+        sessionmaker=SessionLocal,
+    )
+    if not saved:
+        await message.reply_text(
+            "⚠️ Не удалось сохранить контакт.",
+            reply_markup=build_main_keyboard(),
+        )
+        return ConversationHandler.END
 
     await message.reply_text(
         "✅ Контакт для SOS сохранён.",
@@ -106,9 +138,11 @@ async def sos_contact_save(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 async def sos_contact_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancel SOS contact input."""
     message = update.message
+    chat = getattr(update, "effective_chat", None)
     if message is None:
+        if chat is not None:
+            await chat.send_message("Отменено.", reply_markup=build_main_keyboard())
         return ConversationHandler.END
-    assert message is not None
     await message.reply_text("Отменено.", reply_markup=build_main_keyboard())
     return ConversationHandler.END
 
