@@ -104,9 +104,7 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     model = settings.learning_command_model
 
     def _list(session: Session) -> list[tuple[str, str]]:
-        lessons = session.scalars(
-            sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)
-        ).all()
+        lessons = session.scalars(sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)).all()
         return [(lesson.title, lesson.slug) for lesson in lessons]
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
@@ -155,9 +153,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     lesson_id = cast(int | None, user_data.get("lesson_id"))
     if lesson_id is None:
         if lesson_slug is None:
-            await message.reply_text(
-                f"Сначала выберите урок — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn"
-            )
+            await message.reply_text(f"Сначала выберите урок — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn")
             return
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
         lesson_id = progress.lesson_id
@@ -220,14 +216,10 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if state is not None:
             state.awaiting = False
             set_state(user_data, state)
-        _correct, feedback = await curriculum_engine.check_answer(
-            user.id, lesson_id, {}, answer
-        )
+        _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
         await message.reply_text(feedback)
         try:
-            question, completed = await curriculum_engine.next_step(
-                user.id, lesson_id, {}
-            )
+            question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
         except (LessonNotFoundError, ProgressNotFoundError):
             await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
             user_data.pop("lesson_id", None)
@@ -271,11 +263,10 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         set_state(user_data, state)
 
 
-async def quiz_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def quiz_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Treat plain text as an answer when awaiting a quiz response."""
-
+    if settings.learning_content_mode != "static":
+        return
     message = update.message
     user = update.effective_user
     if message is None or user is None or not message.text:
@@ -295,9 +286,7 @@ async def quiz_answer_handler(
         raise ApplicationHandlerStop
     state.awaiting = False
     set_state(user_data, state)
-    _correct, feedback = await curriculum_engine.check_answer(
-        user.id, lesson_id, {}, answer
-    )
+    _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
     await message.reply_text(feedback)
     try:
         question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
@@ -329,9 +318,7 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     user_id = user.id
 
-    def _load_progress(
-        session: Session, user_id: int
-    ) -> tuple[str, int, bool, int | None] | None:
+    def _load_progress(session: Session, user_id: int) -> tuple[str, int, bool, int | None] | None:
         progress = session.scalars(
             sa.select(LessonProgress)
             .join(Lesson)
@@ -372,9 +359,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     user_data = cast(dict[str, object], context.user_data)
     lesson_id = cast(int | None, user_data.get("lesson_id"))
-    logger.info(
-        "exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id}
-    )
+    logger.info("exit_command_start", extra={"user_id": user.id, "lesson_id": lesson_id})
     lesson_id = cast(int | None, user_data.pop("lesson_id", None))
     user_data.pop("lesson_slug", None)
     user_data.pop("lesson_step", None)
@@ -383,9 +368,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         def _complete(session: Session, user_id: int, lesson_id: int) -> None:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(
-                    user_id=user_id, lesson_id=lesson_id
-                )
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
             ).scalar_one_or_none()
             if progress is not None and not progress.completed:
                 progress.completed = True
@@ -424,17 +407,9 @@ def register_handlers(app: App) -> None:
     app.add_handler(CommandHandler("skip", skip_command))
     app.add_handler(CommandHandler("exit", exit_command))
     onboarding.register_handlers(app)
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False
-        )
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False))
     app.add_handler(CallbackQueryHandler(lesson_callback, pattern="^lesson:"))
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False
-        )
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False))
 
 
 __all__ = [
