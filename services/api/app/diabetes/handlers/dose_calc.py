@@ -213,7 +213,15 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Сахар не может быть отрицательным.")
         return DoseState.SUGAR
 
-    entry = cast(EntryData, user_data.get("pending_entry", {}))
+    entry = cast("EntryData | None", user_data.get("pending_entry"))
+    if entry is None or ("xe" not in entry and "carbs_g" not in entry):
+        await message.reply_text(
+            "Сначала укажите углеводы или ХЕ.",
+            reply_markup=dose_keyboard,
+        )
+        user_data.pop("pending_entry", None)
+        return DoseState.METHOD
+
     entry["sugar_before"] = sugar
     xe = entry.get("xe")
     carbs_g = entry.get("carbs_g")

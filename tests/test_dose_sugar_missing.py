@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import CallbackContext
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
@@ -41,6 +41,25 @@ async def test_dose_sugar_requires_carbs_or_xe() -> None:
 
     result = await dose_calc.dose_sugar(update, context)
 
-    assert result == ConversationHandler.END
+    assert result == dose_calc.DoseState.METHOD
+    assert message.replies and "углев" in message.replies[0].lower()
+    assert context.user_data == {}
+
+
+
+@pytest.mark.asyncio
+async def test_dose_sugar_requires_pending_entry() -> None:
+    message = DummyMessage("5.5")
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}),
+    )
+
+    result = await dose_calc.dose_sugar(update, context)
+
+    assert result == dose_calc.DoseState.METHOD
     assert message.replies and "углев" in message.replies[0].lower()
     assert context.user_data == {}
