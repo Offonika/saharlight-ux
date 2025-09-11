@@ -71,6 +71,15 @@ async def test_photo_handler_commit_failure(
     monkeypatch.setattr(photo_handlers, "commit", fail_commit)
     monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
 
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+        def wrapper() -> Any:
+            with sessionmaker() as sess:
+                return fn(sess, *args, **kwargs)
+
+        return await asyncio.to_thread(wrapper)
+
+    monkeypatch.setattr(photo_handlers, "run_db", run_db_stub)
+
     message = DummyMessage()
     update = cast(
         Update,
@@ -140,6 +149,15 @@ async def test_photo_handler_commit_failure_resets_waiting_flag(
     monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
     monkeypatch.setattr(photo_handlers, "commit", fail_commit)
     monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
+
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+        def wrapper() -> Any:
+            with sessionmaker() as sess:
+                return fn(sess, *args, **kwargs)
+
+        return await asyncio.to_thread(wrapper)
+
+    monkeypatch.setattr(photo_handlers, "run_db", run_db_stub)
 
     message = DummyMessage()
     update = cast(
@@ -564,6 +582,15 @@ async def test_photo_handler_long_vision_text(
     )
     monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+        def wrapper() -> Any:
+            with sessionmaker() as sess:
+                return fn(sess, *args, **kwargs)
+
+        return await asyncio.to_thread(wrapper)
+
+    monkeypatch.setattr(photo_handlers, "run_db", run_db_stub)
+
     message = DummyMessage()
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
@@ -665,6 +692,15 @@ async def test_photo_handler_long_vision_text_parse_fail(
         lambda text: functions.NutritionInfo(),
     )
     monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
+
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+        def wrapper() -> Any:
+            with sessionmaker() as sess:
+                return fn(sess, *args, **kwargs)
+
+        return await asyncio.to_thread(wrapper)
+
+    monkeypatch.setattr(photo_handlers, "run_db", run_db_stub)
 
     message = DummyMessage()
     update = cast(
