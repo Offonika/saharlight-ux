@@ -69,6 +69,10 @@ scripts/run_bot.sh
 ```
 Скрипт подгружает `.env` и запускает `services.api.app.bot`.
 
+> Matplotlib требует явного каталога конфигурации. Установите
+> `MPLCONFIGDIR=<repo_root>/data/mpl-cache`. Скрипты `run_dev.sh` и
+> `scripts/run_bot.sh`, а также unit-файлы systemd делают это автоматически.
+
 ### Команды BotFather
 
 Зарегистрируйте дополнительные команды в BotFather:

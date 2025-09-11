@@ -7,11 +7,11 @@ Type=simple
 User=www-data
 # systemd will create /var/lib/diabetes-bot and expose it via STATE_DIRECTORY
 StateDirectory=diabetes-bot
-# use systemd-managed cache directory for matplotlib config
-CacheDirectory=diabetes-bot
+# use repo-managed cache directory for matplotlib config
 WorkingDirectory=/opt/saharlight-ux
 EnvironmentFile=/opt/saharlight-ux/.env
-Environment=MPLCONFIGDIR=%C/mpl
+Environment=MPLCONFIGDIR=/opt/saharlight-ux/data/mpl-cache
+ExecStartPre=/usr/bin/install -d -o www-data -g www-data -m 700 /opt/saharlight-ux/data/mpl-cache
 ExecStart=/opt/saharlight-ux/scripts/run_bot.sh
 Restart=on-failure
 RestartSec=5

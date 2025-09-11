@@ -2,13 +2,15 @@
 # file: run_dev.sh
 set -e
 
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
 # Загружаем переменные окружения
 set -a
 source ./.env
 set +a
 
 # Конфигурация для Matplotlib
-export MPLCONFIGDIR="${MPLCONFIGDIR:-/opt/saharlight-ux/data/mpl-cache}"
+export MPLCONFIGDIR="${MPLCONFIGDIR:-$REPO_ROOT/data/mpl-cache}"
 mkdir -p "$MPLCONFIGDIR"
 chmod 700 "$MPLCONFIGDIR"
 
