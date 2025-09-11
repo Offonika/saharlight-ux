@@ -73,9 +73,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
-def build_persistence() -> PicklePersistence[
-    dict[str, object], dict[str, object], dict[str, object]
-]:
+def build_persistence() -> PicklePersistence[dict[str, object], dict[str, object], dict[str, object]]:
     """Create PicklePersistence with configurable path.
 
     Path can be overridden via ``BOT_PERSISTENCE_PATH``. By default it is
@@ -88,9 +86,7 @@ def build_persistence() -> PicklePersistence[
     persistence_path = Path(os.environ.get("BOT_PERSISTENCE_PATH", default_path))
     persistence_path.parent.mkdir(parents=True, exist_ok=True)
     if not os.access(persistence_path.parent, os.W_OK):
-        raise RuntimeError(
-            f"Persistence directory is not writable: {persistence_path.parent}"
-        )
+        raise RuntimeError(f"Persistence directory is not writable: {persistence_path.parent}")
     return PicklePersistence(str(persistence_path), single_file=True)
 
 
@@ -119,7 +115,14 @@ def main() -> None:  # pragma: no cover
         sys.exit(1)
 
     # ---- Build application
-    persistence = build_persistence()
+    try:
+        persistence = build_persistence()
+    except Exception as exc:
+        logger.error(
+            "Failed to initialize persistence. Configure STATE_DIRECTORY to a writable path.",
+            exc_info=exc,
+        )
+        sys.exit(1)
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
@@ -127,13 +130,7 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         dict[str, object],
         DefaultJobQueue,
-    ] = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .persistence(persistence)
-        .post_init(post_init)
-        .build()
-    )
+    ] = Application.builder().token(BOT_TOKEN).persistence(persistence).post_init(post_init).build()
 
     application.add_handler(build_start_handler(), group=0)
     logger.info("✅ /start → WebApp CTA mode enabled")
