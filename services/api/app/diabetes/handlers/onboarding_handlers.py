@@ -182,9 +182,6 @@ async def _set_bot_commands(bot: ExtBot[None]) -> None:
         await bot.set_my_commands(bot_main.commands)
     except telegram.error.TelegramError as exc:
         logger.warning("set_my_commands failed: %s", exc)
-    except Exception:
-        logger.exception("Unexpected error setting bot commands")
-        raise
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -577,7 +574,7 @@ async def _finish(
     user_id: int,
     user_data: dict[str, Any],
     job_queue: DefaultJobQueue | None,
-    ) -> int:
+) -> int:
     variant = cast(str | None, user_data.get("variant"))
     await onboarding_state.complete_state(user_id)
     await _mark_user_complete(user_id)
