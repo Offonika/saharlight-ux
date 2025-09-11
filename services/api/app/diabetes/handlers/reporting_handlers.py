@@ -13,6 +13,7 @@ from typing import Protocol, cast
 
 from openai import OpenAIError
 from openai.types.beta.threads import TextContentBlock
+import telegram
 from telegram import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -182,10 +183,17 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     # Run DB work in a thread to keep the event loop responsive.
     records = await asyncio.to_thread(_fetch_entries)
     if not records:
-        await message.reply_text("В дневнике пока нет записей.")
+        try:
+            await message.reply_text("В дневнике пока нет записей.")
+        except telegram.error.TelegramError as exc:
+            logger.warning("Failed to send empty diary notice: %s", exc)
         return
 
-    await message.reply_text("📊 Последние записи:")
+    try:
+        await message.reply_text("📊 Последние записи:")
+    except telegram.error.TelegramError as exc:
+        logger.warning("Failed to send history header: %s", exc)
+        return
 
     from services.api.app import config
 
@@ -203,9 +211,12 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 ]
             ]
         )
-        await message.reply_text(
-            "История также доступна в WebApp:", reply_markup=open_markup
-        )
+        try:
+            await message.reply_text(
+                "История также доступна в WebApp:", reply_markup=open_markup
+            )
+        except telegram.error.TelegramError as exc:
+            logger.warning("Failed to send history WebApp link: %s", exc)
 
     entries = [_history_record_to_entry(r) for r in records]
     for entry in entries:
@@ -220,12 +231,19 @@ async def history_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 ]
             ]
         )
-        await message.reply_text(text, parse_mode="HTML", reply_markup=markup)
+        try:
+            await message.reply_text(text, parse_mode="HTML", reply_markup=markup)
+        except telegram.error.TelegramError as exc:
+            logger.warning("Failed to send diary entry %s: %s", entry.id, exc)
+            continue
 
     back_markup = InlineKeyboardMarkup(
         [[InlineKeyboardButton("🔙 Назад", callback_data="report_back")]]
     )
-    await message.reply_text("Готово.", reply_markup=back_markup)
+    try:
+        await message.reply_text("Готово.", reply_markup=back_markup)
+    except telegram.error.TelegramError as exc:
+        logger.warning("Failed to send completion message: %s", exc)
 
 
 async def report_period_callback(
