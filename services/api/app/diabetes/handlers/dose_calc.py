@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 from enum import IntEnum
@@ -243,8 +244,11 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     user_id = user.id
     if run_db is None:
-        with SessionLocal() as session:
-            profile = session.get(Profile, user_id)
+        def _get_profile() -> Profile | None:
+            with SessionLocal() as session:
+                return session.get(Profile, user_id)
+
+        profile = await asyncio.to_thread(_get_profile)
     else:
         profile = await run_db(
             lambda s: s.get(Profile, user_id),
