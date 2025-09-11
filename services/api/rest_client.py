@@ -3,13 +3,20 @@ from __future__ import annotations
 from typing import cast
 
 import httpx
-import logging
 from telegram.ext import ContextTypes
 
 from .app.config import get_settings
 
 
-logger = logging.getLogger(__name__)
+class AuthRequiredError(RuntimeError):
+    """Raised when user authorization is required but missing."""
+
+    MESSAGE = (
+        "\U0001f512 Требуется авторизация. Откройте приложение заново через кнопку /start."
+    )
+
+    def __init__(self) -> None:
+        super().__init__(self.MESSAGE)
 
 
 async def get_json(
@@ -24,17 +31,16 @@ async def get_json(
     headers: dict[str, str] = {}
     if base_settings.internal_api_key:
         headers["Authorization"] = f"Bearer {base_settings.internal_api_key}"
-    elif ctx is not None:
-        user_data = getattr(ctx, "user_data", None)
+    else:
+        user_data = getattr(ctx, "user_data", None) if ctx is not None else None
+        init_data = None
         if isinstance(user_data, dict):
             init_data = user_data.get("tg_init_data")
-            if isinstance(init_data, str):
-                headers["Authorization"] = f"tg {init_data}"
-
-    if "Authorization" not in headers:
-        logger.warning("No Authorization header for %s", path)
+        if not isinstance(init_data, str):
+            raise AuthRequiredError()
+        headers["Authorization"] = f"tg {init_data}"
 
     async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers or None)
+        resp = await client.get(url, headers=headers)
         resp.raise_for_status()
         return cast(dict[str, object], resp.json())
