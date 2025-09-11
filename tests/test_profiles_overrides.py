@@ -1,4 +1,3 @@
-import httpx
 import pytest
 
 import services.api.app.profiles as profiles
@@ -12,7 +11,7 @@ class DummyCtx:
 @pytest.mark.asyncio
 async def test_get_profile_for_user_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_get_json(path: str, _ctx: object | None = None) -> dict[str, object]:
-        assert path == "/learning-profile"
+        assert path == "/profile/self"
         return {
             "age_group": "child",
             "diabetes_type": "T1",
@@ -21,7 +20,10 @@ async def test_get_profile_for_user_overrides(monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setattr(profiles, "get_json", fake_get_json)
     ctx = DummyCtx(
-        {"learn_profile_overrides": {"carbUnits": "units", "learning_level": "expert"}}
+        {
+            "learn_profile_overrides": {"carbUnits": "units", "learning_level": "expert"},
+            "tg_init_data": "abc",
+        }
     )
     result = await profiles.get_profile_for_user(123, ctx)
     assert result == {
@@ -33,18 +35,14 @@ async def test_get_profile_for_user_overrides(monkeypatch: pytest.MonkeyPatch) -
 
 
 @pytest.mark.asyncio
-async def test_get_profile_for_user_unauthorized(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def fake_get_json(path: str, _ctx: object | None = None) -> dict[str, object]:
-        request = httpx.Request("GET", f"http://example{path}")
-        response = httpx.Response(401, request=request)
-        raise httpx.HTTPStatusError("unauthorized", request=request, response=response)
+async def test_get_profile_for_user_without_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fail_get_json(path: str, _ctx: object | None = None) -> dict[str, object]:
+        raise AssertionError("should not call API without token")
 
-    monkeypatch.setattr(profiles, "get_json", fake_get_json)
+    monkeypatch.setattr(profiles, "get_json", fail_get_json)
     ctx = DummyCtx({"learn_profile_overrides": {"learning_level": "expert"}})
-    with pytest.raises(httpx.HTTPStatusError):
-        await profiles.get_profile_for_user(123, ctx)
+    result = await profiles.get_profile_for_user(123, ctx)
+    assert result["learning_level"] == "expert"
 
 
 @pytest.mark.asyncio
@@ -52,7 +50,7 @@ async def test_get_profile_for_user_passes_tg_init_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def fake_get_json(path: str, ctx: object | None = None) -> dict[str, object]:
-        assert path == "/learning-profile"
+        assert path == "/profile/self"
         assert isinstance(ctx, DummyCtx)
         assert ctx.user_data["tg_init_data"] == "abc"
         return {}
