@@ -27,7 +27,9 @@ import services.api.app.services.profile as profile_service
 from services.api.app.schemas.profile import ProfileSchema
 from services.api.app.diabetes.schemas.profile import TherapyType
 
-handlers = importlib.import_module("services.api.app.diabetes.handlers.profile.conversation")
+handlers = importlib.import_module(
+    "services.api.app.diabetes.handlers.profile.conversation"
+)
 
 
 TOKEN = "test-token"
@@ -109,7 +111,9 @@ async def test_webapp_save_negative_value(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
     monkeypatch.setattr(handlers, "post_profile", post_mock)
     msg = DummyMessage()
-    msg.web_app_data = SimpleNamespace(data=json.dumps({"icr": -1, "cf": 3, "target": 6, "low": 4, "high": 9}))
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps({"icr": -1, "cf": 3, "target": 6, "low": 4, "high": 9})
+    )
     update = cast(
         Update,
         SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
@@ -139,7 +143,9 @@ async def test_webapp_save_comma_decimal(monkeypatch: pytest.MonkeyPatch) -> Non
 
     msg = DummyMessage()
     msg.web_app_data = SimpleNamespace(
-        data=json.dumps({"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"})
+        data=json.dumps(
+            {"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"}
+        )
     )
     update = cast(
         Update,
@@ -159,13 +165,17 @@ async def test_webapp_save_comma_decimal(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 def test_parse_profile_values_comma() -> None:
-    result = handlers.parse_profile_values({"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"})
+    result = handlers.parse_profile_values(
+        {"icr": "8,5", "cf": "3", "target": "6", "low": "4,2", "high": "9"}
+    )
     assert result == (8.5, 3.0, 6.0, 4.2, 9.0)
 
 
 def test_parse_profile_values_invalid_number() -> None:
     with pytest.raises(ValueError):
-        handlers.parse_profile_values({"icr": "x", "cf": "3", "target": "6", "low": "4", "high": "9"})
+        handlers.parse_profile_values(
+            {"icr": "x", "cf": "3", "target": "6", "low": "4", "high": "9"}
+        )
 
 
 @pytest.mark.asyncio
@@ -258,7 +268,9 @@ async def test_profile_view_uses_local_profile_on_stale_api(
     monkeypatch.setattr(handlers, "fetch_profile", lambda api, exc, uid: outdated)
 
     msg_view = DummyMessage()
-    update_view = cast(Update, SimpleNamespace(message=msg_view, effective_user=SimpleNamespace(id=1)))
+    update_view = cast(
+        Update, SimpleNamespace(message=msg_view, effective_user=SimpleNamespace(id=1))
+    )
     await handlers.profile_view(update_view, context)
 
     text = msg_view.texts[0]
@@ -278,7 +290,10 @@ async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
 
     async def run_db(
-        func: Callable[..., Any], *args: Any, sessionmaker: sessionmaker[Session], **kwargs: Any
+        func: Callable[..., Any],
+        *args: Any,
+        sessionmaker: sessionmaker[Session],
+        **kwargs: Any,
     ) -> Any:
         with sessionmaker() as session:
             return func(session, *args, **kwargs)
@@ -327,10 +342,13 @@ async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) ->
 
 
 @pytest.mark.asyncio
-async def test_webapp_save_enables_profile_get(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
+async def test_profile_get_returns_defaults_when_onboarding_incomplete(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
     SessionLocal = setup_db(monkeypatch)
     with SessionLocal() as session:
         session.add(User(telegram_id=1, thread_id="t", onboarding_complete=False))
+        session.add(User(telegram_id=2, thread_id="t2", onboarding_complete=False))
         session.commit()
 
     payload = {
@@ -346,13 +364,20 @@ async def test_webapp_save_enables_profile_get(monkeypatch: pytest.MonkeyPatch, 
     with TestClient(server.app) as client:
         resp_post = client.post("/api/profile", json=payload, headers=auth_headers)
         assert resp_post.status_code == 200
-        resp_get = client.get("/api/profile", headers=auth_headers)
 
-    assert resp_get.status_code == 200
-    body = resp_get.json()
-    assert body["icr"] == 1.0
-    assert body["cf"] == 1.0
+        resp_existing = client.get("/api/profile", headers=auth_headers)
+        assert resp_existing.status_code == 200
+        assert resp_existing.json()["icr"] == 1.0
+
+        headers_user2 = {"Authorization": f"tg {build_init_data(2)}"}
+        resp_default = client.get("/api/profile", headers=headers_user2)
+
+    assert resp_default.status_code == 200
+    body = resp_default.json()
+    assert body["telegramId"] == 2
+    assert body["icr"] is None and body["cf"] is None
+    assert body["timezone"] == "UTC"
 
     with SessionLocal() as session:
-        user = session.get(User, 1)
-        assert user is not None and user.onboarding_complete is True
+        user2 = session.get(User, 2)
+        assert user2 is not None and user2.onboarding_complete is False
