@@ -12,7 +12,9 @@ from services.bot.main import build_persistence
 
 
 @pytest.mark.asyncio
-async def test_tg_init_data_persisted_after_restart(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_tg_init_data_persisted_after_restart(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     persistence_path = tmp_path / "data.pkl"
 
     async def dummy_initialize(self: ExtBot) -> None:
@@ -37,7 +39,9 @@ async def test_tg_init_data_persisted_after_restart(tmp_path: Path, monkeypatch:
     app2 = Application.builder().token("TOKEN").persistence(persistence2).build()
     await app2.initialize()
 
-    ctx2: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]] = CallbackContext(app2, user_id=1)
+    ctx2: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]] = (
+        CallbackContext(app2, user_id=1)
+    )
     assert ctx2.user_data["tg_init_data"] == "abc"
 
 
@@ -68,7 +72,9 @@ async def test_tg_init_data_persisted_and_used_by_rest_client(
     app2 = Application.builder().token("TOKEN").persistence(persistence2).build()
     await app2.initialize()
 
-    ctx2: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]] = CallbackContext(app2, user_id=1)
+    ctx2: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]] = (
+        CallbackContext(app2, user_id=1)
+    )
     assert ctx2.user_data["tg_init_data"] == "secret"
 
     class Settings:
@@ -103,3 +109,14 @@ async def test_tg_init_data_persisted_and_used_by_rest_client(
     monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
     await rest_client.get_json("/foo", ctx=ctx2)
     assert captured["headers"]["Authorization"] == "tg secret"
+
+
+def test_state_directory_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    state_dir = tmp_path / "state_dir"
+    monkeypatch.delenv("BOT_PERSISTENCE_PATH", raising=False)
+    monkeypatch.setenv("STATE_DIRECTORY", str(state_dir))
+    persistence = build_persistence()
+    assert Path(persistence.filepath) == state_dir / "bot_persistence.pkl"
+    assert state_dir.exists()

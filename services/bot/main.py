@@ -70,22 +70,31 @@ async def post_init(
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.exception("Exception while handling update %s", update, exc_info=context.error)
+    logger.exception(
+        "Exception while handling update %s", update, exc_info=context.error
+    )
 
 
-def build_persistence() -> PicklePersistence[
-    dict[str, object], dict[str, object], dict[str, object]
-]:
+def build_persistence() -> (
+    PicklePersistence[dict[str, object], dict[str, object], dict[str, object]]
+):
     """Create PicklePersistence with configurable path.
 
-    Path can be overridden via ``BOT_PERSISTENCE_PATH``. By default it is
-    created inside ``$STATE_DIRECTORY`` (``/var/lib/diabetes-bot`` if missing).
-    The directory is created if it does not exist and must be writable.
+    Path can be overridden via ``BOT_PERSISTENCE_PATH``. By default it is stored
+    in ``data/state`` within the repository. The base directory can be
+    overridden via ``STATE_DIRECTORY``. The directory is created if it does not
+    exist and must be writable.
     """
 
-    state_dir = os.environ.get("STATE_DIRECTORY", "/var/lib/diabetes-bot")
-    default_path = os.path.join(state_dir, "bot_persistence.pkl")
-    persistence_path = Path(os.environ.get("BOT_PERSISTENCE_PATH", default_path))
+    default_state_dir = Path(__file__).resolve().parents[2] / "data/state"
+    state_dir_str = os.environ.get("STATE_DIRECTORY")
+    state_dir = Path(state_dir_str) if state_dir_str else default_state_dir
+    state_dir.mkdir(parents=True, exist_ok=True)
+    default_path = state_dir / "bot_persistence.pkl"
+    persistence_path_str = os.environ.get("BOT_PERSISTENCE_PATH")
+    persistence_path = (
+        Path(persistence_path_str) if persistence_path_str else default_path
+    )
     persistence_path.parent.mkdir(parents=True, exist_ok=True)
     if not os.access(persistence_path.parent, os.W_OK):
         raise RuntimeError(
@@ -98,7 +107,9 @@ def main() -> None:  # pragma: no cover
     level = settings.log_level
     if isinstance(level, str):  # pragma: no cover - runtime config
         level = getattr(logging, level.upper(), logging.INFO)
-    logging.basicConfig(level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     logger.info("=== Bot started ===")
 
     # применяем воркараунд к PTB JobQueue.stop
@@ -111,7 +122,9 @@ def main() -> None:  # pragma: no cover
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit("Database initialization failed. Please check your configuration and try again.")
+        sys.exit(
+            "Database initialization failed. Please check your configuration and try again."
+        )
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
@@ -169,7 +182,9 @@ def main() -> None:  # pragma: no cover
         if admin_id is None:
             logger.warning("Admin ID not configured; skipping test reminder")
             return
-        await context.bot.send_message(chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅")
+        await context.bot.send_message(
+            chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅"
+        )
 
     job_queue.run_once(test_job, when=timedelta(seconds=30), name="test_job")
     logger.info("🧪 Scheduled test_job in +30s")
