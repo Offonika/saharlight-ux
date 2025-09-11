@@ -275,11 +275,13 @@ async def profile_view(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return
         except RuntimeError:
             profile = None
-        except Exception:
-            logger.exception(
-                "unexpected error while fetching profile from DB for %s", user_id
+        except (ValueError, ValidationError):
+            logger.exception("invalid profile data for %s", user_id)
+            await message.reply_text(
+                "⚠️ Некорректные данные профиля в локальной базе.",
+                reply_markup=build_main_keyboard(),
             )
-            raise
+            return
         if profile is not None:
             setattr(profile, "target", getattr(profile, "target_bg", None))
             setattr(profile, "low", getattr(profile, "low_threshold", None))
@@ -477,7 +479,9 @@ async def profile_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     message = cast(Message, query.message)
     await query.answer()
     await message.delete()
-    await message.reply_text("📋 Выберите действие:", reply_markup=build_main_keyboard())
+    await message.reply_text(
+        "📋 Выберите действие:", reply_markup=build_main_keyboard()
+    )
 
 
 async def profile_timezone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
