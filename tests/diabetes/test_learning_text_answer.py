@@ -7,7 +7,7 @@ from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
 from services.api.app.diabetes.handlers import learning_handlers
-from services.api.app.diabetes.learning_state import get_state
+from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
 
 
 class DummyMessage:
@@ -15,17 +15,13 @@ class DummyMessage:
         self.replies: list[str] = []
         self.text = text
 
-    async def reply_text(
-        self, text: str, **kwargs: Any
-    ) -> None:  # pragma: no cover - helper
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
         self.replies.append(text)
 
 
 def make_update(text: str = "") -> Update:
     user = SimpleNamespace(id=1)
-    return cast(
-        Update, SimpleNamespace(message=DummyMessage(text), effective_user=user)
-    )
+    return cast(Update, SimpleNamespace(message=DummyMessage(text), effective_user=user))
 
 
 def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
@@ -37,12 +33,11 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 @pytest.mark.asyncio
 async def test_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     questions = iter([("Q1", False), (None, True)])
 
-    async def fake_next(
-        user_id: int, lesson_id: int, profile: Mapping[str, str | None]
-    ) -> tuple[str | None, bool]:
+    async def fake_next(user_id: int, lesson_id: int, profile: Mapping[str, str | None]) -> tuple[str | None, bool]:
         assert profile == {}
         return next(questions)
 
@@ -73,3 +68,22 @@ async def test_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     msg2 = cast(DummyMessage, upd2.message)
     assert msg2.replies == ["ok", "Опрос завершён"]
     assert get_state(user_data) is None
+
+
+@pytest.mark.asyncio
+async def test_quiz_answer_handler_ignored_in_dynamic_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
+
+    user_data: dict[str, Any] = {"lesson_id": 1}
+    state = LearnState(topic="t", step=0, awaiting=True)
+    set_state(user_data, state)
+
+    upd = make_update("1")
+    ctx = make_context(user_data=user_data)
+    await learning_handlers.quiz_answer_handler(upd, ctx)
+    msg = cast(DummyMessage, upd.message)
+    assert msg.replies == []
+    assert get_state(user_data) == state
