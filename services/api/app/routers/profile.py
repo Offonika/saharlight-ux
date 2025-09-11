@@ -29,9 +29,7 @@ router = APIRouter()
 
 def _check_token_with_log(authorization: str | None = Header(None)) -> UserContext:
     if not authorization or not authorization.startswith("tg "):
-        logger.warning(
-            "/profile/self called without tg_init_data; ask user to reopen the WebApp"
-        )
+        logger.warning("/profile/self called without tg_init_data; ask user to reopen the WebApp")
     return check_token(authorization)
 
 
@@ -60,11 +58,6 @@ async def profile(user: UserContext = Depends(check_token)) -> ProfileSchema:
     db_user = await db_module.run_db(_get, sessionmaker=db_module.SessionLocal)
     if db_user is None:
         raise HTTPException(status_code=404, detail="user not found")
-    if not db_user.onboarding_complete:
-        raise HTTPException(
-            status_code=422,
-            detail="Завершите онбординг, чтобы просматривать и сохранять профиль",
-        )
 
     return await get_profile_settings(user["id"])
 
