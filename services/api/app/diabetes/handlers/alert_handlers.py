@@ -129,7 +129,9 @@ async def _send_alert_message(
     if profile_info.get("sos_contact") and profile_info.get("sos_alerts_enabled"):
         contact_raw = profile_info["sos_contact"]
         chat_id: int | str | None
-        if isinstance(contact_raw, str):
+        if isinstance(contact_raw, int):
+            chat_id = contact_raw
+        elif isinstance(contact_raw, str):
             contact = contact_raw
             if contact.startswith("@"):
                 chat_id = contact
