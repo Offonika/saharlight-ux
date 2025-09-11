@@ -19,7 +19,7 @@ from services.api.app.diabetes.services.db import (
     SessionLocal,
 )
 from services.api.app.diabetes.services.repository import commit
-from services.api.app.diabetes.utils.constants import XE_GRAMS
+from services.api.app.diabetes.utils.constants import MAX_SUGAR_MMOL_L, XE_GRAMS
 from services.api.app.diabetes.utils.calc_bolus import (
     PatientProfile,
     calc_bolus,
@@ -211,6 +211,11 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return DoseState.SUGAR
     if sugar < 0:
         await message.reply_text("Сахар не может быть отрицательным.")
+        return DoseState.SUGAR
+    if sugar > MAX_SUGAR_MMOL_L:
+        await message.reply_text(
+            f"Сахар не должен превышать {MAX_SUGAR_MMOL_L} ммоль/л."
+        )
         return DoseState.SUGAR
 
     entry = cast("EntryData | None", user_data.get("pending_entry"))
