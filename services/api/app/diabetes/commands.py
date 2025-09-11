@@ -77,9 +77,10 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 )
         except asyncio.CancelledError:
             raise
-        except Exception:
+        except Exception as exc:
             logger.exception(
                 "Reset onboarding timeout task failed",
+                exc_info=exc,
             )
 
     user_data["_onb_reset_confirm"] = True
