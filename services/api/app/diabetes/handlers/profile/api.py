@@ -1,4 +1,5 @@
 import logging
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import time as time_type
@@ -15,15 +16,17 @@ from services.api.app.diabetes.services.repository import CommitError, commit
 logger = logging.getLogger(__name__)
 
 _sdk_warning_emitted = False
+_sdk_warning_lock = threading.Lock()
 
 
 def _warn_sdk_once(message: str) -> None:
     """Log ``message`` only once for missing ``diabetes_sdk``."""
 
     global _sdk_warning_emitted
-    if not _sdk_warning_emitted:
-        logger.warning(message)
-        _sdk_warning_emitted = True
+    with _sdk_warning_lock:
+        if not _sdk_warning_emitted:
+            logger.warning(message)
+            _sdk_warning_emitted = True
 
 
 class ProfileSaveError(Exception):
