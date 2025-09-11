@@ -32,6 +32,14 @@ if not os.access(cfg, os.W_OK):
     raise SystemExit(f"matplotlib config dir {cfg!r} is not writable")
 PY
 
+export STATE_DIRECTORY="${STATE_DIRECTORY:-$REPO_ROOT/data/state}"
+mkdir -p "$STATE_DIRECTORY"
+chmod 700 "$STATE_DIRECTORY"
+if [[ ! -w "$STATE_DIRECTORY" ]]; then
+  echo "State directory '$STATE_DIRECTORY' is not writable" >&2
+  exit 1
+fi
+
 export PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}"
 
 # basic sanity checks for required configuration

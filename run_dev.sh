@@ -2,6 +2,9 @@
 # file: run_dev.sh
 set -e
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$REPO_ROOT"
+
 # Загружаем переменные окружения
 set -a
 source ./.env
@@ -25,6 +28,15 @@ if os.path.realpath(cfg) != os.path.realpath(expected):
 if not os.access(cfg, os.W_OK):
     raise SystemExit(f"matplotlib config dir {cfg!r} is not writable")
 PY
+
+# Directory for runtime state
+export STATE_DIRECTORY="${STATE_DIRECTORY:-$REPO_ROOT/data/state}"
+mkdir -p "$STATE_DIRECTORY"
+chmod 700 "$STATE_DIRECTORY"
+if [[ ! -w "$STATE_DIRECTORY" ]]; then
+  echo "State directory '$STATE_DIRECTORY' is not writable" >&2
+  exit 1
+fi
 
 # Запускаем API с авто-reload (1 процесс)
 uvicorn services.api.app.main:app \
