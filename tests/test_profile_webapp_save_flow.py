@@ -128,7 +128,7 @@ async def test_webapp_save_comma_decimal(monkeypatch: pytest.MonkeyPatch) -> Non
     post_mock = MagicMock(return_value=(True, None))
     save_mock = MagicMock(return_value=True)
 
-    async def run_db(func, sessionmaker):
+    async def run_db(func: Callable[..., Any], sessionmaker: Any) -> Any:
         session = MagicMock()
         return func(session)
 
@@ -230,7 +230,9 @@ async def test_profile_view_uses_local_profile_on_stale_api(
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
 
-    async def run_db(func, sessionmaker):
+    async def run_db(
+        func: Callable[..., Any], sessionmaker: sessionmaker[Session]
+    ) -> Any:
         with sessionmaker() as session:
             return func(session)
 
@@ -275,7 +277,9 @@ async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(handlers, "SessionLocal", TestSession)
     monkeypatch.setattr(profile_service.db, "SessionLocal", TestSession)
 
-    async def run_db(func, *args, sessionmaker, **kwargs):
+    async def run_db(
+        func: Callable[..., Any], *args: Any, sessionmaker: sessionmaker[Session], **kwargs: Any
+    ) -> Any:
         with sessionmaker() as session:
             return func(session, *args, **kwargs)
 

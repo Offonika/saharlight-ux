@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import pytest
 from telegram import Update
@@ -26,7 +26,7 @@ class DummyMessage:
 async def test_timezone_save_creates_profile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    async def run_db(func, sessionmaker):
+    async def run_db(func: Callable[..., Any], sessionmaker: Any) -> Any:
         if func.__name__ == "db_set_timezone":
             return False, True
         if func.__name__ == "db_get_reminders":
