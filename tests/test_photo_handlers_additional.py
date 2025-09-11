@@ -97,6 +97,71 @@ async def test_photo_handler_commit_failure(
 
 
 @pytest.mark.asyncio
+async def test_photo_handler_commit_failure_resets_waiting_flag(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.texts: list[str] = []
+
+        async def reply_text(self, text: str, **kwargs: Any) -> None:
+            self.texts.append(text)
+
+    async def fake_get_file(file_id: str) -> Any:
+        class File:
+            async def download_as_bytearray(self) -> bytearray:
+                return bytearray(b"img")
+
+        return File()
+
+    class DummySession:
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:
+            pass
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return None
+
+        def add(self, obj: Any) -> None:
+            pass
+
+    async def fake_create_thread() -> str:
+        return "tid"
+
+    def fail_commit(session: object) -> None:
+        raise photo_handlers.CommitError
+
+    send_message_mock = AsyncMock()
+
+    monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "commit", fail_commit)
+    monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
+
+    message = DummyMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=SimpleNamespace(get_file=fake_get_file), user_data={}),
+    )
+
+    monkeypatch.chdir(tmp_path)
+    result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.END
+    user_data = context.user_data
+    assert user_data is not None
+    assert photo_handlers.WAITING_GPT_FLAG not in user_data
+    assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
+    assert not send_message_mock.called
+
+
+@pytest.mark.asyncio
 async def test_photo_handler_run_failure(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

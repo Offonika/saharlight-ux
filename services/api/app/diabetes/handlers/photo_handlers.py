@@ -129,6 +129,7 @@ async def photo_handler(
                         await message.reply_text(
                             "⚠️ Не удалось сохранить данные пользователя."
                         )
+                        _clear_waiting_gpt(user_data)
                         return END
             user_data["thread_id"] = thread_id
 
@@ -250,6 +251,7 @@ async def photo_handler(
             await message.reply_text(
                 "⚠️ Время ожидания Vision истекло. Попробуйте позже."
             )
+            _clear_waiting_gpt(user_data)
             return END
 
         if run.status != "completed":
@@ -274,6 +276,7 @@ async def photo_handler(
                 await message.reply_text(
                     "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
                 )
+            _clear_waiting_gpt(user_data)
             return END
 
         try:
@@ -333,6 +336,7 @@ async def photo_handler(
                 reply_markup=build_main_keyboard(),
             )
             user_data.pop("pending_entry", None)
+            _clear_waiting_gpt(user_data)
             return END
 
         pending_entry = cast(
@@ -398,20 +402,24 @@ async def photo_handler(
         await message.reply_text(
             "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
         )
+        _clear_waiting_gpt(user_data)
         return END
     except OpenAIError as exc:
         logger.exception("[PHOTO] Vision API error: %s", exc)
         await message.reply_text(
             "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
         )
+        _clear_waiting_gpt(user_data)
         return END
     except ValueError as exc:
         logger.exception("[PHOTO] Parsing error: %s", exc)
         await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
+        _clear_waiting_gpt(user_data)
         return END
     except TelegramError as exc:
         logger.exception("[PHOTO] Telegram error: %s", exc)
         await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
+        _clear_waiting_gpt(user_data)
         return END
     finally:
         _clear_waiting_gpt(user_data)
