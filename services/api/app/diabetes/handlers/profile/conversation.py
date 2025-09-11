@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from pickle import PickleError
 from datetime import time as dt_time
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
@@ -342,8 +343,11 @@ async def profile_webapp_save(
             try:
                 await persistence.update_user_data(user.id, context.user_data)
                 await persistence.flush()
-            except Exception as exc:  # pragma: no cover - log only
+            except (OSError, PickleError) as exc:  # pragma: no cover - log only
                 logger.warning("Failed to persist tg_init_data: %s", exc)
+            except Exception:  # pragma: no cover - log & propagate
+                logger.exception("Unexpected error persisting tg_init_data")
+                raise
     if {
         "icr",
         "cf",
@@ -534,8 +538,11 @@ async def profile_timezone_save(
                     try:
                         await persistence.update_user_data(user.id, context.user_data)
                         await persistence.flush()
-                    except Exception as exc:  # pragma: no cover - log only
+                    except (OSError, PickleError) as exc:  # pragma: no cover - log only
                         logger.warning("Failed to persist tg_init_data: %s", exc)
+                    except Exception:  # pragma: no cover - log & propagate
+                        logger.exception("Unexpected error persisting tg_init_data")
+                        raise
             raw = str(payload.get("timezone", "")).strip()
         else:
             raw = str(payload).strip()
