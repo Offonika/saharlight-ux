@@ -1,9 +1,7 @@
-import logging
 from typing import Any
 
 import httpx
 import pytest
-from telegram.ext import Application, CallbackContext, ExtBot
 
 from services.api import rest_client
 from services.api.rest_client import AuthRequiredError
@@ -56,8 +54,8 @@ async def test_get_json_uses_tg_init_data(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 @pytest.mark.asyncio
-async def test_get_json_uses_persisted_ctx(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+async def test_get_json_loads_async_persisted_init_data(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class Settings:
         api_url = "http://example"
@@ -65,28 +63,52 @@ async def test_get_json_uses_persisted_ctx(
 
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
 
-    async def dummy_initialize(self: ExtBot) -> None:
-        return None
+    class AsyncPersistence:
+        async def get_user_data(self) -> dict[int, dict[str, str]]:
+            return {1: {"tg_init_data": "secret"}}
 
-    async def dummy_shutdown(self: ExtBot) -> None:
-        return None
+    class Ctx:
+        def __init__(self) -> None:
+            self.user_data: dict[str, Any] = {}
+            self.user_id = 1
+            self.application = type("App", (), {"persistence": AsyncPersistence()})()
 
-    monkeypatch.setattr(ExtBot, "initialize", dummy_initialize)
-    monkeypatch.setattr(ExtBot, "shutdown", dummy_shutdown)
-
-    app = Application.builder().token("TOKEN").build()
-    await app.initialize()
-    app.user_data[1]["tg_init_data"] = "secret"
-    ctx: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]] = (
-        CallbackContext(app, user_id=1)
-    )
+    ctx = Ctx()
 
     captured: dict[str, object] = {}
     monkeypatch.setattr(httpx, "AsyncClient", lambda **_: DummyClient(captured))
-    with caplog.at_level(logging.WARNING):
-        await rest_client.get_json("/api/foo", ctx=ctx)
+    await rest_client.get_json("/api/foo", ctx=ctx)
     assert captured["headers"]["Authorization"] == "tg secret"
-    assert not caplog.messages
+    assert ctx.user_data["tg_init_data"] == "secret"
+
+
+@pytest.mark.asyncio
+async def test_get_json_loads_sync_persisted_init_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Settings:
+        api_url = "http://example"
+        internal_api_key: str | None = None
+
+    monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
+
+    class SyncPersistence:
+        def get_user_data(self) -> dict[int, dict[str, str]]:
+            return {1: {"tg_init_data": "secret"}}
+
+    class Ctx:
+        def __init__(self) -> None:
+            self.user_data: dict[str, Any] = {}
+            self.user_id = 1
+            self.application = type("App", (), {"persistence": SyncPersistence()})()
+
+    ctx = Ctx()
+
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_: DummyClient(captured))
+    await rest_client.get_json("/api/foo", ctx=ctx)
+    assert captured["headers"]["Authorization"] == "tg secret"
+    assert ctx.user_data["tg_init_data"] == "secret"
 
 
 @pytest.mark.asyncio
