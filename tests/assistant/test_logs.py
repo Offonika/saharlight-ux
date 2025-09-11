@@ -206,3 +206,25 @@ async def test_stop_flush_task_cancels_task() -> None:
     assert task is not None
     await logs.stop_flush_task()
     assert task.cancelled()
+
+
+@pytest.mark.asyncio
+async def test_pending_logs_respects_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Oldest logs are dropped when the queue reaches the configured limit."""
+
+    monkeypatch.setattr(settings, "learning_logging_required", False)
+    monkeypatch.setattr(logs, "PENDING_LOG_LIMIT", 2)
+
+    async def fail_run_db(*_: object, **__: object) -> None:
+        raise RuntimeError("db down")
+
+    monkeypatch.setattr(logs, "run_db", fail_run_db)
+    logs.pending_logs.clear()
+
+    await add_lesson_log(1, 1, 0, 1, "assistant", "a")
+    await add_lesson_log(1, 1, 0, 2, "assistant", "b")
+    await add_lesson_log(1, 1, 0, 3, "assistant", "c")
+
+    assert [log.step_idx for log in logs.pending_logs] == [2, 3]
