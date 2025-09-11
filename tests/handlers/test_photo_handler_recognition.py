@@ -113,6 +113,15 @@ async def test_photo_handler_recognition_success_db_save(
     monkeypatch.setattr(photo_handlers, "commit", fake_commit)
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
+
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+        def wrapper() -> Any:
+            with sessionmaker() as sess:
+                return fn(sess, *args, **kwargs)
+
+        return await asyncio.to_thread(wrapper)
+
+    monkeypatch.setattr(photo_handlers, "run_db", run_db_stub)
     monkeypatch.setattr(
         photo_handlers,
         "extract_nutrition_info",
@@ -476,7 +485,9 @@ async def test_photo_handler_typing_action_error(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data={"thread_id": "tid"}),
     )
-    result = await photo_handlers.photo_handler(update, context, file_bytes=path.read_bytes())
+    result = await photo_handlers.photo_handler(
+        update, context, file_bytes=path.read_bytes()
+    )
 
     assert result == photo_handlers.PHOTO_SUGAR
     assert any("На фото" in t for t in message.texts)

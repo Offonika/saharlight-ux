@@ -14,7 +14,9 @@ from telegram.constants import ChatAction, MessageLimit
 from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
-from services.api.app.diabetes.services.db import SessionLocal, User
+from sqlalchemy.orm import Session
+
+from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.gpt_client import (
     _get_client,
     create_thread,
@@ -115,22 +117,23 @@ async def photo_handler(
     try:
         thread_id = user_data.get("thread_id")
         if not thread_id:
-            with SessionLocal() as session:
+
+            def _fetch_or_create(session: Session) -> str:
                 user = session.get(User, user_id)
                 if user:
-                    thread_id = user.thread_id
-                else:
-                    thread_id = await create_thread()
-                    session.add(User(telegram_id=user_id, thread_id=thread_id))
-                    try:
-                        commit(session)
-                    except CommitError:
-                        logger.exception("[PHOTO] Failed to commit user %s", user_id)
-                        await message.reply_text(
-                            "⚠️ Не удалось сохранить данные пользователя."
-                        )
-                        _clear_waiting_gpt(user_data)
-                        return END
+                    return user.thread_id
+                thread_id_local = asyncio.run(create_thread())
+                session.add(User(telegram_id=user_id, thread_id=thread_id_local))
+                commit(session)
+                return thread_id_local
+
+            try:
+                thread_id = await run_db(_fetch_or_create, sessionmaker=SessionLocal)
+            except CommitError:
+                logger.exception("[PHOTO] Failed to commit user %s", user_id)
+                await message.reply_text("⚠️ Не удалось сохранить данные пользователя.")
+                _clear_waiting_gpt(user_data)
+                return END
             user_data["thread_id"] = thread_id
 
         try:
