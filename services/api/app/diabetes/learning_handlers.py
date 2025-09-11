@@ -13,6 +13,7 @@ from telegram.ext import ApplicationHandlerStop, ContextTypes
 from services.api.app import profiles
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
+from services.api.rest_client import AuthRequiredError
 from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
 from .handlers import learning_handlers as legacy_handlers
 from ..ui.keyboard import LEARN_BUTTON_TEXT
@@ -53,9 +54,7 @@ STEP_GRACE_PERIOD = 5 * 60
 
 RATE_LIMIT_SECONDS = 3.0
 RATE_LIMIT_MESSAGE = "⏳ Подождите немного перед следующим запросом."
-AUTH_REQUIRED_MESSAGE = (
-    "\U0001f512 Требуется авторизация. Откройте приложение заново или отправьте /start."
-)
+AUTH_REQUIRED_MESSAGE = AuthRequiredError.MESSAGE
 
 
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
@@ -290,6 +289,9 @@ async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data = cast(MutableMapping[str, Any], context.user_data)
     try:
         profile_db = await profiles.get_profile_for_user(user.id, context)
+    except AuthRequiredError as exc:
+        await message.reply_text(str(exc), reply_markup=build_main_keyboard())
+        return
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 401:
             await message.reply_text(

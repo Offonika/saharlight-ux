@@ -11,6 +11,8 @@ from telegram.ext import ContextTypes
 
 from services.api.app import profiles
 from services.api.app.assistant.repositories import plans
+from services.api.app.ui.keyboard import build_main_keyboard
+from services.api.rest_client import AuthRequiredError
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +145,10 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if user is not None:
         try:
             profile = await profiles.get_profile_for_user(user.id, context)
+        except AuthRequiredError as exc:
+            if message is not None:
+                await message.reply_text(str(exc), reply_markup=build_main_keyboard())
+            return False
         except (httpx.HTTPError, RuntimeError):
             logger.exception("Failed to get profile for user %s", user.id)
             profile = {}

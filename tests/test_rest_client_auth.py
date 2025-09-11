@@ -1,9 +1,8 @@
-import logging
-
 import httpx
 import pytest
 
 from services.api import rest_client
+from services.api.rest_client import AuthRequiredError
 
 
 class DummyCtx:
@@ -48,7 +47,7 @@ async def test_get_json_uses_tg_init_data(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
     monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
-    await rest_client.get_json("/foo", ctx=DummyCtx("abc"))
+    await rest_client.get_json("/api/foo", ctx=DummyCtx("abc"))
     assert captured["headers"]["Authorization"] == "tg abc"
 
 
@@ -61,21 +60,16 @@ async def test_get_json_prefers_internal_key(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
     monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
-    await rest_client.get_json("/foo", ctx=DummyCtx("abc"))
+    await rest_client.get_json("/api/foo", ctx=DummyCtx("abc"))
     assert captured["headers"]["Authorization"] == "Bearer secret"
 
 
 @pytest.mark.asyncio
-async def test_get_json_logs_missing_auth(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_get_json_requires_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     class Settings:
         api_url = "http://example"
         internal_api_key: str | None = None
 
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
-    captured: dict[str, object] = {}
-    monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
-    caplog.set_level(logging.WARNING)
-    await rest_client.get_json("/foo", ctx=DummyCtx())
-    assert "No Authorization header" in caplog.text
+    with pytest.raises(AuthRequiredError):
+        await rest_client.get_json("/api/foo", ctx=DummyCtx())

@@ -65,7 +65,7 @@ async def _assert_header(
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
     monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
-    await rest_client.get_json("/foo", ctx=ctx)
+    await rest_client.get_json("/api/foo", ctx=ctx)
     assert captured["headers"]["Authorization"] == "tg secret"
 
 

@@ -107,7 +107,7 @@ async def test_tg_init_data_persisted_and_used_by_rest_client(
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
     monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
-    await rest_client.get_json("/foo", ctx=ctx2)
+    await rest_client.get_json("/api/foo", ctx=ctx2)
     assert captured["headers"]["Authorization"] == "tg secret"
 
 
