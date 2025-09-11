@@ -40,13 +40,15 @@ async def _auth_headers(ctx: ContextTypes.DEFAULT_TYPE | None) -> dict[str, str]
                 user_id = pair[0]
         if persistence is not None and user_id is not None:
             try:
-                persisted = await persistence.get_user_data(user_id)
+                persisted_all = await persistence.get_user_data()
             except TypeError:  # pragma: no cover - sync persistence
-                persisted = persistence.get_user_data(user_id)
-            if isinstance(persisted, dict):
-                init_data = cast(str | None, persisted.get("tg_init_data"))
-                if isinstance(init_data, str) and isinstance(user_data, dict):
-                    user_data["tg_init_data"] = init_data
+                persisted_all = persistence.get_user_data()
+            if isinstance(persisted_all, dict):
+                user_dict = persisted_all.get(user_id)
+                if isinstance(user_dict, dict):
+                    init_data = cast(str | None, user_dict.get("tg_init_data"))
+                    if isinstance(init_data, str) and isinstance(user_data, dict):
+                        user_data["tg_init_data"] = init_data
 
     if isinstance(init_data, str):
         return {"Authorization": f"tg {init_data}"}
