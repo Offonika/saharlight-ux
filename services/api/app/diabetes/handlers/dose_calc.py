@@ -351,12 +351,12 @@ dose_conv = ConversationHandler(
     ],
     states={
         DoseState.METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
-        DoseState.XE: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)],
-        DoseState.CARBS: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)],
-        DoseState.SUGAR: [MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)],
+        DoseState.XE: [MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_xe)],
+        DoseState.CARBS: [MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_carbs)],
+        DoseState.SUGAR: [MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_sugar)],
         PHOTO_SUGAR: [
             MessageHandler(
-                filters.Regex(r"^-?\d+(?:[.,]\d+)?$"),
+                filters.Regex(r"^\d+(?:[.,]\d+)?$"),
                 dose_sugar,
             )
         ],
