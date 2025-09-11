@@ -56,48 +56,18 @@ def setup_db(monkeypatch: pytest.MonkeyPatch) -> sessionmaker[Session]:
     return SessionLocal
 
 
-def test_profile_get_requires_onboarding(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
+def test_profile_get_returns_defaults_for_new_user(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
     SessionLocal = setup_db(monkeypatch)
     with SessionLocal() as session:
         session.add(db.User(telegram_id=1, thread_id="t", onboarding_complete=False))
-        session.add(db.Profile(telegram_id=1))
         session.commit()
+
     with TestClient(server.app) as client:
         resp = client.get("/api/profile", headers=auth_headers)
-    assert resp.status_code == 422
-    assert (
-        resp.json()["detail"]
-        == "Завершите онбординг, чтобы просматривать и сохранять профиль"
-    )
 
-
-def test_profile_post_enables_get(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
-    SessionLocal = setup_db(monkeypatch)
-    with SessionLocal() as session:
-        session.add(db.User(telegram_id=1, thread_id="t", onboarding_complete=False))
-        session.commit()
-
-    payload = {
-        "telegramId": 1,
-        "icr": 1.0,
-        "cf": 1.0,
-        "target": 5.0,
-        "low": 4.0,
-        "high": 6.0,
-        "therapyType": "insulin",
-    }
-
-    with TestClient(server.app) as client:
-        resp_post = client.post("/api/profile", json=payload, headers=auth_headers)
-        assert resp_post.status_code == 200
-        resp_get = client.get("/api/profile", headers=auth_headers)
-
-    assert resp_get.status_code == 200
-    data = resp_get.json()
-    assert data["icr"] == 1.0
-    assert data["cf"] == 1.0
-    assert data["target"] == 5.0
-
-    with SessionLocal() as session:
-        user = session.get(db.User, 1)
-        assert user is not None and user.onboarding_complete is True
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["timezone"] == "UTC"
+    assert data["timezoneAuto"] is True

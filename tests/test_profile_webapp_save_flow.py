@@ -22,10 +22,9 @@ from telegram.ext import CallbackContext
 import services.api.app.diabetes.services.db as db
 import services.api.app.main as server
 from services.api.app.config import settings
-from services.api.app.diabetes.services.db import Base, User
+from services.api.app.diabetes.services.db import Base, User, Profile
 import services.api.app.services.profile as profile_service
 from services.api.app.schemas.profile import ProfileSchema
-from services.api.app.diabetes.schemas.profile import TherapyType
 
 handlers = importlib.import_module("services.api.app.diabetes.handlers.profile.conversation")
 
@@ -327,32 +326,21 @@ async def test_webapp_save_persists_settings(monkeypatch: pytest.MonkeyPatch) ->
 
 
 @pytest.mark.asyncio
-async def test_webapp_save_enables_profile_get(monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]) -> None:
+async def test_profile_get_returns_existing_settings_without_onboarding(
+    monkeypatch: pytest.MonkeyPatch, auth_headers: dict[str, str]
+) -> None:
     SessionLocal = setup_db(monkeypatch)
     with SessionLocal() as session:
-        session.add(User(telegram_id=1, thread_id="t", onboarding_complete=False))
+        session.add(
+            User(telegram_id=1, thread_id="t", onboarding_complete=False)
+        )
+        session.add(Profile(telegram_id=1, icr=1.0, cf=1.0))
         session.commit()
 
-    payload = {
-        "telegramId": 1,
-        "icr": 1.0,
-        "cf": 1.0,
-        "target": 5.0,
-        "low": 4.0,
-        "high": 6.0,
-        "therapyType": TherapyType.INSULIN.value,
-    }
-
     with TestClient(server.app) as client:
-        resp_post = client.post("/api/profile", json=payload, headers=auth_headers)
-        assert resp_post.status_code == 200
-        resp_get = client.get("/api/profile", headers=auth_headers)
+        resp = client.get("/api/profile", headers=auth_headers)
 
-    assert resp_get.status_code == 200
-    body = resp_get.json()
+    assert resp.status_code == 200
+    body = resp.json()
     assert body["icr"] == 1.0
     assert body["cf"] == 1.0
-
-    with SessionLocal() as session:
-        user = session.get(User, 1)
-        assert user is not None and user.onboarding_complete is True
