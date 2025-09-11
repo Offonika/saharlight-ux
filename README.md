@@ -143,6 +143,7 @@ curl http://localhost:8000/api/profile?telegramId=777
 
 ## Переменные окружения
 Основные параметры указываются в `.env`:
+- `MPLCONFIGDIR` — каталог конфигурации Matplotlib. По умолчанию `<repo_root>/data/mpl-cache`, должен существовать и быть доступен на запись (скрипты запуска и unit-файлы systemd создают его автоматически);
 - `TELEGRAM_TOKEN` — токен бота (обязательно; при отсутствии бот завершится с ошибкой);
 - `PUBLIC_ORIGIN` — публичный URL API;
 - `WEBAPP_URL` — адрес WebApp для онбординга;
