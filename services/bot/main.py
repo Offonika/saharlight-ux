@@ -138,7 +138,15 @@ def main() -> None:  # pragma: no cover
         sys.exit(1)
 
     # ---- Build application
-    persistence = build_persistence()
+    try:
+        persistence = build_persistence()
+    except Exception as exc:  # pragma: no cover - runtime safety
+        logger.error(
+            "Failed to initialize persistence. "
+            "Ensure STATE_DIRECTORY points to a writable directory.",
+            exc_info=exc,
+        )
+        sys.exit(1)
     application: Application[
         ExtBot[None],
         ContextTypes.DEFAULT_TYPE,
