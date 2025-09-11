@@ -5,13 +5,16 @@
 Запускать в том же venv, что и бот.
 """
 import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from telegram.ext import ApplicationBuilder
 
-async def main():
-    print("== PTB/APScheduler selftest ==")
+logger = logging.getLogger(__name__)
+
+async def main() -> None:
+    logger.info("== PTB/APScheduler selftest ==")
     app = (
         ApplicationBuilder()
         .token("DUMMY_TOKEN_WILL_NOT_CONNECT")  # токен не требуется для локального JobQueue
@@ -19,22 +22,23 @@ async def main():
     )
     # Зададим TZ как в проде (важно: это конфигурируется в вашем main.py)
     app.job_queue.scheduler.configure(timezone=ZoneInfo("Europe/Moscow"))
-    print("APScheduler timezone:", app.job_queue.scheduler.timezone)
+    logger.info("APScheduler timezone: %s", app.job_queue.scheduler.timezone)
 
     # Планируем задачу через 10 секунд и смотрим, не падает ли со старым параметром timezone
     when = datetime.now(tz=timezone.utc) + timedelta(seconds=10)
-    def _probe(ctx): print(f"[{datetime.now()}] PROBE JOB fired ok")
+    def _probe(ctx: object) -> None:
+        logger.info("[%s] PROBE JOB fired ok", datetime.now())
     app.job_queue.run_once(lambda ctx: _probe(ctx), when=when)  # без timezone=...
 
     # Печать текущих джобов из APScheduler
     for j in app.job_queue.scheduler.get_jobs():
-        print("Job:", j)
+        logger.debug("Job: %s", j)
 
     # Короткий run, чтобы джоба успела отработать
     async with app:
-        print("Starting short run (15s)...")
+        logger.info("Starting short run (15s)...")
         await asyncio.sleep(15)
-    print("Done.")
+    logger.info("Done.")
 
 if __name__ == "__main__":
     asyncio.run(main())
