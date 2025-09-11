@@ -11,7 +11,6 @@ from services.api.app.config import settings
 from services.api.app.main import app
 from services.api.app.schemas.stats import DayStats
 from services.api.app.routers import stats as stats_router
-from services.api.app.telegram_auth import TG_INIT_DATA_HEADER
 
 TOKEN = "test-token"
 
@@ -37,7 +36,7 @@ def test_stats_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get(
             "/api/stats",
             params={"telegramId": 42},
-            headers={TG_INIT_DATA_HEADER: init_data},
+            headers={"Authorization": f"tg {init_data}"},
         )
     assert resp.status_code == 200
     body = resp.json()
@@ -57,7 +56,7 @@ def test_stats_mismatched_id(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get(
             "/api/stats",
             params={"telegramId": 2},
-            headers={TG_INIT_DATA_HEADER: init_data},
+            headers={"Authorization": f"tg {init_data}"},
         )
     assert resp.status_code == 403
 
@@ -74,7 +73,7 @@ def test_empty_stats_returns_default(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get(
             "/api/stats",
             params={"telegramId": 11},
-            headers={TG_INIT_DATA_HEADER: init_data},
+            headers={"Authorization": f"tg {init_data}"},
         )
     assert resp.status_code == 200
     assert resp.json() == {"sugar": 5.7, "breadUnits": 3, "insulin": 10}
@@ -87,7 +86,7 @@ def test_analytics_valid_header(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get(
             "/api/analytics",
             params={"telegramId": 7},
-            headers={TG_INIT_DATA_HEADER: init_data},
+            headers={"Authorization": f"tg {init_data}"},
         )
     assert resp.status_code == 200
     body = resp.json()
@@ -102,7 +101,7 @@ def test_analytics_mismatched_id(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get(
             "/api/analytics",
             params={"telegramId": 2},
-            headers={TG_INIT_DATA_HEADER: init_data},
+            headers={"Authorization": f"tg {init_data}"},
         )
     assert resp.status_code == 403
 
@@ -120,7 +119,7 @@ def test_stats_no_data(monkeypatch: pytest.MonkeyPatch) -> None:
         resp = client.get(
             "/api/stats",
             params={"telegramId": 5},
-            headers={TG_INIT_DATA_HEADER: init_data},
+            headers={"Authorization": f"tg {init_data}"},
         )
     assert resp.status_code == 204
     assert resp.content == b""
