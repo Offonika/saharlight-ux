@@ -1,7 +1,9 @@
-import pytest
+import logging
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+import pytest
+import telegram
 from telegram.ext import ConversationHandler
 
 import services.api.app.diabetes.handlers.onboarding_handlers as onboarding
@@ -52,3 +54,23 @@ async def test_skip_restores_main_commands(monkeypatch: pytest.MonkeyPatch) -> N
 
     assert result == ConversationHandler.END
     bot.set_my_commands.assert_awaited_once_with(main.commands)
+
+
+@pytest.mark.asyncio
+async def test_set_bot_commands_handles_telegram_error(caplog: pytest.LogCaptureFixture) -> None:
+    bot = AsyncMock()
+    bot.set_my_commands.side_effect = telegram.error.TelegramError("boom")
+
+    with caplog.at_level(logging.WARNING):
+        await onboarding._set_bot_commands(bot)
+
+    assert "set_my_commands failed" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_set_bot_commands_reraises_other_errors() -> None:
+    bot = AsyncMock()
+    bot.set_my_commands.side_effect = RuntimeError("oops")
+
+    with pytest.raises(RuntimeError):
+        await onboarding._set_bot_commands(bot)

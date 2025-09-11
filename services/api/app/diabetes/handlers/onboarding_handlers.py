@@ -177,6 +177,16 @@ async def _log_event(user_id: int, name: str, step: int, variant: str | None) ->
         logger.exception("Failed to log onboarding event: %s", exc)
 
 
+async def _set_bot_commands(bot: ExtBot[None]) -> None:
+    try:
+        await bot.set_my_commands(bot_main.commands)
+    except telegram.error.TelegramError as exc:
+        logger.warning("set_my_commands failed: %s", exc)
+    except Exception:
+        logger.exception("Unexpected error setting bot commands")
+        raise
+
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Entry point for ``/start`` command."""
 
@@ -532,13 +542,7 @@ async def onboarding_skip(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _log_event(user.id, "onboarding_finished", 3, variant)
     await message.reply_text("Пропущено", reply_markup=build_main_keyboard())
     bot = cast(ExtBot[None], message.get_bot())
-    try:
-        await bot.set_my_commands(bot_main.commands)
-    except telegram.error.TelegramError as exc:  # pragma: no cover - network errors
-        logger.warning("set_my_commands failed: %s", exc)
-    except Exception:
-        logger.exception("Unexpected error setting bot commands")
-        raise
+    await _set_bot_commands(bot)
     await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
@@ -573,7 +577,7 @@ async def _finish(
     user_id: int,
     user_data: dict[str, Any],
     job_queue: DefaultJobQueue | None,
-) -> int:
+    ) -> int:
     variant = cast(str | None, user_data.get("variant"))
     await onboarding_state.complete_state(user_id)
     await _mark_user_complete(user_id)
@@ -602,13 +606,7 @@ async def _finish(
     )
     await _log_event(user_id, "onboarding_finished", 3, variant)
     bot = cast(ExtBot[None], message.get_bot())
-    try:
-        await bot.set_my_commands(bot_main.commands)
-    except telegram.error.TelegramError as exc:  # pragma: no cover - network errors
-        logger.warning("set_my_commands failed: %s", exc)
-    except Exception:
-        logger.exception("Unexpected error setting bot commands")
-        raise
+    await _set_bot_commands(bot)
     await message.reply_text(ONBOARDING_HINT)
     return ConversationHandler.END
 
