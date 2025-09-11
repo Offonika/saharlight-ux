@@ -117,6 +117,16 @@ def test_require_tg_user_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
         require_tg_user("bad")
 
 
+def test_require_tg_user_authorization_header(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    init_data: str = build_init_data()
+    header = f"tg {init_data}"
+    user: UserContext = require_tg_user(None, header)
+    assert user["id"] == 1
+
+
 def test_require_tg_user_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Requests fail with a clear error if the bot token is not configured."""
     monkeypatch.setattr(settings, "telegram_token", "")

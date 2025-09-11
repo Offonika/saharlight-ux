@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from ..schemas.stats import AnalyticsPoint, DayStats
 from ..schemas.user import UserContext
 from ..services.stats import get_day_stats
-from ..telegram_auth import require_tg_user
+from ..telegram_auth import check_token
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ router = APIRouter()
 )
 async def get_stats(
     telegram_id: int = Query(alias="telegramId"),
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> DayStats | Response:
     if telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")
@@ -32,7 +32,7 @@ async def get_stats(
 @router.get("/analytics")
 async def get_analytics(
     telegram_id: int = Query(alias="telegramId"),
-    user: UserContext = Depends(require_tg_user),
+    user: UserContext = Depends(check_token),
 ) -> list[AnalyticsPoint]:
     if telegram_id != user["id"]:
         raise HTTPException(status_code=403, detail="telegram id mismatch")

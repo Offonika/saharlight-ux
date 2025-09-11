@@ -141,6 +141,12 @@ curl -X POST http://localhost:8000/api/profile \
 curl http://localhost:8000/api/profile?telegramId=777
 ```
 
+### Пример `/stats`
+```bash
+curl -H 'Authorization: tg <init-data>' \
+  http://localhost:8000/api/stats?telegramId=777
+```
+
 ## Переменные окружения
 Основные параметры указываются в `.env`:
 - `MPLCONFIGDIR` — каталог конфигурации Matplotlib. По умолчанию `<repo_root>/data/mpl-cache`, должен существовать и быть доступен на запись (скрипты запуска и unit-файлы systemd создают его автоматически);
