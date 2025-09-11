@@ -362,6 +362,10 @@ async def timezone_webapp(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         raw = str(payload).strip() or "Europe/Moscow"
     if init_data is not None:
         user_data["tg_init_data"] = init_data
+        app = getattr(context, "application", None)
+        user = update.effective_user
+        if app and getattr(app, "persistence", None) and user is not None:
+            await app.persistence.update_user_data(user.id, context.user_data)
     try:
         ZoneInfo(raw)
     except ZoneInfoNotFoundError:

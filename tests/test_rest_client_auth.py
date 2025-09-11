@@ -1,5 +1,6 @@
 import httpx
 import pytest
+from types import SimpleNamespace
 
 from services.api import rest_client
 from services.api.rest_client import AuthRequiredError
@@ -73,3 +74,21 @@ async def test_get_json_requires_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     with pytest.raises(AuthRequiredError):
         await rest_client.get_json("/api/foo", ctx=DummyCtx())
+
+
+@pytest.mark.asyncio
+async def test_get_json_uses_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
+    class Settings:
+        api_url = "http://example"
+        internal_api_key: str | None = None
+
+    monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
+    persistence_ctx = SimpleNamespace(
+        user_data={},
+        application=SimpleNamespace(user_data={1: {"tg_init_data": "abc"}}),
+        _user_id=1,
+    )
+    await rest_client.get_json("/api/foo", ctx=persistence_ctx)
+    assert captured["headers"]["Authorization"] == "tg abc"

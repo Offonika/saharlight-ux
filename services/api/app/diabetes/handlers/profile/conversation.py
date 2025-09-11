@@ -333,6 +333,10 @@ async def profile_webapp_save(
     init_data = data.get("init_data")
     if isinstance(init_data, str):
         cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+        app = getattr(context, "application", None)
+        user = update.effective_user
+        if app and getattr(app, "persistence", None) and user is not None:
+            await app.persistence.update_user_data(user.id, context.user_data)
     if {
         "icr",
         "cf",
@@ -514,6 +518,10 @@ async def profile_timezone_save(
             init_data = payload.get("init_data")
             if isinstance(init_data, str):
                 cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+                app = getattr(context, "application", None)
+                user = update.effective_user
+                if app and getattr(app, "persistence", None) and user is not None:
+                    await app.persistence.update_user_data(user.id, context.user_data)
             raw = str(payload.get("timezone", "")).strip()
         else:
             raw = str(payload).strip()

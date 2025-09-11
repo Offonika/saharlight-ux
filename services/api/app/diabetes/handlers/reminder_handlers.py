@@ -627,6 +627,10 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     init_data = data.get("init_data")
     if isinstance(init_data, str):
         cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+        app = getattr(context, "application", None)
+        user = update.effective_user
+        if app and getattr(app, "persistence", None) and user is not None:
+            await app.persistence.update_user_data(user.id, context.user_data)
 
     sugar_raw = data.get("sugar")
     if sugar_raw is not None:

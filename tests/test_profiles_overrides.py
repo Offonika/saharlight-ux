@@ -27,7 +27,10 @@ async def test_get_profile_for_user_overrides(monkeypatch: pytest.MonkeyPatch) -
 
     monkeypatch.setattr(profiles, "get_json", fake_get_json)
     ctx = DummyCtx(
-        {"learn_profile_overrides": {"carbUnits": "units", "learning_level": "expert"}}
+        {
+            "tg_init_data": "t",
+            "learn_profile_overrides": {"carbUnits": "units", "learning_level": "expert"},
+        }
     )
     result = await profiles.get_profile_for_user(123, ctx)
     assert result == {
@@ -67,3 +70,22 @@ async def test_get_profile_for_user_passes_tg_init_data(
     monkeypatch.setattr(profiles, "get_json", fake_get_json)
     ctx = DummyCtx({"tg_init_data": "abc"})
     await profiles.get_profile_for_user(1, ctx)
+
+
+@pytest.mark.asyncio
+async def test_get_profile_for_user_skips_profile_self(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get_json(path: str, _ctx: object | None = None) -> dict[str, object]:
+        if path == "/profile/self":
+            raise AssertionError("/profile/self should not be called")
+        return {}
+
+    monkeypatch.setattr(profiles, "get_json", fake_get_json)
+    ctx = DummyCtx({})
+    result = await profiles.get_profile_for_user(1, ctx)
+    assert result == {
+        "age_group": "adult",
+        "diabetes_type": "unknown",
+        "learning_level": "novice",
+    }
