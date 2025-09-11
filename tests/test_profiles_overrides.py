@@ -12,12 +12,6 @@ class DummyCtx:
 @pytest.mark.asyncio
 async def test_get_profile_for_user_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
     async def fake_get_json(path: str, _ctx: object | None = None) -> dict[str, object]:
-        if path == "/profile/self":
-            return {
-                "therapyType": "bolus",
-                "rapidInsulinType": "aspart",
-                "carbUnits": "grams",
-            }
         assert path == "/learning-profile"
         return {
             "age_group": "child",
@@ -31,8 +25,6 @@ async def test_get_profile_for_user_overrides(monkeypatch: pytest.MonkeyPatch) -
     )
     result = await profiles.get_profile_for_user(123, ctx)
     assert result == {
-        "therapyType": "bolus",
-        "rapidInsulinType": "aspart",
         "carbUnits": "units",
         "age_group": "child",
         "diabetes_type": "T1",
@@ -60,6 +52,7 @@ async def test_get_profile_for_user_passes_tg_init_data(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     async def fake_get_json(path: str, ctx: object | None = None) -> dict[str, object]:
+        assert path == "/learning-profile"
         assert isinstance(ctx, DummyCtx)
         assert ctx.user_data["tg_init_data"] == "abc"
         return {}
