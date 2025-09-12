@@ -49,9 +49,7 @@ _client: OpenAI | None = None
 _client_lock = threading.Lock()
 
 _async_clients: dict[AbstractEventLoop, AsyncOpenAI] = {}
-_async_client_locks: WeakKeyDictionary[AbstractEventLoop, asyncio.Lock] = (
-    WeakKeyDictionary()
-)
+_async_client_locks: WeakKeyDictionary[AbstractEventLoop, asyncio.Lock] = WeakKeyDictionary()
 
 _learning_router = LLMRouter()
 
@@ -121,11 +119,7 @@ def format_reply(text: str, *, max_len: int = 800) -> str:
     str
         Formatted text with paragraphs truncated and separated by blank lines.
     """
-    paragraphs = [
-        part.strip()[:max_len]
-        for part in re.split(r"\n\s*\n", text.strip())
-        if part.strip()
-    ]
+    paragraphs = [part.strip()[:max_len] for part in re.split(r"\n\s*\n", text.strip()) if part.strip()]
     return "\n\n".join(paragraphs)
 
 
@@ -199,10 +193,7 @@ async def create_chat_completion(
             status_code = getattr(exc, "status_code", None)
             if isinstance(exc, httpx.HTTPStatusError):
                 status_code = exc.response.status_code
-            if (
-                status_code in {429, 500, 502, 503, 504}
-                and attempt < CHAT_COMPLETION_MAX_RETRIES
-            ):
+            if status_code in {429, 500, 502, 503, 504} and attempt < CHAT_COMPLETION_MAX_RETRIES:
                 backoff = 2**attempt
                 logger.warning(
                     "[OpenAI] transient error (status %s), retrying in %s s",
@@ -213,6 +204,8 @@ async def create_chat_completion(
                 continue
             logger.exception("[OpenAI] Failed to create chat completion: %s", exc)
             raise
+
+    raise RuntimeError("Failed to create chat completion")
 
 
 async def create_learning_chat_completion(
@@ -368,9 +361,7 @@ async def _upload_image_file(client: OpenAI, image_path: str) -> FileObject:
             with open(safe_path, "rb") as f:
                 return client.files.create(file=f, purpose="vision")
 
-        file = await asyncio.wait_for(
-            asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
-        )
+        file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
     except asyncio.TimeoutError:
         logger.exception("[OpenAI] Timeout while uploading %s", safe_path)
         raise RuntimeError("Timed out while uploading image")
@@ -393,9 +384,7 @@ async def _upload_image_bytes(client: OpenAI, image_bytes: bytes) -> FileObject:
             with io.BytesIO(image_bytes) as buffer:
                 return client.files.create(file=("image.jpg", buffer), purpose="vision")
 
-        file = await asyncio.wait_for(
-            asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT
-        )
+        file = await asyncio.wait_for(asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT)
     except asyncio.TimeoutError:
         logger.exception("[OpenAI] Timeout while uploading bytes")
         raise RuntimeError("Timed out while uploading image")
@@ -458,9 +447,7 @@ async def send_message(
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
-    message_content: Iterable[
-        ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam
-    ]
+    message_content: Iterable[ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam]
     if image_path:
         file = await _upload_image_file(client, image_path)
         image_block: ImageFileContentBlockParam = {
@@ -470,7 +457,7 @@ async def send_message(
         message_content = [image_block, text_block]
     elif image_bytes is not None:
         file = await _upload_image_bytes(client, image_bytes)
-        image_block: ImageFileContentBlockParam = {
+        image_block = {
             "type": "image_file",
             "image_file": {"file_id": file.id},
         }
