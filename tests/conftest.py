@@ -250,6 +250,64 @@ def in_memory_db(
         engine.dispose()
 
 
+@pytest.fixture()
+def session_local(monkeypatch: pytest.MonkeyPatch) -> Iterator[sessionmaker[Session]]:
+    """Configure ``SessionLocal`` with an in-memory SQLite engine.
+
+    The fixture patches the application settings to use an in-memory
+    SQLite database, calls :func:`init_db` to create all tables and then
+    replaces ``SessionLocal`` in already imported modules.  Tests can
+    depend on this fixture to get a fresh sessionmaker that is isolated
+    from the real database.
+    """
+
+    import importlib
+    from services.api.app.diabetes.services import db as db_module
+
+    # ``init_db`` is stubbed globally for tests. Reload the module to restore
+    # the real implementation before configuring an in-memory database.
+    db = importlib.reload(db_module)
+
+    # Import models with additional tables to register them in Base metadata.
+    import services.api.app.diabetes.models_learning as ml_models
+    import services.api.app.assistant.models as as_models
+    importlib.reload(ml_models)
+    importlib.reload(as_models)
+
+    # Ensure the database URL points to an in-memory SQLite instance. Use a
+    # ``StaticPool`` so that the in-memory database persists across multiple
+    # connections.
+    from sqlalchemy.pool import StaticPool
+    import sqlalchemy
+
+    def _memory_engine(url: str, *args: object, **kwargs: object) -> sqlalchemy.engine.Engine:
+        kwargs.setdefault("connect_args", {"check_same_thread": False})
+        kwargs.setdefault("poolclass", StaticPool)
+        engine = _original_create_engine(url, *args, **kwargs)
+        _engines.append(engine)
+        return engine
+
+    monkeypatch.setattr(sqlalchemy, "create_engine", _memory_engine)
+    monkeypatch.setattr(db.settings, "database_url", "sqlite:///:memory:", raising=False)
+
+    # Initialise the database engine and create schema.
+    db.init_db()
+    db.Base.metadata.create_all(bind=db.engine)
+
+    session_factory = db.SessionLocal
+
+    # Replace ``SessionLocal`` in all loaded modules so that code which
+    # imported it directly uses the in-memory session as well.
+    for name, module in list(sys.modules.items()):
+        if name.startswith(("services.", "tests.")) and hasattr(module, "SessionLocal"):
+            monkeypatch.setattr(module, "SessionLocal", session_factory, raising=False)
+
+    try:
+        yield session_factory
+    finally:
+        db.dispose_engine()
+
+
 @pytest.fixture(autouse=True, scope="session")
 def _dispose_engine_after_tests() -> Iterator[None]:
     """Dispose the global database engine after the test session."""

@@ -1,24 +1,19 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from datetime import time as dt_time
 
-import services.api.app.diabetes.services.db as db
-from services.api.app.diabetes.services.db import Base, User
+from sqlalchemy.orm import Session, sessionmaker
+
+from services.api.app.diabetes.services import db
 from services.api.app.schemas.profile import ProfileUpdateSchema
 from services.api.app.services import profile as profile_service
 
 
 @pytest.mark.asyncio
 async def test_save_profile_stores_quiet_fields(
-    monkeypatch: pytest.MonkeyPatch,
+    session_local: sessionmaker[Session],
 ) -> None:
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(db, "SessionLocal", TestSession)
-    with TestSession() as session:
-        session.add(User(telegram_id=1, thread_id="t"))
+    with session_local() as session:
+        session.add(db.User(telegram_id=1, thread_id="t"))
         session.commit()
     data = ProfileUpdateSchema(
         telegramId=1,
@@ -35,19 +30,14 @@ async def test_save_profile_stores_quiet_fields(
     assert prof is not None
     assert prof.quiet_start == dt_time.fromisoformat("22:30")
     assert prof.quiet_end == dt_time.fromisoformat("06:45")
-    engine.dispose()
 
 
 @pytest.mark.asyncio
 async def test_save_profile_defaults_quiet_fields(
-    monkeypatch: pytest.MonkeyPatch,
+    session_local: sessionmaker[Session],
 ) -> None:
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    monkeypatch.setattr(db, "SessionLocal", TestSession)
-    with TestSession() as session:
-        session.add(User(telegram_id=2, thread_id="t"))
+    with session_local() as session:
+        session.add(db.User(telegram_id=2, thread_id="t"))
         session.commit()
     data = ProfileUpdateSchema(
         telegramId=2,
@@ -62,4 +52,3 @@ async def test_save_profile_defaults_quiet_fields(
     assert prof is not None
     assert prof.quiet_start == dt_time.fromisoformat("23:00")
     assert prof.quiet_end == dt_time.fromisoformat("07:00")
-    engine.dispose()
