@@ -1,3 +1,5 @@
+"""Handlers and conversation flow for insulin dose calculations."""
+
 import asyncio
 import datetime
 import logging
@@ -345,6 +347,7 @@ from . import gpt_handlers as _gpt_handlers  # noqa: E402
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle freeform text commands within dose calculation context."""
     await _gpt_handlers.freeform_handler(
         update,
         context,
