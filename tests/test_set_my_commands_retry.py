@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 from datetime import datetime, timedelta, timezone
-from types import ModuleType, SimpleNamespace
+from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -26,7 +26,8 @@ async def test_post_init_retries_on_retry_after(
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(side_effect=[RetryAfter(1), None]),
     )
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 
@@ -49,7 +50,8 @@ async def test_post_init_handles_retry_after_and_network_error(
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(side_effect=[RetryAfter(1), NetworkError("boom")]),
     )
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 
@@ -85,7 +87,8 @@ async def test_post_init_skips_recent_commands(monkeypatch: pytest.MonkeyPatch) 
     redis_client = DummyRedis(now.isoformat().encode())
     monkeypatch.setattr(main.redis.Redis, "from_url", lambda url: redis_client)
     bot = SimpleNamespace(set_my_commands=AsyncMock())
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 
@@ -104,7 +107,8 @@ async def test_post_init_sets_and_caches(monkeypatch: pytest.MonkeyPatch) -> Non
     redis_client = DummyRedis(past.isoformat().encode())
     monkeypatch.setattr(main.redis.Redis, "from_url", lambda url: redis_client)
     bot = SimpleNamespace(set_my_commands=AsyncMock())
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 

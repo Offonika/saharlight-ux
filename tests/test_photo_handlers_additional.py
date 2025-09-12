@@ -4,7 +4,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
 
@@ -86,8 +86,12 @@ async def test_photo_handler_commit_failure(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=SimpleNamespace(get_file=fake_get_file), user_data={}),
+        SimpleNamespace(
+            bot=SimpleNamespace(get_file=fake_get_file),
+            user_data=MappingProxyType({}),
+        ),
     )
+    context._user_data = {}
 
     monkeypatch.chdir(tmp_path)
     with caplog.at_level(logging.ERROR):
@@ -95,7 +99,7 @@ async def test_photo_handler_commit_failure(
 
     assert result == photo_handlers.END
     assert message.texts == ["⚠️ Не удалось сохранить данные пользователя."]
-    user_data = context.user_data
+    user_data = context._user_data
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert not send_message_mock.called
@@ -164,14 +168,18 @@ async def test_photo_handler_commit_failure_resets_waiting_flag(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=SimpleNamespace(get_file=fake_get_file), user_data={}),
+        SimpleNamespace(
+            bot=SimpleNamespace(get_file=fake_get_file),
+            user_data=MappingProxyType({}),
+        ),
     )
+    context._user_data = {}
 
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
-    user_data = context.user_data
+    user_data = context._user_data
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
@@ -224,12 +232,15 @@ async def test_photo_handler_run_failure(
         Update,
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
+    user_data = {"thread_id": "tid"}
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
-            bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}
+            bot=SimpleNamespace(get_file=fake_get_file),
+            user_data=MappingProxyType(user_data),
         ),
     )
+    context._user_data = user_data
 
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
@@ -239,7 +250,7 @@ async def test_photo_handler_run_failure(
     assert message.status.edits == [
         "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
     ]
-    user_data = context.user_data
+    user_data = context._user_data
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
 
@@ -296,12 +307,15 @@ async def test_photo_handler_run_retrieve_timeout(
     update = cast(
         Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
     )
+    user_data = {"thread_id": "tid"}
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
-            bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}
+            bot=SimpleNamespace(get_file=fake_get_file),
+            user_data=MappingProxyType(user_data),
         ),
     )
+    context._user_data = user_data
 
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
@@ -309,7 +323,7 @@ async def test_photo_handler_run_retrieve_timeout(
     assert result == photo_handlers.END
     assert message.texts[-1] == "⚠️ Превышено время ожидания Vision. Попробуйте ещё раз."
     assert message.status.delete.called
-    user_data = context.user_data
+    user_data = context._user_data
     assert user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
@@ -373,19 +387,22 @@ async def test_photo_handler_unparsed_response(
         Update,
         SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
     )
+    user_data = {"thread_id": "tid"}
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
-            bot=SimpleNamespace(get_file=fake_get_file), user_data={"thread_id": "tid"}
+            bot=SimpleNamespace(get_file=fake_get_file),
+            user_data=MappingProxyType(user_data),
         ),
     )
+    context._user_data = user_data
 
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
     assert any("Не смог разобрать" in t for t in message.texts)
-    user_data = context.user_data
+    user_data = context._user_data
     assert user_data is not None
     assert "pending_entry" not in user_data
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
@@ -462,7 +479,7 @@ async def test_photo_handler_unparsed_response_clears_pending_entry(
 
     assert result == photo_handlers.END
     assert any("Не смог разобрать" in t for t in message.texts)
-    user_data = context.user_data
+    user_data = context._user_data
     assert user_data is not None
     assert "pending_entry" not in user_data
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
@@ -487,8 +504,9 @@ async def test_doc_handler_rejects_non_image(
     bot = SimpleNamespace(get_file=AsyncMock())
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=bot, user_data={}),
+        SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
+    context._user_data = {}
     photo_mock = AsyncMock()
     monkeypatch.setattr(photo_handlers, "photo_handler", photo_mock)
 
@@ -596,8 +614,9 @@ async def test_photo_handler_long_vision_text(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=bot, user_data={}),
+        SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
+    context._user_data = {}
 
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
@@ -707,8 +726,9 @@ async def test_photo_handler_long_vision_text_parse_fail(
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(bot=bot, user_data={}),
+        SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
+    context._user_data = {}
 
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
