@@ -981,6 +981,9 @@ async def test_reminder_action_commit_error(reminder_handlers: Any, monkeypatch:
         def refresh(self, rem: Any) -> None:  # pragma: no cover - not called on error
             pass
 
+        def flush(self) -> None:  # pragma: no cover - no-op for tests
+            pass
+
     def raise_commit(session: Any) -> None:
         raise reminder_handlers.CommitError
 
@@ -1079,6 +1082,9 @@ async def test_reminder_action_toggle(reminder_handlers: Any, monkeypatch: pytes
         def refresh(self, rem: Rem) -> None:
             pass
 
+        def flush(self) -> None:  # pragma: no cover - no-op for tests
+            pass
+
     def session_factory() -> DummySession:
         return DummySession()
 
@@ -1098,6 +1104,44 @@ async def test_reminder_action_toggle(reminder_handlers: Any, monkeypatch: pytes
 
     assert rem_instance.is_enabled is True
     notify_mock.assert_awaited_once_with(1)
+    query.answer.assert_awaited_once_with("Готово ✅")
+
+
+@pytest.mark.asyncio
+async def test_reminder_action_toggle_db(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.add(
+            Reminder(id=1, telegram_id=1, type="sugar", time=time(8, 0), is_enabled=True)
+        )
+        session.commit()
+
+    query = MagicMock()
+    query.data = "rem_toggle:1"
+    query.answer = AsyncMock()
+    query.edit_message_text = AsyncMock()
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(job_queue=None)
+
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(
+        reminder_handlers.reminder_events, "notify_reminder_saved", AsyncMock()
+    )
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, u: ("ok", None))
+
+    await reminder_handlers.reminder_action_cb(update, context)
+
+    with TestSession() as session:
+        rem_db = session.get(Reminder, 1)
+        assert rem_db is not None
+        assert rem_db.is_enabled is False
     query.answer.assert_awaited_once_with("Готово ✅")
 
 

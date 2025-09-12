@@ -1206,6 +1206,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
             session.delete(rem)
         elif action == "toggle":
             rem.is_enabled = not rem.is_enabled
+            session.flush()
         else:
             return DbActionResult(DbActionStatus.UNKNOWN)
         try:
