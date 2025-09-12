@@ -74,7 +74,6 @@ async def test_profile_command_and_view(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
     engine = create_engine("sqlite:///:memory:")
@@ -172,7 +171,6 @@ async def test_profile_command_invalid_values(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
     commit_mock = MagicMock()
@@ -204,7 +202,6 @@ async def test_profile_command_invalid_values(
 async def test_profile_command_help(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
     help_msg = DummyMessage()
@@ -226,7 +223,6 @@ async def test_profile_command_view_existing_profile(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
     engine = create_engine("sqlite:///:memory:")
@@ -269,7 +265,6 @@ async def test_profile_view_preserves_user_data(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     from services.api.app.diabetes.handlers import profile as handlers
 
     engine = create_engine("sqlite:///:memory:")

@@ -261,6 +261,13 @@ def _dispose_engine_per_module() -> Iterator[None]:
 
 
 @pytest.fixture(scope="session", autouse=True)
+def _load_openai_utils() -> None:
+    """Import ``openai_utils`` once to trigger module side effects."""
+
+    __import__("services.api.app.diabetes.utils.openai_utils")
+
+
+@pytest.fixture(scope="session", autouse=True)
 def _stub_openai_clients() -> Iterator[None]:
     """Stub OpenAI clients to avoid real network calls."""
     from _pytest.monkeypatch import MonkeyPatch

@@ -64,7 +64,6 @@ class DummyBot:
 async def test_edit_dose(monkeypatch: pytest.MonkeyPatch) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
     import services.api.app.diabetes.handlers.dose_calc as dose_calc
 

@@ -8,7 +8,6 @@ from telegram.ext import CallbackContext, CommandHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 from services.api.app.diabetes.handlers import dose_calc
 from services.api.app.diabetes.utils.ui import PHOTO_BUTTON_TEXT
 
