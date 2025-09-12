@@ -12,9 +12,11 @@ os.environ.setdefault(
 import asyncio
 import logging
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, TypeAlias
 from zoneinfo import ZoneInfo
+
+import redis.asyncio as redis
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
@@ -69,15 +71,41 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
+    redis_client: redis.Redis | None = None
+    should_set = True
     try:
-        await app.bot.set_my_commands(commands)
-    except RetryAfter as exc:
-        logger.warning("Flood control: retrying in %ss", exc.retry_after)
-        await asyncio.sleep(exc.retry_after)
+        redis_client = redis.Redis.from_url(settings.redis_url)
+        raw_ts = await redis_client.get("bot:commands_set_at")
+        if raw_ts:
+            last_set = datetime.fromisoformat(raw_ts.decode())
+            if datetime.now(timezone.utc) - last_set < timedelta(hours=24):
+                should_set = False
+    except Exception as exc:  # pragma: no cover - network/cache issues
+        logger.warning("Redis unavailable: %s", exc)
+
+    if should_set:
         try:
             await app.bot.set_my_commands(commands)
-        except (RetryAfter, NetworkError):
-            logger.warning("Flood control: unable to set commands")
+        except RetryAfter as exc:
+            logger.warning("Flood control: retrying in %ss", exc.retry_after)
+            await asyncio.sleep(exc.retry_after)
+            try:
+                await app.bot.set_my_commands(commands)
+            except (RetryAfter, NetworkError):
+                logger.warning("Flood control: unable to set commands")
+        if redis_client is not None:
+            try:
+                await redis_client.set(
+                    "bot:commands_set_at",
+                    datetime.now(timezone.utc).isoformat(),
+                    ex=int(timedelta(hours=25).total_seconds()),
+                )
+            except Exception as exc:  # pragma: no cover - network/cache issues
+                logger.warning("Failed to store commands timestamp: %s", exc)
+    else:
+        logger.info("Skipping set_my_commands; recently updated")
+    if redis_client is not None:
+        await redis_client.close()
     await menu_button_post_init(app)
     from services.api.app.diabetes.handlers import assistant_menu
 
@@ -155,8 +183,7 @@ def main() -> None:  # pragma: no cover
         persistence = build_persistence()
     except Exception as exc:  # pragma: no cover - runtime safety
         logger.error(
-            "Failed to initialize persistence. "
-            "Ensure STATE_DIRECTORY points to a writable directory.",
+            "Failed to initialize persistence. Ensure STATE_DIRECTORY points to a writable directory.",
             exc_info=exc,
         )
         sys.exit(1)
