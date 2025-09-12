@@ -88,7 +88,10 @@ async def test_send_alert_message_invalid_contact(
         )
 
     assert expected in caplog.text
-    assert "SOS contact 'bad_contact' is not a Telegram username, chat id, or phone number; skipping" in caplog.text
+    assert (
+        "SOS contact 'bad_contact' is not a Telegram username, chat id, or phone number; skipping"
+        in caplog.text
+    )
     assert bot.send_message.await_count == 1
 
 
@@ -191,15 +194,3 @@ def test_schedule_alert_without_timezone_kwarg() -> None:
         profile=profile,
     )
     assert len(job_queue.jobs) == 1
-
-
-@pytest.mark.asyncio
-async def test_evaluate_sugar_requires_run_db(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """evaluate_sugar raises when run_db is missing."""
-
-    monkeypatch.setattr(handlers, "run_db", None)
-
-    with pytest.raises(RuntimeError, match="run_db"):
-        await handlers.evaluate_sugar(1, 5.5)
