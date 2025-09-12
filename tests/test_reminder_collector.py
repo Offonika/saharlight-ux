@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from datetime import time as dt_time
-from typing import Callable
+from typing import Any, Callable, Sequence
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 import logging
+from sqlite3 import Connection, Cursor
 
 import pytest
 from sqlalchemy import create_engine, event
@@ -206,7 +207,12 @@ async def test_gc_preloads_users(
     statements: list[str] = []
 
     def before_cursor_execute(
-        conn, cursor, statement, parameters, context, executemany
+        conn: Connection,
+        cursor: Cursor,
+        statement: str,
+        parameters: Sequence[Any],
+        context: Any,
+        executemany: bool,
     ) -> None:
         if statement.startswith("SELECT"):
             statements.append(statement)

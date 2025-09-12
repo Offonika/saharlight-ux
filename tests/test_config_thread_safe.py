@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
+from typing import Any
+
 import services.api.app.config as config
 
 
@@ -10,7 +12,7 @@ def test_reload_settings_thread_safe(monkeypatch: pytest.MonkeyPatch) -> None:
     spans: list[tuple[float, float]] = []
 
     class SlowSettings(config.Settings):
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             start = time.perf_counter()
             time.sleep(0.05)
             super().__init__(*args, **kwargs)
