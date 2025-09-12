@@ -201,7 +201,7 @@ async def test_flush_does_not_block_new_logs(
 async def test_stop_flush_task_cancels_task() -> None:
     """stop_flush_task should cancel the background flush task."""
     await logs.stop_flush_task()  # ensure clean state
-    logs.start_flush_task(0.01)
+    await logs.start_flush_task_async(0.01)
     task = logs._flush_task
     assert task is not None
     await logs.stop_flush_task()
@@ -228,3 +228,13 @@ async def test_pending_logs_respects_limit(
     await add_lesson_log(1, 1, 0, 3, "assistant", "c")
 
     assert [log.step_idx for log in logs.pending_logs] == [2, 3]
+
+
+def test_start_flush_task_without_loop(caplog: pytest.LogCaptureFixture) -> None:
+    """start_flush_task should skip when no event loop is running."""
+
+    logs._flush_task = None
+    with caplog.at_level(logging.INFO):
+        logs.start_flush_task()
+    assert logs._flush_task is None
+    assert "No running event loop" in caplog.text
