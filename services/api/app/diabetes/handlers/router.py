@@ -1,21 +1,27 @@
 from __future__ import annotations
 
 import logging
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ForceReply,
-    Message,
-    CallbackQuery,
-)
-from telegram.ext import ContextTypes
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Awaitable, Callable, cast
 
-from services.api.app.diabetes.services.db import Entry, SessionLocal
-from services.api.app.ui.keyboard import build_main_keyboard
+from telegram import (
+    CallbackQuery,
+    ForceReply,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    Update,
+)
+from telegram.ext import ContextTypes
 
+from services.api.app.diabetes.services.db import (
+    Entry,
+    Profile,
+    SessionLocal,
+    User,
+)
 from services.api.app.diabetes.services.repository import CommitError, commit
+from services.api.app.ui.keyboard import build_main_keyboard
 from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
@@ -203,14 +209,43 @@ async def handle_edit_field(
     await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
 
 
-async def profile_timezone_stub(
+async def handle_profile_timezone(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     query: CallbackQuery,
-    _: str,
+    data: str,
 ) -> None:
-    """Placeholder handler for profile timezone callbacks."""
-    return None
+    """Persist timezone from callback data and confirm to the user."""
+    try:
+        _, tz = data.split(":", 1)
+    except ValueError:
+        await query.edit_message_text("Некорректный часовой пояс.")
+        return
+    try:
+        ZoneInfo(tz)
+    except ZoneInfoNotFoundError:
+        await query.edit_message_text("Некорректный часовой пояс.")
+        return
+    user = update.effective_user
+    if user is None:
+        return
+    with SessionLocal() as session:
+        db_user = session.get(User, user.id)
+        if db_user is None:
+            db_user = User(telegram_id=user.id, thread_id="api")
+            session.add(db_user)
+        profile = session.get(Profile, user.id)
+        if profile is None:
+            profile = Profile(telegram_id=user.id)
+            session.add(profile)
+        profile.timezone = tz
+        profile.timezone_auto = False
+        try:
+            commit(session)
+        except CommitError:
+            await query.edit_message_text("⚠️ Не удалось обновить часовой пояс.")
+            return
+    await query.edit_message_text("✅ Часовой пояс обновлён.")
 
 
 callback_handlers: dict[str, Handler] = {
@@ -220,7 +255,7 @@ callback_handlers: dict[str, Handler] = {
     "edit_field:": handle_edit_field,
     "edit:": handle_edit_or_delete,
     "del:": handle_edit_or_delete,
-    "profile_timezone": profile_timezone_stub,
+    "profile_timezone:": handle_profile_timezone,
 }
 
 
