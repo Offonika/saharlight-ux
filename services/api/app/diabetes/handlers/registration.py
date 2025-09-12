@@ -5,6 +5,7 @@ import logging
 import re
 
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -389,8 +390,8 @@ def register_handlers(
                             text="Ассистент:",
                             reply_markup=assistant_menu.assistant_keyboard(),
                         )
-                    except Exception:
-                        logger.exception("Failed to send assistant menu")
+                    except (TelegramError, OSError) as exc:
+                        logger.exception("Failed to send assistant menu: %s", exc)
 
         jq.run_repeating(
             _assistant_mode_timeout,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 import logging
-from types import ModuleType, SimpleNamespace
+from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -39,7 +39,8 @@ async def test_post_init_sets_chat_menu_button(
         set_chat_menu_button=AsyncMock(),
     )
     monkeypatch.setattr(memory_service, "get_last_modes", AsyncMock(return_value=[]))
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     await main.post_init(app)
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     bot.set_chat_menu_button.assert_awaited_once()
@@ -62,7 +63,8 @@ async def test_post_init_skips_chat_menu_button_without_url(
         set_chat_menu_button=AsyncMock(),
     )
     monkeypatch.setattr(memory_service, "get_last_modes", AsyncMock(return_value=[]))
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     await main.post_init(app)
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     bot.set_chat_menu_button.assert_awaited_once()
@@ -80,7 +82,8 @@ async def test_post_init_warns_and_retries_on_retry_after(
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(side_effect=[RetryAfter(1), None]),
     )
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 
@@ -108,7 +111,8 @@ async def test_post_init_warns_when_retry_fails(
             side_effect=[RetryAfter(1), NetworkError("boom")]
         ),
     )
-    app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 

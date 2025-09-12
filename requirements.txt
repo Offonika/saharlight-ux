@@ -1,4 +1,6 @@
 -r services/api/app/requirements.txt
+pytest
+pytest-asyncio
 pytest-cov
 # Optional local Python SDK (generated from OpenAPI)
 # To use it, generate `libs/py-sdk` and install its dependencies manually:

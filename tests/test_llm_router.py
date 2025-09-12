@@ -38,6 +38,8 @@ async def test_create_learning_chat_completion_uses_router(
     monkeypatch.setattr(
         gpt_client, "create_chat_completion", fake_create_chat_completion
     )
+    settings = config.get_settings()
+    monkeypatch.setattr(settings, "learning_model_default", "gpt-4o-mini")
     monkeypatch.setattr(gpt_client, "_learning_router", LLMRouter())
 
     await gpt_client.create_learning_chat_completion(
