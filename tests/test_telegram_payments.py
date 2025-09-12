@@ -199,6 +199,15 @@ async def test_handle_successful_payment_http_error(
 
 
 @pytest.mark.asyncio
+async def test_handle_successful_payment_no_message() -> None:
+    adapter = TelegramPaymentsAdapter()
+    update = SimpleNamespace(message=None)
+
+    with pytest.raises(ValueError):
+        await adapter.handle_successful_payment(update, SimpleNamespace())
+
+
+@pytest.mark.asyncio
 async def test_handle_successful_payment_no_payment() -> None:
     adapter = TelegramPaymentsAdapter()
     message = SimpleNamespace(successful_payment=None, reply_text=AsyncMock())
