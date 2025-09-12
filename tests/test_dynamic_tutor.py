@@ -57,7 +57,7 @@ async def test_check_user_answer_uses_max_tokens(
 
     async def fake_create_learning_chat_completion(**kwargs: object) -> str:
         captured.update(kwargs)
-        return "ok"
+        return "<b>✅ ok</b>"
 
     monkeypatch.setattr(
         dynamic_tutor,
@@ -67,9 +67,14 @@ async def test_check_user_answer_uses_max_tokens(
 
     correct, result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
 
-    assert correct is False
-    assert result == "ok"
+    assert correct is True
+    assert result == "✅ ok"
     assert captured["max_tokens"] == 250
+
+
+def test_sanitize_feedback() -> None:
+    text = "<b>привет</b> ✅*мир*"
+    assert dynamic_tutor.sanitize_feedback(text) == "привет ✅ мир"
 
 
 @pytest.mark.asyncio
@@ -103,7 +108,7 @@ async def test_check_user_answer_empty_feedback(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     async def fake_create_learning_chat_completion(**kwargs: object) -> str:
-        return "   "
+        return "***"
 
     monkeypatch.setattr(
         dynamic_tutor,
@@ -119,3 +124,20 @@ async def test_check_user_answer_empty_feedback(
     assert correct is False
     assert result == dynamic_tutor.BUSY_MESSAGE
     assert "empty feedback" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_check_user_answer_detects_incorrect(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_create_learning_chat_completion(**kwargs: object) -> str:
+        return "⚠️ try again"
+
+    monkeypatch.setattr(
+        dynamic_tutor,
+        "create_learning_chat_completion",
+        fake_create_learning_chat_completion,
+    )
+
+    correct, result = await dynamic_tutor.check_user_answer({}, "topic", "ans", "text")
+
+    assert correct is False
+    assert result == "⚠️ try again"
