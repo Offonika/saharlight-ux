@@ -1193,8 +1193,17 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         make_context(job_queue=job_queue, user_data={"pending_entry": {}}),
     )
-    await handlers.reminder_action_cb(update, context)
+    original_cb = handlers.reminder_action_cb
+
+    async def spy_cb(*args: Any, **kwargs: Any) -> None:
+        spy_cb.calls += 1
+        await original_cb(*args, **kwargs)
+
+    spy_cb.calls = 0
+    monkeypatch.setattr(handlers, "reminder_action_cb", spy_cb)
+
     await router.callback_router(update, context)
+    assert spy_cb.calls == 1
 
     with TestSession() as session:
         rem_db = session.get(Reminder, 1)
@@ -1207,8 +1216,7 @@ async def test_toggle_reminder_cb(monkeypatch: pytest.MonkeyPatch) -> None:
     assert not jobs_snooze
     assert not jobs_after
     assert query.answers
-    answer = query.answers[0]
-    assert answer == "Готово ✅"
+    assert query.answers[-1] == "Готово ✅"
     assert context.user_data is not None
     user_data = context.user_data
     assert "pending_entry" in user_data
