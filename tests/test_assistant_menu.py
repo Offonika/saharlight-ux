@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -119,7 +120,9 @@ async def test_assistant_callback_persists_mode(
     async def fake_set_last_mode(uid: int, mode: str | None) -> None:
         calls.append((uid, mode))
 
-    monkeypatch.setattr(assistant_menu.memory_service, "set_last_mode", fake_set_last_mode)
+    monkeypatch.setattr(
+        assistant_menu.memory_service, "set_last_mode", fake_set_last_mode
+    )
 
     await assistant_menu.assistant_callback(update, ctx)
 
@@ -148,7 +151,9 @@ async def test_assistant_callback_labs_waiting(
     async def fake_set_last_mode(uid: int, mode: str | None) -> None:
         calls.append((uid, mode))
 
-    monkeypatch.setattr(assistant_menu.memory_service, "set_last_mode", fake_set_last_mode)
+    monkeypatch.setattr(
+        assistant_menu.memory_service, "set_last_mode", fake_set_last_mode
+    )
 
     await assistant_menu.assistant_callback(update, ctx)
 
@@ -159,7 +164,9 @@ async def test_assistant_callback_labs_waiting(
 
 
 @pytest.mark.asyncio
-async def test_assistant_callback_visit_calls_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_assistant_callback_visit_calls_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     handler = AsyncMock()
     monkeypatch.setattr(visit_handlers, "send_checklist", handler)
     message = MagicMock()
@@ -179,7 +186,9 @@ async def test_assistant_callback_visit_calls_handler(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
-async def test_assistant_callback_save_note_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_assistant_callback_save_note_routes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     handler = AsyncMock()
     monkeypatch.setattr(visit_handlers, "save_note_callback", handler)
     query = MagicMock()
@@ -212,7 +221,9 @@ async def test_assistant_callback_unknown(
         await assistant_menu.assistant_callback(update, ctx)
     message.edit_text.assert_awaited_once()
     assert ctx.user_data == {}
-    record = next(r for r in caplog.records if r.message == "assistant_unknown_callback")
+    record = next(
+        r for r in caplog.records if r.message == "assistant_unknown_callback"
+    )
     assert record.data == "asst:unknown"
 
 
@@ -226,7 +237,8 @@ async def test_post_init_restores_modes(monkeypatch: pytest.MonkeyPatch) -> None
     )
     bot = MagicMock()
     bot.send_message = AsyncMock()
-    app = SimpleNamespace(bot=bot, user_data={})
+    store = defaultdict(dict)
+    app = SimpleNamespace(bot=bot, user_data=store, _user_data=store)
 
     await assistant_menu.post_init(app)
 
@@ -254,7 +266,9 @@ def test_assistant_menu_emoji_off(monkeypatch: pytest.MonkeyPatch) -> None:
     assert helper.render_assistant_menu(False).assistant == "Ассистент_AI"
     assert ui_keyboard.LEARN_BUTTON_TEXT == "Ассистент_AI"
     texts = [
-        btn.text for row in handler_menu.assistant_keyboard().inline_keyboard for btn in row
+        btn.text
+        for row in handler_menu.assistant_keyboard().inline_keyboard
+        for btn in row
     ]
     assert texts == ["Обучение", "Чат", "Анализы", "Визит"]
 
