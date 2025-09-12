@@ -256,6 +256,9 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     data = query.data or ""
 
     if data.startswith("rem_"):
+        from . import reminder_handlers
+
+        await reminder_handlers.callback_router(update, context)
         return
 
     handler = callback_handlers.get(data)

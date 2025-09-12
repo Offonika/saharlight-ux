@@ -1307,6 +1307,17 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.answer("Готово ✅")
 
 
+async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Route reminder-related callbacks."""
+    query = update.callback_query
+    if query is None or query.data is None:
+        return
+    if query.data.startswith("remind_"):
+        await reminder_callback(update, context)
+    else:
+        await reminder_action_cb(update, context)
+
+
 def schedule_after_meal(user_id: int, job_queue: DefaultJobQueue | None) -> None:
     if job_queue is None:
         logger.warning("schedule_after_meal called without job_queue")
@@ -1349,6 +1360,7 @@ __all__ = [
     "reminder_job",
     "reminder_callback",
     "reminder_action_cb",
+    "callback_router",
     "schedule_after_meal",
     "reminder_action_handler",
     "reminder_webapp_handler",
