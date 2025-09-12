@@ -8,8 +8,8 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes
 
 from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
-from services.api.app.diabetes.assistant_state import set_last_mode
-from services.api.app.diabetes.labs_handlers import AWAITING_KIND
+from services.api.app.diabetes.assistant_state import AWAITING_KIND, set_last_mode
+from services.api.app.diabetes.labs_handlers import AWAITING_KIND as LABS_AWAITING_KIND
 from services.api.app.diabetes import visit_handlers
 
 __all__ = [
@@ -81,9 +81,11 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
     user_data = cast(dict[str, object], ctx.user_data)
     if mode == "labs":
         user_data["waiting_labs"] = True
-        user_data.pop(AWAITING_KIND, None)
+        user_data.pop(LABS_AWAITING_KIND, None)
+        user_data[AWAITING_KIND] = "labs"
         set_last_mode(user_data, None)
     else:
+        user_data[AWAITING_KIND] = mode
         set_last_mode(user_data, mode)
         if mode == "visit":
             await visit_handlers.send_checklist(update, ctx)
