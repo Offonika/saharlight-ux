@@ -77,32 +77,33 @@ async def post_init(
     ],
 ) -> None:
     global redis
-    if not isinstance(redis, ModuleType):
+    if not hasattr(redis, "from_url") or redis.from_url is redis_stub.from_url:
         try:
             import redis.asyncio as real_redis  # type: ignore[import-not-found]
         except ModuleNotFoundError:
             pass
         else:
-            patched_from_url = getattr(redis.Redis, "from_url", None)
+            patched_from_url = getattr(getattr(redis, "Redis", None), "from_url", None)
             if patched_from_url is not None:
                 real_redis.Redis.from_url = patched_from_url
             redis = real_redis
 
     redis_client: Any | None = None
     should_set = True
-    if not isinstance(redis, ModuleType):
-        logger.warning("Redis package not installed; command caching disabled")
-    else:
+    try:
+        redis_raw = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
+        redis_client = cast(Any, redis_raw)
         try:
-            redis_raw = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
-            redis_client = cast(Any, redis_raw)
             raw_ts = await redis_client.get("bot:commands_set_at")
+        except Exception as exc:  # pragma: no cover - network/cache issues
+            logger.warning("Failed to read commands timestamp: %s", exc)
+        else:
             if raw_ts:
                 last_set = datetime.fromisoformat(raw_ts.decode())
                 if datetime.now(timezone.utc) - last_set < timedelta(hours=24):
                     should_set = False
-        except Exception as exc:  # pragma: no cover - network/cache issues
-            logger.warning("Redis unavailable: %s", exc)
+    except Exception as exc:  # pragma: no cover - network/cache issues
+        logger.warning("Redis unavailable: %s", exc)
 
     if should_set:
         try:
