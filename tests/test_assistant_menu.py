@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from services.api.app.diabetes.handlers import assistant_menu
+from services.api.app.diabetes import visit_handlers
 
 
 def test_assistant_keyboard_layout() -> None:
@@ -87,3 +88,38 @@ async def test_assistant_callback_labs_waiting() -> None:
 
     assert user_data.get("waiting_labs") is True
     assert user_data.get("assistant_last_mode") is None
+
+
+@pytest.mark.asyncio
+async def test_assistant_callback_visit_calls_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    handler = AsyncMock()
+    monkeypatch.setattr(visit_handlers, "send_checklist", handler)
+    message = MagicMock()
+    message.edit_text = AsyncMock()
+    query = MagicMock()
+    query.data = "asst:visit"
+    query.message = message
+    query.answer = AsyncMock()
+    update = MagicMock()
+    update.callback_query = query
+    ctx = MagicMock()
+    ctx.user_data = {}
+
+    await assistant_menu.assistant_callback(update, ctx)
+
+    handler.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_assistant_callback_save_note_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+    handler = AsyncMock()
+    monkeypatch.setattr(visit_handlers, "save_note_callback", handler)
+    query = MagicMock()
+    query.data = "asst:save_note"
+    query.answer = AsyncMock()
+    update = MagicMock()
+    update.callback_query = query
+
+    await assistant_menu.assistant_callback(update, MagicMock())
+
+    handler.assert_awaited_once()

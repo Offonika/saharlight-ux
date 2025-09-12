@@ -10,6 +10,7 @@ from telegram.ext import CallbackQueryHandler, ContextTypes
 from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
 from services.api.app.diabetes.assistant_state import set_last_mode
 from services.api.app.diabetes.labs_handlers import AWAITING_KIND
+from services.api.app.diabetes import visit_handlers
 
 __all__ = [
     "assistant_keyboard",
@@ -64,6 +65,9 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
     data = query.data
     message = query.message
     await query.answer()
+    if data == "asst:save_note":
+        await visit_handlers.save_note_callback(update, ctx)
+        return
     if data in {"asst:back", "asst:menu"}:
         if message and hasattr(message, "edit_text"):
             await cast(Message, message).edit_text(
@@ -81,6 +85,9 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         set_last_mode(user_data, None)
     else:
         set_last_mode(user_data, mode)
+        if mode == "visit":
+            await visit_handlers.send_checklist(update, ctx)
+            return
 
 
 if TYPE_CHECKING:

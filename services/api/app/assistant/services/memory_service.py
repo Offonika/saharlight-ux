@@ -7,19 +7,22 @@ from sqlalchemy.orm import Session
 
 from ...diabetes.services.db import SessionLocal, run_db
 from ...diabetes.services.repository import commit
-from ..models import AssistantMemory
+from ..models import AssistantMemory, AssistantNote
 from ..repositories.memory import (
     get_memory as repo_get_memory,
     upsert_memory as repo_upsert_memory,
 )
+from ..repositories.notes import create_note
 
 __all__ = [
     "AssistantMemory",
+    "AssistantNote",
     "get_memory",
     "save_memory",
     "clear_memory",
     "record_turn",
     "cleanup_old_memory",
+    "save_note",
 ]
 
 
@@ -51,6 +54,17 @@ async def save_memory(
             last_turn_at=last_turn_at,
             summary_text=summary_text,
         )
+
+    return await run_db(_save, sessionmaker=SessionLocal)
+
+
+async def save_note(user_id: int, text: str) -> AssistantNote:
+    """Store a free-form note for ``user_id``."""
+
+    text = text[:4096]
+
+    def _save(session: Session) -> AssistantNote:
+        return create_note(session, user_id=user_id, text=text)
 
     return await run_db(_save, sessionmaker=SessionLocal)
 
