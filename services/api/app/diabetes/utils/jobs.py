@@ -202,13 +202,12 @@ def _safe_remove(job: object) -> bool:
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
-        except Exception as exc:  # pragma: no cover - defensive
-            logger.warning(
-                "remove() raised unexpected error for job id=%s name=%s: %s",
+        except Exception:  # pragma: no cover - defensive
+            logger.exception(
+                "remove() raised unexpected error for job id=%s name=%s",
                 job_id,
                 job_name,
-                exc,
-            )  # pragma: no cover - defensive
+            )
             raise
 
     queue = getattr(job, "queue", None)
@@ -234,12 +233,11 @@ def _safe_remove(job: object) -> bool:
                     job_id,
                     exc,
                 )  # pragma: no cover - defensive
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.warning(
-                    "remove_job(%s) raised unexpected error: %s",
+            except Exception:  # pragma: no cover - defensive
+                logger.exception(
+                    "remove_job(%s) raised unexpected error",
                     job_id,
-                    exc,
-                )  # pragma: no cover - defensive
+                )
                 raise
         except (
             AttributeError,
@@ -251,12 +249,11 @@ def _safe_remove(job: object) -> bool:
                 job_id,
                 exc,
             )  # pragma: no cover - defensive
-        except Exception as exc:  # pragma: no cover - defensive
-            logger.warning(
-                "remove_job(job_id=%s) raised unexpected error: %s",
+        except Exception:  # pragma: no cover - defensive
+            logger.exception(
+                "remove_job(job_id=%s) raised unexpected error",
                 job_id,
-                exc,
-            )  # pragma: no cover - defensive
+            )
             raise
 
     schedule_removal = cast(
@@ -277,13 +274,12 @@ def _safe_remove(job: object) -> bool:
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
-        except Exception as exc:  # pragma: no cover - defensive
-            logger.warning(
-                "schedule_removal() raised unexpected error for job id=%s name=%s: %s",
+        except Exception:  # pragma: no cover - defensive
+            logger.exception(
+                "schedule_removal() raised unexpected error for job id=%s name=%s",
                 job_id,
                 job_name,
-                exc,
-            )  # pragma: no cover - defensive
+            )
             raise
     return False
 
@@ -326,12 +322,11 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                         name,
                         exc,
                     )  # pragma: no cover - defensive
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.warning(
-                        "remove_job_direct(%s) raised unexpected error: %s",
+                except Exception:  # pragma: no cover - defensive
+                    logger.exception(
+                        "remove_job_direct(%s) raised unexpected error",
                         name,
-                        exc,
-                    )  # pragma: no cover - defensive
+                    )
                     raise
             except (
                 AttributeError,
@@ -343,12 +338,11 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                     name,
                     exc,
                 )  # pragma: no cover - defensive
-            except Exception as exc:  # pragma: no cover - defensive
-                logger.warning(
-                    "remove_job_direct(job_id=%s) raised unexpected error: %s",
+            except Exception:  # pragma: no cover - defensive
+                logger.exception(
+                    "remove_job_direct(job_id=%s) raised unexpected error",
                     name,
-                    exc,
-                )  # pragma: no cover - defensive
+                )
                 raise
             if existed:
                 removed += 1
