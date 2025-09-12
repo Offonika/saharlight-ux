@@ -68,7 +68,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
 
     monkeypatch.setattr(photo_handlers, "photo_handler", fake_photo_handler)
     monkeypatch.setattr(
@@ -82,7 +82,7 @@ async def test_doc_handler_calls_photo_handler(monkeypatch: pytest.MonkeyPatch) 
     assert result == 200
     assert called.flag
     assert called.path == f"{settings.photos_dir}/1_uid.png"
-    assert context._user_data == {}
+    assert photo_handlers._get_mutable_user_data(context) == {}
     assert update.message is not None
     msg = update.message
     assert getattr(msg, "photo", None) is None
@@ -113,7 +113,7 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
 
     monkeypatch.setattr(photo_handlers, "photo_handler", fake_photo_handler)
 
@@ -121,8 +121,8 @@ async def test_doc_handler_skips_non_images(monkeypatch: pytest.MonkeyPatch) -> 
 
     assert result == photo_handlers.END
     assert not called.flag
-    assert context._user_data is not None
-    assert "__file_path" not in context._user_data
+    assert photo_handlers._get_mutable_user_data(context) is not None
+    assert "__file_path" not in photo_handlers._get_mutable_user_data(context)
 
 
 @pytest.mark.asyncio
@@ -142,7 +142,7 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
     monkeypatch.setattr(
         photo_handlers.os,
         "makedirs",
@@ -153,7 +153,7 @@ async def test_doc_handler_get_file_error(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert result == photo_handlers.END
     message.reply_text.assert_awaited_once()
-    assert not context._user_data
+    assert not photo_handlers._get_mutable_user_data(context)
 
 
 @pytest.mark.asyncio
@@ -177,7 +177,7 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
     monkeypatch.setattr(
         photo_handlers.os,
         "makedirs",
@@ -188,7 +188,7 @@ async def test_doc_handler_download_error(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert result == photo_handlers.END
     message.reply_text.assert_awaited_once()
-    assert not context._user_data
+    assert not photo_handlers._get_mutable_user_data(context)
 
 
 @pytest.mark.asyncio
@@ -208,7 +208,7 @@ async def test_photo_handler_non_writable_dir(monkeypatch: pytest.MonkeyPatch) -
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
 
     def raise_os_error(*args: Any, **kwargs: Any) -> None:
         raise OSError("no perm")
@@ -219,7 +219,7 @@ async def test_photo_handler_non_writable_dir(monkeypatch: pytest.MonkeyPatch) -
 
     assert result == photo_handlers.END
     message.reply_text.assert_awaited_once()
-    assert photo_handlers.WAITING_GPT_FLAG not in context._user_data
+    assert photo_handlers.WAITING_GPT_FLAG not in photo_handlers._get_mutable_user_data(context)
 
 
 @pytest.mark.asyncio
@@ -251,7 +251,7 @@ async def test_doc_handler_non_writable_dir(monkeypatch: pytest.MonkeyPatch) -> 
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -269,14 +269,14 @@ async def test_photo_handler_handles_typeerror() -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
 
     result = await photo_handlers.photo_handler(update, context)
 
     assert message.texts == ["❗ Файл не распознан как изображение."]
     assert result == photo_handlers.END
-    assert context._user_data is not None
-    assert photo_handlers.WAITING_GPT_FLAG not in context._user_data
+    assert photo_handlers._get_mutable_user_data(context) is not None
+    assert photo_handlers.WAITING_GPT_FLAG not in photo_handlers._get_mutable_user_data(context)
 
 
 @pytest.mark.asyncio
@@ -310,7 +310,7 @@ async def test_photo_handler_sends_bytes(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data=MappingProxyType(user_data)),
     )
-    context._user_data = user_data
+    photo_handlers._get_mutable_user_data(context).update(user_data)
 
     call = {}
 
@@ -412,7 +412,7 @@ async def test_photo_then_freeform_calculates_dose(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=dummy_bot, user_data=MappingProxyType(user_data)),
     )
-    context._user_data = user_data
+    photo_handlers._get_mutable_user_data(context).update(user_data)
 
     await photo_handlers.photo_handler(update_photo, context)
 
@@ -451,6 +451,6 @@ async def test_photo_then_freeform_calculates_dose(
 
     reply = sugar_msg.texts[0]
     assert reply == "💉\u202fРасчёт дозы: 1.0\u202fЕд.\nСахар: 5.0\u202fммоль/л"
-    assert context._user_data is not None
-    user_data = context._user_data
+    assert photo_handlers._get_mutable_user_data(context) is not None
+    user_data = photo_handlers._get_mutable_user_data(context)
     assert "dose" in user_data["pending_entry"]
