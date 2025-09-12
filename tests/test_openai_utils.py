@@ -300,7 +300,7 @@ def test_dispose_http_client_sync(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_dispose_http_client_sync_uses_runner(monkeypatch: pytest.MonkeyPatch) -> None:
     class DummyRunner:
         def __init__(self) -> None:
-            self.run = Mock()
+            self.run_mock = Mock()
             self.close = Mock()
 
         def __enter__(self) -> "DummyRunner":
@@ -308,6 +308,14 @@ def test_dispose_http_client_sync_uses_runner(monkeypatch: pytest.MonkeyPatch) -
 
         def __exit__(self, exc_type, exc, tb) -> None:  # type: ignore[override]
             self.close()
+
+        def run(self, coro: object) -> None:
+            self.run_mock(coro)
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(coro)  # type: ignore[arg-type]
+            finally:
+                loop.close()
 
     dummy_runner = DummyRunner()
     runner_factory = Mock(return_value=dummy_runner)
@@ -322,10 +330,8 @@ def test_dispose_http_client_sync_uses_runner(monkeypatch: pytest.MonkeyPatch) -
     openai_utils._dispose_http_client_sync()
 
     runner_factory.assert_called_once_with()
-    dispose_mock.assert_called_once_with()
-    dummy_runner.run.assert_called_once()
-    args, _ = dummy_runner.run.call_args
-    assert asyncio.iscoroutine(args[0])
+    dispose_mock.assert_awaited_once()
+    dummy_runner.run_mock.assert_called_once()
     dummy_runner.close.assert_called_once()
 
 
