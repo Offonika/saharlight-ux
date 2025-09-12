@@ -33,6 +33,7 @@ from services.api.app.diabetes.handlers import (
     reminder_handlers as rh,
     billing_handlers,
     learning_onboarding,
+    assistant_menu,
 )
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes import commands
@@ -84,10 +85,17 @@ def test_register_handlers_attaches_expected_handlers(
     assert billing_handlers.trial_command in callbacks
     assert billing_handlers.upgrade_command in callbacks
     assert billing_handlers.subscription_button in callbacks
+    assert assistant_menu.assistant_callback in callbacks
     assert any(
         isinstance(h, CommandHandler)
         and h.callback is learning_handlers.cmd_menu
         and "menu" in h.commands
+        for h in handlers
+    )
+    assert any(
+        isinstance(h, CommandHandler)
+        and h.callback is assistant_menu.show_menu
+        and "assistant" in h.commands
         for h in handlers
     )
     assert any(

@@ -203,6 +203,7 @@ def register_handlers(
         sugar_handlers,
         gpt_handlers,
         billing_handlers,
+        assistant_menu,
     )
     from services.api.app.diabetes import commands as bot_commands
     from services.api.app.config import reload_settings, settings
@@ -219,6 +220,7 @@ def register_handlers(
         learning_enabled = settings.learning_mode_enabled
 
     app.add_handler(CommandHandlerT("menu", learning_handlers.cmd_menu))
+    app.add_handler(CommandHandlerT("assistant", assistant_menu.show_menu))
     app.add_handler(
         MessageHandlerT(
             filters.TEXT & filters.Regex(LEARN_BUTTON_PATTERN),
@@ -284,6 +286,7 @@ def register_handlers(
     app.add_handler(MessageHandlerT(filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler))
     app.add_handler(MessageHandlerT(filters.PHOTO, photo_handlers.photo_handler))
     app.add_handler(MessageHandlerT(filters.Document.IMAGE, photo_handlers.doc_handler))
+    app.add_handler(CallbackQueryHandlerT(assistant_menu.assistant_callback, pattern="^asst:"))
     app.add_handler(CallbackQueryHandlerT(reporting_handlers.report_period_callback, pattern="^report_back$"))
     app.add_handler(CallbackQueryHandlerT(reporting_handlers.report_period_callback, pattern="^report_period:"))
     app.add_handler(CallbackQueryHandlerT(callback_router))
