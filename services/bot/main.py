@@ -9,6 +9,7 @@ os.environ.setdefault(
     str(Path(__file__).resolve().parents[2] / "data/mpl-cache"),
 )
 
+import asyncio
 import logging
 import sys
 from datetime import timedelta
@@ -17,6 +18,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
+from telegram.error import NetworkError, RetryAfter
 from telegram.ext import (
     Application,
     ContextTypes,
@@ -67,7 +69,15 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
-    await app.bot.set_my_commands(commands)
+    try:
+        await app.bot.set_my_commands(commands)
+    except RetryAfter as exc:
+        logger.warning("Flood control: set_my_commands retry in %s s", exc.retry_after)
+        await asyncio.sleep(exc.retry_after)
+        try:
+            await app.bot.set_my_commands(commands)
+        except (NetworkError, RetryAfter):
+            pass
     await menu_button_post_init(app)
     from services.api.app.diabetes.handlers import assistant_menu
 
