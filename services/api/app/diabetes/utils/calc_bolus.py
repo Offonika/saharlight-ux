@@ -124,4 +124,4 @@ def calc_bolus(
     return _round_bolus(total_f, bolus_round_step)
 
 
-__all__ = ["PatientProfile", "_round_bolus", "calc_bolus"]
+__all__ = ["PatientProfile", "calc_bolus"]
