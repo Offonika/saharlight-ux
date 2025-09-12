@@ -26,6 +26,7 @@ from services.api.app.diabetes.utils.ui import (
     SUBSCRIPTION_BUTTON_TEXT,
 )
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.diabetes.metrics import assistant_mode_total
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,13 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     user_data = cast(MutableMapping[str, object], context.user_data or {})
     mode = get_last_mode(user_data)
     logger.debug("assistant_router mode=%s text=%s", mode, text)
+    if mode in {"learn", "chat", "labs", "visit"}:
+        user = getattr(update, "effective_user", None)
+        logging.info(
+            "assistant_mode_request",
+            extra={"mode": mode, "user_id": getattr(user, "id", None)},
+        )
+        assistant_mode_total.labels(mode=mode).inc()
     if mode == "learn":
         user_data[AWAITING_KIND] = "learn"
         await learning_handlers.on_any_text(update, context)
