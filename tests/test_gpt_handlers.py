@@ -10,7 +10,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.diabetes.handlers import gpt_handlers
-from services.api.app.diabetes import assistant_state, commands
+from services.api.app.diabetes import assistant_state, commands, prompts
 
 
 class DummyMessage:
@@ -47,7 +47,8 @@ async def test_chat_with_gpt_replies_and_history(monkeypatch: pytest.MonkeyPatch
         SimpleNamespace(user_data={}),
     )
     await gpt_handlers.chat_with_gpt(update, context)
-    assert message.texts == ["hi"]
+    expected = f"{prompts.disclaimer()}\n\nhi"
+    assert message.texts == [expected]
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
     assert history and "user: hi" in history[0]
 
@@ -59,9 +60,7 @@ async def test_chat_with_gpt_passes_context(monkeypatch: pytest.MonkeyPatch) -> 
     async def fake_completion(**kwargs: Any) -> Any:
         calls.append(kwargs["messages"])
         idx = len(calls)
-        return SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content=f"r{idx}"))]
-        )
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=f"r{idx}"))])
 
     monkeypatch.setattr(gpt_handlers.gpt_client, "create_chat_completion", fake_completion)
     monkeypatch.setattr(gpt_handlers.gpt_client, "format_reply", lambda text, **kw: text)
@@ -78,9 +77,12 @@ async def test_chat_with_gpt_passes_context(monkeypatch: pytest.MonkeyPatch) -> 
     update2 = cast(Update, SimpleNamespace(message=second, effective_user=None))
     await gpt_handlers.chat_with_gpt(update2, context)
 
+    expected_first = f"{prompts.disclaimer()}\n\nr1"
+    assert first.texts == [expected_first]
+    assert second.texts == ["r2"]
     assert calls[1] == [
         {"role": "user", "content": "hi"},
-        {"role": "assistant", "content": "r1"},
+        {"role": "assistant", "content": expected_first},
         {"role": "user", "content": "how are you?"},
     ]
 
@@ -101,11 +103,10 @@ async def test_chat_with_gpt_handles_openai_error(
         SimpleNamespace(user_data={}),
     )
     await gpt_handlers.chat_with_gpt(update, context)
-    assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
+    expected = f"{prompts.disclaimer()}\n\n⚠️ Не удалось получить ответ. Попробуйте позже."
+    assert message.texts == [expected]
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
-    assert history and history[0].endswith(
-        "assistant: ⚠️ Не удалось получить ответ. Попробуйте позже."
-    )
+    assert history and history[0].endswith(f"assistant: {expected}")
 
 
 @pytest.mark.asyncio
@@ -124,11 +125,10 @@ async def test_chat_with_gpt_handles_http_error(
         SimpleNamespace(user_data={}),
     )
     await gpt_handlers.chat_with_gpt(update, context)
-    assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
+    expected = f"{prompts.disclaimer()}\n\n⚠️ Не удалось получить ответ. Попробуйте позже."
+    assert message.texts == [expected]
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
-    assert history and history[0].endswith(
-        "assistant: ⚠️ Не удалось получить ответ. Попробуйте позже."
-    )
+    assert history and history[0].endswith(f"assistant: {expected}")
 
 
 @pytest.mark.asyncio
@@ -147,11 +147,10 @@ async def test_chat_with_gpt_handles_timeout_error(
         SimpleNamespace(user_data={}),
     )
     await gpt_handlers.chat_with_gpt(update, context)
-    assert message.texts == ["⚠️ Не удалось получить ответ. Попробуйте позже."]
+    expected = f"{prompts.disclaimer()}\n\n⚠️ Не удалось получить ответ. Попробуйте позже."
+    assert message.texts == [expected]
     history = cast(list[str], context.user_data[assistant_state.HISTORY_KEY])
-    assert history and history[0].endswith(
-        "assistant: ⚠️ Не удалось получить ответ. Попробуйте позже."
-    )
+    assert history and history[0].endswith(f"assistant: {expected}")
 
 
 @pytest.mark.asyncio

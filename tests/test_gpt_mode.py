@@ -20,9 +20,7 @@ class DummyMessage:
 
 
 def make_update(message: DummyMessage) -> Update:
-    return cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    return cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
 
 
 def make_context(
@@ -30,9 +28,7 @@ def make_context(
 ) -> CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]:
     return cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
-        SimpleNamespace(
-            user_data=user_data if user_data is not None else {}, job_queue=None
-        ),
+        SimpleNamespace(user_data=user_data if user_data is not None else {}, job_queue=None),
     )
 
 
@@ -43,20 +39,20 @@ async def test_start_gpt_sets_flag() -> None:
     context = make_context({})
     await registration.start_gpt_dialog(update, context)
     assert context.user_data.get(registration.GPT_MODE_KEY) is True
+    assert registration.MODE_DISCLAIMED_KEY not in context.user_data
 
 
 @pytest.mark.asyncio
 async def test_cancel_clears_flag(monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage("/cancel")
     update = make_update(message)
-    user_data = {registration.GPT_MODE_KEY: True}
+    user_data = {registration.GPT_MODE_KEY: True, registration.MODE_DISCLAIMED_KEY: True}
     fake_cancel = AsyncMock()
-    monkeypatch.setattr(
-        "services.api.app.diabetes.handlers.dose_calc.dose_cancel", fake_cancel
-    )
+    monkeypatch.setattr("services.api.app.diabetes.handlers.dose_calc.dose_cancel", fake_cancel)
     context = make_context(user_data)
     await registration.cancel(update, context)
     assert registration.GPT_MODE_KEY not in user_data
+    assert registration.MODE_DISCLAIMED_KEY not in user_data
     fake_cancel.assert_awaited_once()
 
 

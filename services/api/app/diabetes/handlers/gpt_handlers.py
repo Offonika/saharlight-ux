@@ -26,7 +26,7 @@ from services.api.app.diabetes.utils.calc_bolus import (
     PatientProfile,
     calc_bolus,
 )
-from .. import assistant_state
+from .. import assistant_state, prompts
 from services.api.app.diabetes.utils.functions import smart_input
 from services.api.app.diabetes.gpt_command_parser import (
     ParserTimeoutError,
@@ -38,7 +38,7 @@ from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.diabetes.services import gpt_client
 from services.api.app.config import settings
 from services.api.app.assistant.services import memory_service
-from .registration import GPT_MODE_KEY
+from .registration import GPT_MODE_KEY, MODE_DISCLAIMED_KEY
 
 from .alert_handlers import check_alert as _check_alert
 from .dose_validation import _sanitize
@@ -52,9 +52,7 @@ T = TypeVar("T")
 
 
 class RunDB(Protocol):
-    def __call__(
-        self, fn: Callable[[Session], T], *args: object, **kwargs: object
-    ) -> Awaitable[T]: ...
+    def __call__(self, fn: Callable[[Session], T], *args: object, **kwargs: object) -> Awaitable[T]: ...
 
 
 logger = logging.getLogger(__name__)
@@ -91,9 +89,7 @@ async def _handle_report_request(
         await message.reply_text("📋 Выберите действие:", reply_markup=menu_keyboard)
         return True
     try:
-        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(
-            tzinfo=datetime.timezone.utc
-        )
+        date_from = datetime.datetime.strptime(raw_text, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
     except ValueError:
         await message.reply_text("❗ Некорректная дата. Используйте формат YYYY-MM-DD.")
         return True
@@ -135,9 +131,7 @@ async def _handle_pending_entry(
     *,
     SessionLocal: sessionmaker[Session],
     commit: Callable[[Session], None],
-    check_alert: Callable[
-        [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
-    ],
+    check_alert: Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]],
     menu_keyboard: ReplyKeyboardMarkup | None,
 ) -> bool:
     """Process numeric input for a pending entry."""
@@ -216,10 +210,7 @@ async def _handle_pending_entry(
         return True
 
     text = raw_text.lower()
-    if (
-        re.fullmatch(r"-?\d+(?:[.,]\d+)?", text)
-        and pending_entry.get("sugar_before") is None
-    ):
+    if re.fullmatch(r"-?\d+(?:[.,]\d+)?", text) and pending_entry.get("sugar_before") is None:
         try:
             sugar = float(text.replace(",", "."))
         except ValueError:
@@ -229,10 +220,7 @@ async def _handle_pending_entry(
             await message.reply_text("Сахар не может быть отрицательным.")
             return True
         pending_entry["sugar_before"] = sugar
-        if (
-            pending_entry.get("carbs_g") is not None
-            or pending_entry.get("xe") is not None
-        ):
+        if pending_entry.get("carbs_g") is not None or pending_entry.get("xe") is not None:
             xe_val = pending_entry.get("xe")
             carbs_g = pending_entry.get("carbs_g")
             if carbs_g is None and xe_val is not None:
@@ -262,9 +250,7 @@ async def _handle_pending_entry(
                 and profile.cf is not None
                 and profile.target_bg is not None
             ):
-                patient = PatientProfile(
-                    icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg
-                )
+                patient = PatientProfile(icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg)
                 dose = calc_bolus(carbs_g, sugar, patient)
                 pending_entry["dose"] = dose
                 await message.reply_text(
@@ -272,9 +258,7 @@ async def _handle_pending_entry(
                     reply_markup=confirm_keyboard(),
                 )
                 return True
-        await message.reply_text(
-            "Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard
-        )
+        await message.reply_text("Введите количество углеводов или ХЕ.", reply_markup=menu_keyboard)
         return True
 
     # not handled here
@@ -365,9 +349,7 @@ def parse_quick_values(
 ) -> tuple[dict[str, float | None], float | None]:
     """Parse quick values (sugar/xe/dose) and carbs."""
     quick = smart_input(raw_text)
-    carbs_match = re.search(
-        r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I
-    )
+    carbs_match = re.search(r"(?:carbs|углеводов)\s*=\s*(-?\d+(?:[.,]\d+)?)", raw_text, re.I)
     carbs_val = float(carbs_match.group(1).replace(",", ".")) if carbs_match else None
     return quick, carbs_val
 
@@ -383,9 +365,7 @@ async def apply_pending_entry(
     user_id: int,
     SessionLocal: sessionmaker[Session],
     commit: Callable[[Session], None],
-    check_alert: Callable[
-        [Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]
-    ],
+    check_alert: Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]],
     menu_keyboard: ReplyKeyboardMarkup | None,
 ) -> bool:
     """Apply quick values to pending entry or create a new one."""
@@ -404,9 +384,7 @@ async def apply_pending_entry(
             pending_entry["carbs_g"] = XE_GRAMS * quick["xe"]
         elif carbs_g is not None:
             if carbs_g < 0:
-                await message.reply_text(
-                    "Количество углеводов не может быть отрицательным."
-                )
+                await message.reply_text("Количество углеводов не может быть отрицательным.")
                 return True
             pending_entry["carbs_g"] = carbs_g
         if quick["dose"] is not None:
@@ -541,13 +519,9 @@ async def parse_via_gpt(
         try:
             hh, mm = map(int, time_obj.split(":"))
             today = datetime.datetime.now(datetime.timezone.utc).date()
-            event_dt = datetime.datetime.combine(
-                today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc
-            )
+            event_dt = datetime.datetime.combine(today, datetime.time(hh, mm), tzinfo=datetime.timezone.utc)
         except (ValueError, TypeError):
-            await message.reply_text(
-                "⏰ Неверный формат времени. Использую текущее время."
-            )
+            await message.reply_text("⏰ Неверный формат времени. Использую текущее время.")
             event_dt = datetime.datetime.now(datetime.timezone.utc)
     else:
         event_dt = datetime.datetime.now(datetime.timezone.utc)
@@ -589,9 +563,7 @@ async def finalize_entry(
     dose_part = f"Инсулин: {dose_val}\u202fед" if dose_val is not None else ""
     sugar_part = f"Сахар: {sugar_val}\u202fммоль/л" if sugar_val is not None else ""
     lines = "  \n- ".join(filter(None, [xe_part or carb_part, dose_part, sugar_part]))
-    reply = (
-        f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
-    )
+    reply = f"💉 Расчёт завершён:\n\n{date_str}  \n- {lines}\n\nСохранить это в дневник?"
     await message.reply_text(text=reply, reply_markup=confirm_keyboard())
 
 
@@ -601,9 +573,7 @@ async def freeform_handler(
     *,
     SessionLocal: sessionmaker[Session] | None = None,
     commit: Callable[[Session], None] | None = None,
-    check_alert: (
-        Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]] | None
-    ) = None,
+    check_alert: (Callable[[Update, ContextTypes.DEFAULT_TYPE, float], Awaitable[object]] | None) = None,
     menu_keyboard_markup: ReplyKeyboardMarkup | None = None,
     smart_input: Callable[[str], dict[str, float | None]] = smart_input,
     parse_command: Callable[[str], Awaitable[dict[str, object] | None]] = parse_command,
@@ -729,9 +699,7 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_data = cast(dict[str, object], context.user_data)
     user_text = message.text
 
-    history = cast(list[str], user_data.get(assistant_state.HISTORY_KEY, []))[
-        -assistant_state.ASSISTANT_MAX_TURNS :
-    ]
+    history = cast(list[str], user_data.get(assistant_state.HISTORY_KEY, []))[-assistant_state.ASSISTANT_MAX_TURNS :]
     messages: list[dict[str, str]] = []
     summary = cast(str | None, user_data.get(assistant_state.SUMMARY_KEY))
     if summary:
@@ -762,16 +730,14 @@ async def chat_with_gpt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.exception("GPT request timed out: %s", exc)
         reply = "⚠️ Не удалось получить ответ. Попробуйте позже."
 
+    if not user_data.get(MODE_DISCLAIMED_KEY):
+        reply = f"{prompts.disclaimer()}\n\n{reply}"
+        user_data[MODE_DISCLAIMED_KEY] = True
+
     await message.reply_text(reply)
-    summarized = assistant_state.add_turn(
-        user_data, f"user: {user_text}\nassistant: {reply}"
-    )
+    summarized = assistant_state.add_turn(user_data, f"user: {user_text}\nassistant: {reply}")
     if user is not None:
-        summary = (
-            cast(str | None, user_data.get(assistant_state.SUMMARY_KEY))
-            if summarized
-            else None
-        )
+        summary = cast(str | None, user_data.get(assistant_state.SUMMARY_KEY)) if summarized else None
         await memory_service.record_turn(user.id, summary_text=summary)
 
 
