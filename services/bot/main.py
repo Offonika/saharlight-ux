@@ -3,6 +3,7 @@
 
 import os
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
 
 os.environ.setdefault(
     "MPLCONFIGDIR",
@@ -16,8 +17,6 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, TypeAlias, cast
 from zoneinfo import ZoneInfo
 
-import redis.asyncio as redis
-
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
 from telegram.error import NetworkError, RetryAfter
@@ -29,6 +28,7 @@ from telegram.ext import (
     PicklePersistence,
 )
 
+import config
 from services.api.app.billing.jobs import schedule_subscription_expiration
 from services.api.app.config import settings
 from services.api.app.diabetes.handlers.registration import register_handlers
@@ -45,6 +45,10 @@ else:
 
 logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
+
+redis: ModuleType | SimpleNamespace = SimpleNamespace(
+    Redis=SimpleNamespace(from_url=lambda *a, **k: None)
+)
 
 commands = [
     BotCommand("start", "🚀 Запустить бота"),
@@ -71,10 +75,25 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
+    global redis
+    if not isinstance(redis, ModuleType):
+        try:
+            import redis.asyncio as real_redis  # type: ignore[import-not-found]
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "Redis functionality requires the 'redis' package. Install it via 'pip install redis'."
+            ) from exc
+        patched_from_url = getattr(redis.Redis, "from_url", None)
+        if patched_from_url is not None:
+            real_redis.Redis.from_url = patched_from_url
+        redis = real_redis
+    assert isinstance(redis, ModuleType)
+
     redis_client: redis.Redis | None = None
     should_set = True
     try:
-        redis_client = cast(redis.Redis, redis.from_url(settings.redis_url))
+        redis_raw = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
+        redis_client = cast(redis.Redis, redis_raw)
         raw_ts = await redis_client.get("bot:commands_set_at")
         if raw_ts:
             last_set = datetime.fromisoformat(raw_ts.decode())
@@ -117,10 +136,14 @@ async def post_init(
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.exception("Exception while handling update %s", update, exc_info=context.error)
+    logger.exception(
+        "Exception while handling update %s", update, exc_info=context.error
+    )
 
 
-def build_persistence() -> PicklePersistence[dict[str, object], dict[str, object], dict[str, object]]:
+def build_persistence() -> (
+    PicklePersistence[dict[str, object], dict[str, object], dict[str, object]]
+):
     """Create PicklePersistence with configurable path.
 
     Path can be overridden via ``BOT_PERSISTENCE_PATH``. By default it is stored
@@ -135,10 +158,14 @@ def build_persistence() -> PicklePersistence[dict[str, object], dict[str, object
     state_dir.mkdir(parents=True, exist_ok=True)
     default_path = state_dir / "bot_persistence.pkl"
     persistence_path_str = os.environ.get("BOT_PERSISTENCE_PATH")
-    persistence_path = Path(persistence_path_str) if persistence_path_str else default_path
+    persistence_path = (
+        Path(persistence_path_str) if persistence_path_str else default_path
+    )
     persistence_path.parent.mkdir(parents=True, exist_ok=True)
     if not os.access(persistence_path.parent, os.W_OK):
-        raise RuntimeError(f"Persistence directory is not writable: {persistence_path.parent}")
+        raise RuntimeError(
+            f"Persistence directory is not writable: {persistence_path.parent}"
+        )
     return PicklePersistence(str(persistence_path), single_file=True)
 
 
@@ -146,7 +173,9 @@ def main() -> None:  # pragma: no cover
     level = settings.log_level
     if isinstance(level, str):  # pragma: no cover - runtime config
         level = getattr(logging, level.upper(), logging.INFO)
-    logging.basicConfig(level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     logger.info("=== Bot started ===")
 
     # применяем воркараунд к PTB JobQueue.stop
@@ -159,12 +188,17 @@ def main() -> None:  # pragma: no cover
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit("Database initialization failed. Please check your configuration and try again.")
+        sys.exit(
+            "Database initialization failed. Please check your configuration and try again."
+        )
 
-    BOT_TOKEN = TELEGRAM_TOKEN
-    if not BOT_TOKEN:
-        logger.error("BOT_TOKEN is not set. Please provide the environment variable.")
+    try:
+        config.validate_tokens(["TELEGRAM_TOKEN", "OPENAI_API_KEY"])
+    except RuntimeError as exc:
+        logger.error("Environment validation failed: %s", exc)
         sys.exit(1)
+
+    BOT_TOKEN = cast(str, TELEGRAM_TOKEN)
 
     # ---- Build application
     try:
@@ -182,7 +216,13 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         dict[str, object],
         DefaultJobQueue,
-    ] = Application.builder().token(BOT_TOKEN).persistence(persistence).post_init(post_init).build()
+    ] = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .persistence(persistence)
+        .post_init(post_init)
+        .build()
+    )
 
     application.add_handler(build_start_handler(), group=0)
     logger.info("✅ /start → WebApp CTA mode enabled")
@@ -218,7 +258,9 @@ def main() -> None:  # pragma: no cover
         if admin_id is None:
             logger.warning("Admin ID not configured; skipping test reminder")
             return
-        await context.bot.send_message(chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅")
+        await context.bot.send_message(
+            chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅"
+        )
 
     job_queue.run_once(test_job, when=timedelta(seconds=30), name="test_job")
     logger.info("🧪 Scheduled test_job in +30s")

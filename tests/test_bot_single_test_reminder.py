@@ -13,6 +13,8 @@ def test_single_test_reminder(monkeypatch: pytest.MonkeyPatch) -> None:
     """Bot starts with only one scheduled test job."""
 
     monkeypatch.setenv("DB_PASSWORD", "pwd")
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("TELEGRAM_TOKEN", "token")
 
     for mod in ["services.api.app.config", "services.bot.main"]:
         sys.modules.pop(mod, None)
