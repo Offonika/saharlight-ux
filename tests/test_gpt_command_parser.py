@@ -739,6 +739,25 @@ def test_extract_first_json_three_objects_in_row() -> None:
     }
 
 
+def test_extract_first_json_json_before_limit_in_long_text() -> None:
+    limit = gpt_command_parser.MAX_JSON_CHARS
+    json_part = '{"action":"add_entry","fields":{}}'
+    padding = "x" * (limit - len(json_part))
+    text = padding + json_part + "tail"
+    assert gpt_command_parser._extract_first_json(text) == {
+        "action": "add_entry",
+        "fields": {},
+    }
+
+
+def test_extract_first_json_returns_none_when_json_beyond_limit() -> None:
+    prefix = "x" * (gpt_command_parser.MAX_JSON_CHARS + 1)
+    text = prefix + '{"action":"add_entry","fields":{}}'
+    start = time.perf_counter()
+    assert gpt_command_parser._extract_first_json(text) is None
+    assert time.perf_counter() - start < 0.1
+
+
 @pytest.mark.asyncio
 async def test_parse_command_with_multiple_jsons(
     monkeypatch: pytest.MonkeyPatch,

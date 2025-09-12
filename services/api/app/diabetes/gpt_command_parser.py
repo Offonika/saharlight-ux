@@ -67,6 +67,8 @@ API_KEY_RE = re.compile(
 
 ACTIONS_REQUIRE_FIELDS: set[str] = {"add_entry", "update_entry"}
 
+MAX_JSON_CHARS = 10_000
+
 
 def _sanitize_sensitive_data(text: str) -> str:
     """Mask potentially sensitive tokens in *text* before logging."""
@@ -78,10 +80,11 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
 
     The function scans *text* while skipping characters inside string literals
     and uses :func:`json.JSONDecoder.raw_decode` to parse potential JSON
-    segments.  After decoding each segment, it searches recursively for the
+    segments. After decoding each segment, it searches recursively for the
     first dictionary, returning it even when the JSON is wrapped in arrays or
-    nested inside other structures.  If no dictionary is found, ``None`` is
-    returned.
+    nested inside other structures. At most ``MAX_JSON_CHARS`` characters are
+    inspected; if the limit is exceeded before a dictionary is found, ``None``
+    is returned.
     """
 
     decoder = json.JSONDecoder()
@@ -91,7 +94,7 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
     escape = False
     quote = ""
 
-    while i < length:
+    while i < length and i < MAX_JSON_CHARS:
         ch = text[i]
         if in_str:
             if escape:
