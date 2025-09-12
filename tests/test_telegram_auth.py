@@ -107,8 +107,10 @@ def test_require_tg_user_invalid_id_type(
 
 
 def test_require_tg_user_missing() -> None:
-    with pytest.raises(HTTPException):
+    with pytest.raises(HTTPException) as exc:
         require_tg_user(None)
+    assert exc.value.status_code == 401
+    assert exc.value.detail == "missing init data"
 
 
 def test_require_tg_user_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
