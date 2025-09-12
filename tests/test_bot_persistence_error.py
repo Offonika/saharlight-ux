@@ -10,6 +10,8 @@ def test_main_logs_persistence_error(
     monkeypatch.setattr(bot.settings, "telegram_token", "token")
     monkeypatch.setattr(bot, "TELEGRAM_TOKEN", "token")
     monkeypatch.setattr(bot, "init_db", lambda: None)
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("TELEGRAM_TOKEN", "token")
 
     def faulty_build_persistence() -> object:
         raise RuntimeError("boom")
