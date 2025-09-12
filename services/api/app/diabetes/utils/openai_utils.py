@@ -45,7 +45,7 @@ def _build_http_client(
         with _async_http_client_lock:
             async_client = _async_http_client.get(proxy)
             if async_client is None:
-                async_client = httpx.AsyncClient(proxies=proxy)
+                async_client = httpx.AsyncClient(proxy=proxy)
                 _async_http_client[proxy] = async_client
             return async_client
 
@@ -53,7 +53,7 @@ def _build_http_client(
     with _http_client_lock:
         sync_client = _http_client.get(proxy)
         if sync_client is None:
-            sync_client = httpx.Client(proxies=proxy)
+            sync_client = httpx.Client(proxy=proxy)
             _http_client[proxy] = sync_client
         return sync_client
 
@@ -100,14 +100,20 @@ def get_async_openai_client() -> AsyncOpenAI:
 async def dispose_http_client() -> None:
     """Close and reset the HTTP client used by OpenAI."""
     global _http_client, _async_http_client
+
+    # Gather and clear synchronous clients under lock, then close outside the lock
     with _http_client_lock:
-        for sync_client in _http_client.values():
-            sync_client.close()
+        sync_clients = list(_http_client.values())
         _http_client.clear()
+    for sync_client in sync_clients:
+        sync_client.close()
+
+    # Gather and clear asynchronous clients under lock, then close outside the lock
     with _async_http_client_lock:
-        for async_client in _async_http_client.values():
-            await async_client.aclose()
+        async_clients = list(_async_http_client.values())
         _async_http_client.clear()
+    for async_client in async_clients:
+        await async_client.aclose()
 
 
 @asynccontextmanager
