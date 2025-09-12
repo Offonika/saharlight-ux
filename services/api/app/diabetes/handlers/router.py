@@ -1,29 +1,33 @@
 from __future__ import annotations
 
 import logging
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ForceReply,
-    Message,
-    CallbackQuery,
-)
-from telegram.ext import ContextTypes
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Awaitable, Callable, cast
 
-from services.api.app.diabetes.services.db import Entry, SessionLocal
-from services.api.app.ui.keyboard import build_main_keyboard
+from telegram import (
+    CallbackQuery,
+    ForceReply,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+    Update,
+)
+from telegram.ext import ContextTypes
 
+from services.api.app.diabetes.services.db import (
+    Entry,
+    Profile,
+    SessionLocal,
+    User,
+)
 from services.api.app.diabetes.services.repository import CommitError, commit
+from services.api.app.ui.keyboard import build_main_keyboard
 from . import EntryData, UserData
 
 logger = logging.getLogger(__name__)
 
 
-Handler = Callable[
-    [Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]
-]
+Handler = Callable[[Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]]
 
 
 async def handle_confirm_entry(
@@ -48,6 +52,7 @@ async def handle_confirm_entry(
         try:
             commit(session)
         except CommitError:
+            logger.exception("Failed to commit entry", exc_info=True)
             user_data["pending_entry"] = entry_data
             await query.edit_message_text("⚠️ Не удалось сохранить запись.")
             return
@@ -67,9 +72,7 @@ async def handle_confirm_entry(
         reminder_handlers.schedule_after_meal(user.id, job_queue)
 
 
-async def handle_edit_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
-) -> None:
+async def handle_edit_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str) -> None:
     """Prompt user to resend data to update the pending entry."""
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -88,9 +91,7 @@ async def handle_edit_entry(
     )
 
 
-async def handle_cancel_entry(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str
-) -> None:
+async def handle_cancel_entry(update: Update, context: ContextTypes.DEFAULT_TYPE, query: CallbackQuery, _: str) -> None:
     """Discard pending entry and show main menu keyboard."""
     user_data_raw = context.user_data
     if user_data_raw is None:
@@ -101,9 +102,7 @@ async def handle_cancel_entry(
     message = query.message
     if not isinstance(message, Message):
         return
-    await message.reply_text(
-        "📋 Выберите действие:", reply_markup=build_main_keyboard()
-    )
+    await message.reply_text("📋 Выберите действие:", reply_markup=build_main_keyboard())
 
 
 async def handle_edit_or_delete(
@@ -130,15 +129,14 @@ async def handle_edit_or_delete(
         if user is None:
             return
         if existing_entry.telegram_id != user.id:
-            await query.edit_message_text(
-                "⚠️ Эта запись принадлежит другому пользователю."
-            )
+            await query.edit_message_text("⚠️ Эта запись принадлежит другому пользователю.")
             return
         if action == "del":
             session.delete(existing_entry)
             try:
                 commit(session)
             except CommitError:
+                logger.exception("Failed to commit entry", exc_info=True)
                 await query.edit_message_text("⚠️ Не удалось удалить запись.")
                 return
             await query.edit_message_text("❌ Запись удалена.")
@@ -159,11 +157,7 @@ async def handle_edit_or_delete(
     }
     keyboard = InlineKeyboardMarkup(
         [
-            [
-                InlineKeyboardButton(
-                    "сахар", callback_data=f"edit_field:{entry_id}:sugar"
-                )
-            ],
+            [InlineKeyboardButton("сахар", callback_data=f"edit_field:{entry_id}:sugar")],
             [InlineKeyboardButton("xe", callback_data=f"edit_field:{entry_id}:xe")],
             [InlineKeyboardButton("dose", callback_data=f"edit_field:{entry_id}:dose")],
         ]
@@ -203,14 +197,43 @@ async def handle_edit_field(
     await message.reply_text(prompt, reply_markup=ForceReply(selective=True))
 
 
-async def profile_timezone_stub(
+async def handle_profile_timezone(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     query: CallbackQuery,
-    _: str,
+    data: str,
 ) -> None:
-    """Placeholder handler for profile timezone callbacks."""
-    return None
+    """Persist timezone from callback data and confirm to the user."""
+    try:
+        _, tz = data.split(":", 1)
+    except ValueError:
+        await query.edit_message_text("Некорректный часовой пояс.")
+        return
+    try:
+        ZoneInfo(tz)
+    except ZoneInfoNotFoundError:
+        await query.edit_message_text("Некорректный часовой пояс.")
+        return
+    user = update.effective_user
+    if user is None:
+        return
+    with SessionLocal() as session:
+        db_user = session.get(User, user.id)
+        if db_user is None:
+            db_user = User(telegram_id=user.id, thread_id="api")
+            session.add(db_user)
+        profile = session.get(Profile, user.id)
+        if profile is None:
+            profile = Profile(telegram_id=user.id)
+            session.add(profile)
+        profile.timezone = tz
+        profile.timezone_auto = False
+        try:
+            commit(session)
+        except CommitError:
+            await query.edit_message_text("⚠️ Не удалось обновить часовой пояс.")
+            return
+    await query.edit_message_text("✅ Часовой пояс обновлён.")
 
 
 callback_handlers: dict[str, Handler] = {
@@ -220,7 +243,7 @@ callback_handlers: dict[str, Handler] = {
     "edit_field:": handle_edit_field,
     "edit:": handle_edit_or_delete,
     "del:": handle_edit_or_delete,
-    "profile_timezone": profile_timezone_stub,
+    "profile_timezone:": handle_profile_timezone,
 }
 
 
