@@ -112,6 +112,38 @@ async def test_get_coords_and_link_custom_source(
 
 
 @pytest.mark.asyncio
+async def test_get_coords_and_link_env_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        calls.append(url)
+
+        class Resp:
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
+
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "1,2"}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+    monkeypatch.delenv("GEO_DATA_URL", raising=False)
+
+    await utils.get_coords_and_link()
+    assert calls[-1] == "https://ipinfo.io/json"
+
+    monkeypatch.setenv("GEO_DATA_URL", "http://ipinfo.io/env")
+    await utils.get_coords_and_link()
+    assert calls[-1] == "http://ipinfo.io/env"
+
+
+@pytest.mark.asyncio
 async def test_get_coords_and_link_invalid_scheme(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
