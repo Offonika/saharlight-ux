@@ -18,7 +18,7 @@ from services.api.app.config import Settings
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.utils.ui import menu_keyboard
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -58,9 +58,7 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = cast(
         Update,
-        SimpleNamespace(
-            message=message, effective_message=message, effective_user=None
-        ),
+        SimpleNamespace(message=message, effective_message=message, effective_user=None),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -69,7 +67,7 @@ async def test_learn_command_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
 
     await handlers.learn_command(update, context)
 
-    assert message.replies == [f"🚫 {LEARN_BUTTON_TEXT} недоступен."]
+    assert message.replies == [f"🚫 {ASSISTANT_BUTTON_TEXT} недоступен."]
 
 
 @pytest.mark.asyncio
@@ -123,9 +121,7 @@ async def test_learn_command_no_lessons(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 @pytest.mark.asyncio
-async def test_learn_command_lists_lessons(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_learn_command_lists_lessons(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """After loading fixtures /learn should show at least one button."""
 
     sample = [
@@ -174,7 +170,7 @@ async def test_learn_command_lists_lessons(
 
     await handlers.learn_command(update, context)
 
-    assert message.replies[0].startswith(f"{LEARN_BUTTON_TEXT} активирован.")
+    assert message.replies[0].startswith(f"{ASSISTANT_BUTTON_TEXT} активирован.")
     keyboard = message.kwargs[0].get("reply_markup")
     assert keyboard is not None
     assert keyboard.keyboard
@@ -185,9 +181,7 @@ async def test_cmd_menu_shows_keyboard() -> None:
     message = DummyMessage()
     update = cast(
         Update,
-        SimpleNamespace(
-            message=message, effective_message=message, effective_user=None
-        ),
+        SimpleNamespace(message=message, effective_message=message, effective_user=None),
     )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -200,13 +194,9 @@ async def test_cmd_menu_shows_keyboard() -> None:
     keyboard = message.kwargs[0].get("reply_markup")
     assert keyboard is not None
     expected_layout = list(menu_keyboard().keyboard)
-    expected_layout.append((KeyboardButton(LEARN_BUTTON_TEXT),))
+    expected_layout.append((KeyboardButton(ASSISTANT_BUTTON_TEXT),))
     assert list(keyboard.keyboard) == expected_layout
-    assert not any(
-        button.text == registration.OLD_LEARN_BUTTON_TEXT
-        for row in keyboard.keyboard
-        for button in row
-    )
+    assert not any(button.text == registration.OLD_ASSISTANT_BUTTON_TEXT for row in keyboard.keyboard for button in row)
 
 
 @pytest.mark.asyncio
@@ -232,7 +222,5 @@ async def test_on_learn_button_calls_learn(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_learn_button_texts_match_pattern() -> None:
-    assert registration.LEARN_BUTTON_PATTERN.fullmatch(LEARN_BUTTON_TEXT)
-    assert registration.LEARN_BUTTON_PATTERN.fullmatch(
-        registration.OLD_LEARN_BUTTON_TEXT
-    )
+    assert registration.ASSISTANT_BUTTON_PATTERN.fullmatch(ASSISTANT_BUTTON_TEXT)
+    assert registration.ASSISTANT_BUTTON_PATTERN.fullmatch(registration.OLD_ASSISTANT_BUTTON_TEXT)

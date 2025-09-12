@@ -11,7 +11,7 @@ from services.api.app.config import settings
 from services.api.app.diabetes import dynamic_tutor, learning_handlers
 from services.api.app.diabetes.prompts import disclaimer
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan
 
 
@@ -22,13 +22,9 @@ class DummyMessage:
         self.replies: list[str] = []
         self.markups: list[InlineKeyboardMarkup | None] = []
 
-    async def reply_text(
-        self, text: str, **kwargs: Any
-    ) -> None:  # pragma: no cover - helper
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
         self.replies.append(text)
-        self.markups.append(
-            cast(InlineKeyboardMarkup | None, kwargs.get("reply_markup"))
-        )
+        self.markups.append(cast(InlineKeyboardMarkup | None, kwargs.get("reply_markup")))
 
 
 class DummyCallback:
@@ -100,12 +96,8 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
 
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
-    )
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
     monkeypatch.setattr(learning_handlers, "safe_add_lesson_log", fake_add_log)
 
     msg = DummyMessage()
@@ -138,9 +130,7 @@ async def test_learn_command_and_callback(monkeypatch: pytest.MonkeyPatch) -> No
 async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_check_user_answer(
-        profile: object, topic: str, answer: str, last: str
-    ) -> tuple[bool, str]:
+    async def fake_check_user_answer(profile: object, topic: str, answer: str, last: str) -> tuple[bool, str]:
         return True, "feedback"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
@@ -172,12 +162,8 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
             return f"{disclaimer()}\n\n{text}", False
         return text, False
 
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
-    )
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
 
     msg = DummyMessage()
     update = make_update(message=msg)
@@ -265,7 +251,7 @@ async def test_exit_command_clears_state(
     context = make_context(user_data=user_data)
 
     await learning_handlers.exit_command(update, context)
-    assert msg.replies == [f"Сессия {LEARN_BUTTON_TEXT} завершена."]
+    assert msg.replies == [f"Сессия {ASSISTANT_BUTTON_TEXT} завершена."]
     assert isinstance(msg.markups[0], ReplyKeyboardMarkup)
     assert get_state(user_data) is None
 
@@ -281,9 +267,7 @@ async def test_learn_command_autostarts_when_topics_hidden(
         return True
 
     monkeypatch.setattr(learning_handlers, "ensure_overrides", fake_ensure_overrides)
-    monkeypatch.setattr(
-        learning_handlers, "choose_initial_topic", lambda _: ("slug", "t")
-    )
+    monkeypatch.setattr(learning_handlers, "choose_initial_topic", lambda _: ("slug", "t"))
 
     progress = SimpleNamespace(lesson_id=1)
 
@@ -303,12 +287,8 @@ async def test_learn_command_autostarts_when_topics_hidden(
         return "first", False
 
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
-    )
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -351,21 +331,15 @@ async def test_lesson_answer_ignores_busy(monkeypatch: pytest.MonkeyPatch) -> No
 async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def slow_check_user_answer(
-        profile: object, topic: str, answer: str, last: str
-    ) -> tuple[bool, str]:
+    async def slow_check_user_answer(profile: object, topic: str, answer: str, last: str) -> tuple[bool, str]:
         await asyncio.sleep(0)
         return True, "fb"
 
-    async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
-    ) -> str:
+    async def fake_generate_step_text(profile: object, topic: str, step_idx: int, prev: object) -> str:
         return "next"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", slow_check_user_answer)
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -383,9 +357,7 @@ async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> No
     update1 = make_update(message=msg1)
     context1 = make_context(user_data=user_data)
 
-    task = asyncio.create_task(
-        learning_handlers.lesson_answer_handler(update1, context1)
-    )
+    task = asyncio.create_task(learning_handlers.lesson_answer_handler(update1, context1))
     await asyncio.sleep(0)
 
     msg2 = DummyMessage("ans")
@@ -404,18 +376,14 @@ async def test_lesson_answer_handler_error_keeps_state(
 ) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_check_user_answer(
-        *args: object, **kwargs: object
-    ) -> tuple[bool, str]:
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
         return False, dynamic_tutor.BUSY_MESSAGE
 
     async def fail_generate_step_text(*args: object, **kwargs: object) -> str:
         raise AssertionError("should not be called")
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fail_generate_step_text
-    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fail_generate_step_text)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -452,9 +420,7 @@ async def test_lesson_answer_handler_add_log_failure(
 
     calls: list[tuple[object, ...]] = []
 
-    async def fake_check_user_answer(
-        *args: object, **kwargs: object
-    ) -> tuple[bool, str]:
+    async def fake_check_user_answer(*args: object, **kwargs: object) -> tuple[bool, str]:
         calls.append(args)
         return True, "feedback"
 
@@ -464,9 +430,7 @@ async def test_lesson_answer_handler_add_log_failure(
     async def fake_generate_step_text(*_a: object, **_k: object) -> str:
         return "step2"
 
-    monkeypatch.setattr(
-        learning_handlers, "generate_step_text", fake_generate_step_text
-    )
+    monkeypatch.setattr(learning_handlers, "generate_step_text", fake_generate_step_text)
 
     async def fake_next_step(
         user_id: int,
@@ -476,9 +440,7 @@ async def test_lesson_answer_handler_add_log_failure(
     ) -> tuple[str, bool]:
         return "step2", False
 
-    monkeypatch.setattr(
-        learning_handlers.curriculum_engine, "next_step", fake_next_step
-    )
+    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
     monkeypatch.setattr(learning_handlers, "format_reply", lambda t: t)
     monkeypatch.setattr(learning_handlers, "disclaimer", lambda: "")
 

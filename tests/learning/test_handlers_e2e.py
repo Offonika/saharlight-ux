@@ -17,7 +17,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import registration
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 
 
 class DummyBot(Bot):
@@ -101,11 +101,7 @@ async def test_keyboard_persistence(monkeypatch: pytest.MonkeyPatch) -> None:
 
     first_markup = bot.markups[0]
     assert isinstance(first_markup, ReplyKeyboardMarkup)
-    assert any(
-        LEARN_BUTTON_TEXT == button.text
-        for row in first_markup.keyboard
-        for button in row
-    )
+    assert any(ASSISTANT_BUTTON_TEXT == button.text for row in first_markup.keyboard for button in row)
     assert isinstance(bot.markups[-1], ReplyKeyboardMarkup)
 
     await app.shutdown()
@@ -125,7 +121,7 @@ async def test_old_learn_button_triggers_handler(
 
     app.add_handler(
         MessageHandler(
-            filters.TEXT & filters.Regex(registration.LEARN_BUTTON_PATTERN),
+            filters.TEXT & filters.Regex(registration.ASSISTANT_BUTTON_PATTERN),
             learning_handlers.learn_command,
         )
     )
@@ -138,7 +134,7 @@ async def test_old_learn_button_triggers_handler(
         date=datetime.now(),
         chat=chat,
         from_user=user,
-        text=registration.OLD_LEARN_BUTTON_TEXT,
+        text=registration.OLD_ASSISTANT_BUTTON_TEXT,
     )
     msg._bot = bot
     await app.process_update(Update(update_id=1, message=msg))
@@ -162,7 +158,7 @@ async def test_new_learn_button_triggers_handler(
 
     app.add_handler(
         MessageHandler(
-            filters.TEXT & filters.Regex(registration.LEARN_BUTTON_PATTERN),
+            filters.TEXT & filters.Regex(registration.ASSISTANT_BUTTON_PATTERN),
             learning_handlers.learn_command,
         )
     )
@@ -175,7 +171,7 @@ async def test_new_learn_button_triggers_handler(
         date=datetime.now(),
         chat=chat,
         from_user=user,
-        text=LEARN_BUTTON_TEXT,
+        text=ASSISTANT_BUTTON_TEXT,
     )
     msg._bot = bot
     await app.process_update(Update(update_id=1, message=msg))

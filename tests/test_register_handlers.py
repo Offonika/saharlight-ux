@@ -102,7 +102,14 @@ def test_register_handlers_attaches_expected_handlers(
     )
     assert any(
         isinstance(h, MessageHandler)
-        and h.callback is dynamic_learning_handlers.learn_command
+        and h.callback is assistant_menu.show_menu
+        for h in handlers
+    )
+    assert all(
+        not (
+            isinstance(h, MessageHandler)
+            and h.callback is dynamic_learning_handlers.learn_command
+        )
         for h in handlers
     )
     assert any(
