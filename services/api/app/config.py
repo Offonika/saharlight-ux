@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     db_read_role: Optional[str] = Field(default=None, alias="DB_READ_ROLE")
     db_write_role: Optional[str] = Field(default=None, alias="DB_WRITE_ROLE")
 
+    # Redis configuration
+    redis_url: str = Field(default="redis://localhost:6379/0", alias="REDIS_URL")
+
     # Logging and runtime
     log_level: int = Field(default=logging.INFO, alias="LOG_LEVEL")
     uvicorn_workers: int = Field(default=1, alias="UVICORN_WORKERS")
