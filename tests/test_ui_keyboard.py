@@ -1,9 +1,10 @@
 import importlib
+from types import ModuleType
 
 import pytest
 
 
-def _reload_keyboard():
+def _reload_keyboard() -> ModuleType:
     import services.api.app.ui.keyboard as keyboard
 
     return importlib.reload(keyboard)
