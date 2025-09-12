@@ -5,6 +5,7 @@ import datetime
 import html
 import io
 import logging
+from types import MappingProxyType
 from typing import cast
 
 from openai import OpenAIError
@@ -39,22 +40,32 @@ RUN_RETRIEVE_TIMEOUT = 10  # seconds
 END = ConversationHandler.END
 
 
-def _clear_waiting_gpt(user_data: UserData) -> None:
+def _get_mutable_user_data(
+    context: ContextTypes.DEFAULT_TYPE,
+) -> UserData:
+    cached = getattr(context, "_user_data", None)
+    if cached is not None:
+        return cast(UserData, cached)
+    raw = context.user_data or {}
+    if isinstance(raw, MappingProxyType):
+        raw = dict(raw)
+    context._user_data = raw
+    return cast(UserData, raw)
+
+
+def _clear_waiting_gpt(context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_data = _get_mutable_user_data(context)
     user_data.pop(WAITING_GPT_FLAG, None)
     user_data.pop(WAITING_GPT_TIMESTAMP, None)
 
 
-async def _delete_status_message(
-    status_message: Message | None, tag: str
-) -> None:
+async def _delete_status_message(status_message: Message | None, tag: str) -> None:
     if not status_message or not hasattr(status_message, "delete"):
         return
     try:
         await status_message.delete()
     except TelegramError as exc:
-        logger.warning(
-            "[PHOTO][%s] Failed to delete status message: %s", tag, exc
-        )
+        logger.warning("[PHOTO][%s] Failed to delete status message: %s", tag, exc)
     except OSError as exc:
         logger.exception("[PHOTO][%s] OS error: %s", tag, exc)
         raise
@@ -76,10 +87,9 @@ async def photo_handler(
     file_bytes: bytes | None = None,
 ) -> int:
     """Process food photos and trigger nutrition analysis."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    if context.user_data is None:
         return END
-    user_data = cast(UserData, user_data_raw)
+    user_data = _get_mutable_user_data(context)
     message = update.message
     if message is None:
         query = update.callback_query
@@ -99,7 +109,7 @@ async def photo_handler(
             isinstance(flag_ts, datetime.datetime)
             and now - flag_ts > WAITING_GPT_TIMEOUT
         ):
-            _clear_waiting_gpt(user_data)
+            _clear_waiting_gpt(context)
         else:
             await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
             return END
@@ -118,11 +128,15 @@ async def photo_handler(
                 file_bytes = bytes(await file.download_as_bytearray())
             except OSError as exc:
                 logger.exception("[PHOTO] Failed to download photo: %s", exc)
-                await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
+                await message.reply_text(
+                    "⚠️ Не удалось скачать фото. Попробуйте ещё раз."
+                )
                 return END
             except TelegramError as exc:
                 logger.exception("[PHOTO] Failed to download photo: %s", exc)
-                await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
+                await message.reply_text(
+                    "⚠️ Не удалось скачать фото. Попробуйте ещё раз."
+                )
                 return END
 
         logger.info("[PHOTO] Received photo from user %s", user_id)
@@ -374,14 +388,14 @@ async def photo_handler(
         await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
         return END
     finally:
-        _clear_waiting_gpt(user_data)
+        _clear_waiting_gpt(context)
 
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle images sent as documents."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    if context.user_data is None:
         return END
+    _get_mutable_user_data(context)
     message = update.message
     if message is None:
         return END
