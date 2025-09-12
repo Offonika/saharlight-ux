@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Mapping
 
 import httpx
@@ -14,6 +15,15 @@ from .services.gpt_client import create_learning_chat_completion
 logger = logging.getLogger(__name__)
 
 BUSY_MESSAGE = "сервер занят, попробуйте позже"
+MAX_FEEDBACK_LEN = 300
+
+
+def sanitize_feedback(text: str, max_len: int = MAX_FEEDBACK_LEN) -> str:
+    """Return *text* without questions and within ``max_len`` chars."""
+
+    sentences = [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if "?" not in s]
+    cleaned = " ".join(sentences[:2]).strip()
+    return cleaned[:max_len]
 
 
 async def _chat(task: LLMTask, system: str, user: str, *, max_tokens: int = 350) -> str:
@@ -38,7 +48,7 @@ async def generate_step_text(
 ) -> str:
     """Generate explanation text for a learning step."""
     try:
-        system = build_system_prompt(profile)
+        system = build_system_prompt(profile, LLMTask.EXPLAIN_STEP)
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
         return await _chat(LLMTask.EXPLAIN_STEP, system, user)
     except (OpenAIError, httpx.HTTPError, RuntimeError):
@@ -60,7 +70,7 @@ async def check_user_answer(
     LLM judged the answer as correct. The feedback message is returned as-is
     from the model.
     """
-    system = build_system_prompt(profile)
+    system = build_system_prompt(profile, LLMTask.QUIZ_CHECK)
     user = (
         f"Тема: {topic_slug}. Текст предыдущего шага:\n{last_step_text}\n\n"
         f"Ответ пользователя: «{user_answer}». Оцени кратко (верно/почти/неверно), "
@@ -74,6 +84,7 @@ async def check_user_answer(
             extra={"topic": topic_slug, "answer": user_answer},
         )
         return False, BUSY_MESSAGE
+    feedback = sanitize_feedback(feedback)
     if not feedback.strip():
         logger.warning(
             "empty feedback",
@@ -86,4 +97,10 @@ async def check_user_answer(
     return correct, feedback
 
 
-__all__ = ["generate_step_text", "check_user_answer", "BUSY_MESSAGE"]
+__all__ = [
+    "generate_step_text",
+    "check_user_answer",
+    "sanitize_feedback",
+    "BUSY_MESSAGE",
+    "MAX_FEEDBACK_LEN",
+]

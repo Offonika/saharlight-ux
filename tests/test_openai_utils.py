@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, call
 
 import httpx
 import pytest
@@ -281,7 +281,7 @@ def test_dispose_http_client_sync_creates_event_loop(
 
     openai_utils._dispose_http_client_sync()
 
-    set_loop.assert_called_once_with(fake_loop)
+    set_loop.assert_has_calls([call(fake_loop), call(None)])
     fake_loop.run_until_complete.assert_called_once()
     fake_loop.close.assert_called_once()
 

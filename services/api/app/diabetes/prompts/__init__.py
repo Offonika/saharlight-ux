@@ -7,6 +7,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from textwrap import dedent
 
+from ..llm_router import LLMTask
+
 MAX_PROMPT_LEN = 1_500
 
 
@@ -54,7 +56,7 @@ def build_feedback(correct: bool, explanation: str) -> str:
     return prompt
 
 
-def build_system_prompt(p: Mapping[str, str | None]) -> str:
+def build_system_prompt(p: Mapping[str, str | None], task: LLMTask = LLMTask.EXPLAIN_STEP) -> str:
     """Build a system prompt tailored to the user *p* profile."""
 
     tone = {
@@ -63,19 +65,29 @@ def build_system_prompt(p: Mapping[str, str | None]) -> str:
         "60+": "очень простыми фразами, поддерживающе",
     }.get(p.get("age_group") or "", "ясно и просто")
     diabetes_type = p.get("diabetes_type") or "unknown"
-    prompt = dedent(
+    base = dedent(
         f"""
         Ты — персональный тьютор по диабету. Подстраивайся под пользователя.
         Профиль: тип диабета={diabetes_type},
         терапия={p.get("therapyType", "unknown")},
         уровень={p.get("learning_level", "novice")},
         углеводы={p.get("carbUnits", "XE")}. Тон: {tone}.
-        Пиши коротко (2–4 предложения). Каждый шаг заканчивай ОДНИМ
-        вопросом-проверкой.
-        Не назначай лечение/дозировки; при сомнениях — советуй обсудить
-        с врачом.
         """
     ).strip()
+    if task is LLMTask.QUIZ_CHECK:
+        extra = (
+            "Пиши коротко (1–2 предложения). Начинай ответ с вердикта "
+            "«верно», «почти» или «неверно». Не задавай вопросов. "
+            "Дай мягкий совет, что повторить. Не назначай лечение/дозировки; "
+            "при сомнениях — советуй обсудить с врачом."
+        )
+    else:
+        extra = (
+            "Пиши коротко (2–4 предложения). Каждый шаг заканчивай ОДНИМ "
+            "вопросом-проверкой. Не назначай лечение/дозировки; при сомнениях — "
+            "советуй обсудить с врачом."
+        )
+    prompt = f"{base} {extra}".strip()
     if diabetes_type == "unknown":
         prompt += " Тип диабета не определён — избегай тип-специфичных рекомендаций."
     return _trim(prompt)

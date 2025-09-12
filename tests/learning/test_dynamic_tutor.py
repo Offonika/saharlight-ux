@@ -60,3 +60,18 @@ async def test_cancellation_not_suppressed(monkeypatch: pytest.MonkeyPatch) -> N
         await dynamic_tutor.generate_step_text({}, "topic", 1, None)
     with pytest.raises(asyncio.CancelledError):
         await dynamic_tutor.check_user_answer({}, "topic", "42", "step")
+
+
+def test_sanitize_feedback_removes_questions() -> None:
+    feedback = "Верно. Что дальше? Повтори тему."
+    result = dynamic_tutor.sanitize_feedback(feedback)
+    assert "?" not in result
+    assert result == "Верно. Повтори тему."
+
+
+def test_sanitize_feedback_limits_sentences_and_length() -> None:
+    long = "x" * (dynamic_tutor.MAX_FEEDBACK_LEN + 50)
+    text = f"{long}. Вторая. Третья?"
+    result = dynamic_tutor.sanitize_feedback(text)
+    assert len(result) <= dynamic_tutor.MAX_FEEDBACK_LEN
+    assert result.count(".") <= 2
