@@ -13,6 +13,7 @@ from services.api.app.diabetes.prompts import (
     build_user_prompt_step,
     disclaimer,
 )
+from services.api.app.diabetes.llm_router import LLMTask
 
 
 def test_disclaimer_returns_warning() -> None:
@@ -92,3 +93,11 @@ def test_system_prompt_avoids_type_specific_mentions_when_unknown() -> None:
     assert "Тип диабета не определён" in prompt
     assert "T1" not in prompt
     assert "T2" not in prompt
+
+
+def test_build_system_prompt_quiz_check_instructions() -> None:
+    """QUIZ_CHECK task adds answer format instructions."""
+
+    prompt = build_system_prompt({}, task=LLMTask.QUIZ_CHECK)
+    assert "✅" in prompt and "⚠️" in prompt and "❌" in prompt
+    assert "Не задавай вопросов" in prompt

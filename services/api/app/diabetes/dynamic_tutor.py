@@ -20,11 +20,20 @@ BUSY_MESSAGE = "сервер занят, попробуйте позже"
 _TAGS_RE = re.compile(r"<[^>]+>")
 _SAFE_RE = re.compile(r"[^0-9A-Za-zА-Яа-яёЁ.,!?;:()\-\s✅⚠️❌]")
 
+_MAX_FEEDBACK_CHARS = 400
+_MAX_FEEDBACK_SENTENCES = 2
+
 
 def sanitize_feedback(text: str) -> str:
-    """Remove HTML tags and unsafe characters from LLM output."""
+    """Clean LLM feedback and enforce basic formatting rules."""
+
     cleaned = _TAGS_RE.sub("", text)
     cleaned = _SAFE_RE.sub(" ", cleaned)
+
+    sentences = re.split(r"(?<=[.!?])\s+", cleaned.strip())
+    sentences = [s.replace("?", "").strip() for s in sentences if s]
+    cleaned = " ".join(sentences[:_MAX_FEEDBACK_SENTENCES])
+    cleaned = cleaned[:_MAX_FEEDBACK_CHARS]
     return " ".join(cleaned.split())
 
 
