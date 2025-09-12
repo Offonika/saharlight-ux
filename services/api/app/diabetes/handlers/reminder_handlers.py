@@ -501,7 +501,8 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "Использование: /addreminder <type> <value>"  # noqa: RUF001
         )
         return
-    assert value is not None
+    if value is None:
+        raise ValueError("value must be provided")
     if rtype not in REMINDER_NAMES:
         await message.reply_text("Неизвестный тип напоминания.")
         return
