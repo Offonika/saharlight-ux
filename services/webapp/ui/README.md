@@ -96,7 +96,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 
 ## Testing
 
-> **Warning:** `pytest` is intended for backend tests and should be run from the project root or a backend subdirectory, for example:
+> **Warning:** `pytest` is intended for backend tests and should be run from the project root, for example:
 
 ```bash
 pytest tests/
