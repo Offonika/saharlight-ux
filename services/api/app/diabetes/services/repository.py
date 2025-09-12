@@ -37,15 +37,11 @@ def commit(session: Session) -> None:
 
 @contextmanager
 def transactional(session: Session) -> Iterator[Session]:
-    """Context manager that commits on success and rolls back on failure."""
+    """Context manager that commits on success and rolls back on SQL errors."""
     try:
         yield session
         session.commit()
     except SQLAlchemyError as exc:  # pragma: no cover - logging only
         session.rollback()
         logger.exception("DB transaction failed: %s", exc.__class__.__name__)
-        raise
-    except Exception:  # pragma: no cover - logging only
-        session.rollback()
-        logger.exception("Unexpected DB transaction error")
         raise
