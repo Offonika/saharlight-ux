@@ -139,6 +139,7 @@ async def handle_edit_or_delete(
             try:
                 commit(session)
             except CommitError:
+                logger.exception("Failed to delete entry")
                 await query.edit_message_text("⚠️ Не удалось удалить запись.")
                 return
             await query.edit_message_text("❌ Запись удалена.")

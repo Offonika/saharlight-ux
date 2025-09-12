@@ -187,6 +187,42 @@ async def test_callback_router_commit_failure(
 
 
 @pytest.mark.asyncio
+async def test_handle_edit_or_delete_delete_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
+
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    session.delete = MagicMock()
+    session.rollback = MagicMock()
+    existing_entry = MagicMock()
+    existing_entry.telegram_id = 1
+    session.get.return_value = existing_entry
+
+    monkeypatch.setattr(router, "SessionLocal", lambda: session)
+
+    def failing_commit(sess: Any) -> None:
+        sess.rollback()
+        raise router.CommitError
+
+    monkeypatch.setattr(router, "commit", failing_commit)
+
+    query = DummyQuery(DummyMessage(), "del:1")
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context(user_data={})
+
+    with caplog.at_level(logging.ERROR):
+        await router.handle_edit_or_delete(update, context, query, "del:1")
+
+    assert session.rollback.called
+    assert query.edited == ["⚠️ Не удалось удалить запись."]
+    assert "Failed to delete entry" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
