@@ -322,6 +322,7 @@ def register_handlers(
         MessageHandlerT(
             (filters.TEXT | filters.PHOTO | filters.Document.ALL) & ~filters.COMMAND,
             labs_handler,
+            block=False,  # чтобы фото продолжали обрабатываться
         )
     )
     app.add_handler(
