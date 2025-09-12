@@ -55,4 +55,22 @@ class LessonLog(Base):
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False)
 
 
-__all__ = ["AssistantMemory", "LessonLog"]
+class AssistantNote(Base):
+    """Free-form notes saved by the assistant for a user."""
+
+    __tablename__ = "assistant_notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("users.telegram_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=sa.func.now(), nullable=False
+    )
+
+
+__all__ = ["AssistantMemory", "LessonLog", "AssistantNote"]

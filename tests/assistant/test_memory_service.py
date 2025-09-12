@@ -106,3 +106,13 @@ async def test_cleanup_old_memory(setup_db: sessionmaker[Session]) -> None:
 
     assert await memory_service.get_memory(1) is None
     assert await memory_service.get_memory(2) is not None
+
+
+@pytest.mark.asyncio
+async def test_save_note(setup_db: sessionmaker[Session]) -> None:
+    note = await memory_service.save_note(1, "hello")
+    assert note.text == "hello"
+    with setup_db() as session:
+        stored = session.get(memory_service.AssistantNote, note.id)
+        assert stored is not None
+        assert stored.text == "hello"
