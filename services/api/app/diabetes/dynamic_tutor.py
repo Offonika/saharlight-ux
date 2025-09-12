@@ -38,7 +38,7 @@ async def generate_step_text(
 ) -> str:
     """Generate explanation text for a learning step."""
     try:
-        system = build_system_prompt(profile)
+        system = build_system_prompt(profile, task=LLMTask.EXPLAIN_STEP)
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
         return await _chat(LLMTask.EXPLAIN_STEP, system, user)
     except (OpenAIError, httpx.HTTPError, RuntimeError):
@@ -60,7 +60,7 @@ async def check_user_answer(
     LLM judged the answer as correct. The feedback message is returned as-is
     from the model.
     """
-    system = build_system_prompt(profile)
+    system = build_system_prompt(profile, task=LLMTask.QUIZ_CHECK)
     user = (
         f"Тема: {topic_slug}. Текст предыдущего шага:\n{last_step_text}\n\n"
         f"Ответ пользователя: «{user_answer}». Оцени кратко (верно/почти/неверно), "

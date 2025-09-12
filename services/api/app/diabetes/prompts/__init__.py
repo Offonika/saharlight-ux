@@ -7,6 +7,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from textwrap import dedent
 
+from ..llm_router import LLMTask
+
 MAX_PROMPT_LEN = 1_500
 
 
@@ -28,6 +30,11 @@ SYSTEM_TUTOR_RU = (
     "Сначала спрашивай, потом объясняй. "
     "Не давай советов по терапии. "
     f"Всегда добавляй предупреждение: '{disclaimer()}'"
+)
+
+QUIZ_CHECK_FORMAT_RU = (
+    "Ответ начинай с символа (✅/⚠️/❌: верно/почти/неверно). "
+    "Не задавай вопросов. 1–2 предложения."
 )
 
 
@@ -54,8 +61,14 @@ def build_feedback(correct: bool, explanation: str) -> str:
     return prompt
 
 
-def build_system_prompt(p: Mapping[str, str | None]) -> str:
-    """Build a system prompt tailored to the user *p* profile."""
+def build_system_prompt(
+    p: Mapping[str, str | None],
+    task: LLMTask | None = None,
+) -> str:
+    """Build a system prompt tailored to the user *p* profile.
+
+    Optionally extends the prompt for specific :class:`LLMTask` values.
+    """
 
     tone = {
         "teen": "простым языком, дружелюбно",
@@ -77,7 +90,11 @@ def build_system_prompt(p: Mapping[str, str | None]) -> str:
         """
     ).strip()
     if diabetes_type == "unknown":
-        prompt += " Тип диабета не определён — избегай тип-специфичных рекомендаций."
+        prompt += (
+            " Тип диабета не определён — избегай тип-специфичных рекомендаций."
+        )
+    if task == LLMTask.QUIZ_CHECK:
+        prompt += f" {QUIZ_CHECK_FORMAT_RU}"
     return _trim(prompt)
 
 
@@ -129,6 +146,7 @@ __all__ = [
     "MAX_PROMPT_LEN",
     "disclaimer",
     "SYSTEM_TUTOR_RU",
+    "QUIZ_CHECK_FORMAT_RU",
     "build_explain_step",
     "build_quiz_check",
     "build_feedback",
