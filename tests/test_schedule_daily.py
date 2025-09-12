@@ -15,6 +15,11 @@ async def dummy_cb(context: object) -> None:  # pragma: no cover - simple callba
     return None
 
 
+class AsyncCallable:
+    async def __call__(self, context: object) -> None:  # pragma: no cover - helper
+        return None
+
+
 class Job:
     def __init__(self, tz: object | None) -> None:
         self.tz = tz
@@ -200,6 +205,13 @@ def test_schedule_daily_requires_async_callback() -> None:
 
     with pytest.raises(TypeError):
         schedule_daily(jq, sync_cb, time=dt_time(1, 0))
+
+
+def test_schedule_daily_accepts_async_callable_object() -> None:
+    jq = QueueWithTimezone()
+    cb_obj = AsyncCallable()
+    schedule_daily(jq, cb_obj, time=dt_time(1, 0))
+    assert jq.args.callback is cb_obj
 
 
 @pytest.mark.parametrize("queue_cls", [QueueWithTimezone, QueueNoTimezone])
