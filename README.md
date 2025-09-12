@@ -69,6 +69,9 @@ scripts/run_bot.sh
 ```
 Скрипт подгружает `.env` и запускает `services.api.app.bot`.
 
+Бот использует Redis для кэширования команд BotFather; убедитесь, что сервис
+доступен и настроен через переменную `REDIS_URL`.
+
 ### Команды BotFather
 
 Зарегистрируйте дополнительные команды в BotFather:
@@ -155,6 +158,7 @@ curl -H 'Authorization: tg <init-data>' \
 - `WEBAPP_URL` — адрес WebApp для онбординга;
 - `API_URL` — базовый URL внешнего API; требует установленный пакет `diabetes_sdk`;
 - `INTERNAL_API_KEY` — ключ для внутренней аутентификации; при отсутствии нужно передавать `tg_init_data`;
+- `REDIS_URL` — адрес подключения к Redis для кеширования команд (по умолчанию `redis://localhost:6379/0`);
 - `OPENAI_API_KEY` — ключ OpenAI для распознавания фото;
 - `OPENAI_ASSISTANT_ID` — идентификатор ассистента для GPT;
 - `SUBSCRIPTION_URL` — страница оформления подписки в WebApp;

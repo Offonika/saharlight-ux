@@ -78,7 +78,8 @@ class TelegramPaymentsAdapter:
         """Notify backend about successful payment."""
 
         msg = update.message
-        assert msg is not None
+        if msg is None:
+            raise ValueError("update.message is required")
         payment = msg.successful_payment
         if payment is None:
             await msg.reply_text("⚠️ Платёж не найден")

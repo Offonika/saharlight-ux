@@ -106,7 +106,8 @@ def require_tg_user(
             init_data = authorization[3:]
         else:
             raise HTTPException(status_code=401, detail="missing init data")
-    assert init_data is not None
+    if init_data is None:
+        raise HTTPException(status_code=401, detail="missing init data")
     return get_tg_user(init_data)
 
 
