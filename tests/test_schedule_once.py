@@ -14,6 +14,11 @@ async def dummy_cb(context: object) -> None:  # pragma: no cover - simple callba
     return None
 
 
+class AsyncCallable:
+    async def __call__(self, context: object) -> None:  # pragma: no cover - helper
+        return None
+
+
 class Job:
     def __init__(self, tz: object | None) -> None:
         self.tz = tz
@@ -167,6 +172,13 @@ def test_schedule_once_requires_async_callback() -> None:
 
     with pytest.raises(TypeError):
         schedule_once(jq, sync_cb, when=timedelta(seconds=1))
+
+
+def test_schedule_once_accepts_async_callable_object() -> None:
+    jq = QueueWithTimezone()
+    cb_obj = AsyncCallable()
+    schedule_once(jq, cb_obj, when=timedelta(seconds=1))
+    assert jq.args.callback is cb_obj
 
 
 @pytest.mark.parametrize(

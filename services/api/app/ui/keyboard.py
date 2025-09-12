@@ -6,14 +6,14 @@ from services.api.app.assistant.assistant_menu import render_assistant_menu
 
 _settings = get_settings()
 _texts = render_assistant_menu(_settings.assistant_menu_emoji)
-LEARN_BUTTON_TEXT = _texts.assistant
+ASSISTANT_BUTTON_TEXT = _texts.assistant
 
 
 def build_main_keyboard() -> ReplyKeyboardMarkup:
     """Build main menu keyboard with extra assistant button."""
     menu = menu_keyboard()
     layout = [row[:] for row in menu.keyboard]
-    layout.append((KeyboardButton(LEARN_BUTTON_TEXT),))
+    layout.append((KeyboardButton(ASSISTANT_BUTTON_TEXT),))
     return ReplyKeyboardMarkup(
         keyboard=layout,
         resize_keyboard=True,
@@ -24,6 +24,6 @@ def build_main_keyboard() -> ReplyKeyboardMarkup:
 
 
 __all__ = [
-    "LEARN_BUTTON_TEXT",
+    "ASSISTANT_BUTTON_TEXT",
     "build_main_keyboard",
 ]

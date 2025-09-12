@@ -10,7 +10,7 @@ from telegram.ext import ContextTypes
 
 from .learning_handlers import learn_command, topics_command
 from .handlers.onboarding_handlers import reset_onboarding as _reset_onboarding
-from ..ui.keyboard import LEARN_BUTTON_TEXT
+from ..ui.keyboard import ASSISTANT_BUTTON_TEXT
 from .assistant_state import reset as _reset_assistant
 from .handlers.registration import MODE_DISCLAIMED_KEY
 from ..assistant.services.memory_service import clear_memory as _clear_memory
@@ -23,7 +23,7 @@ HELP_TEXT = "\n".join(
         "Доступные команды:",
         "/start - начать работу с ботом",
         "/help - краткая справка",
-        f"нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn - режим обучения",
+        f"нажмите кнопку {ASSISTANT_BUTTON_TEXT} или команду /learn - режим обучения",
         "/topics - список тем",
         "/reset_onboarding - сбросить мастер настройки",
         "/trial - Включить trial",
@@ -78,8 +78,12 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 )
         except asyncio.CancelledError:
             raise
-        except Exception:
-            logger.exception("Reset onboarding timeout task failed")
+        except (telegram.error.TelegramError, RuntimeError) as exc:
+            # Swallow known Telegram/runtime errors: they are logged to avoid double
+            # reporting and the task shouldn't fail because of them.
+            logger.exception("Reset onboarding timeout task failed: %s", exc)
+        except Exception as exc:
+            logger.exception("Reset onboarding timeout task failed: %s", exc)
             raise
 
     user_data["_onb_reset_confirm"] = True
@@ -112,7 +116,9 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         try:
             await context.bot.send_message(
                 chat_id=message.chat_id,
-                text=("Не удалось отправить предупреждение о сбросе. Попробуйте снова."),
+                text=(
+                    "Не удалось отправить предупреждение о сбросе. Попробуйте снова."
+                ),
             )
         except telegram.error.TelegramError as exc2:
             logger.exception(

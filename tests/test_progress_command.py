@@ -11,7 +11,7 @@ import services.api.app.diabetes.learning_handlers as handlers
 from services.api.app.config import settings
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -56,7 +56,7 @@ async def test_progress_command_no_progress(monkeypatch: pytest.MonkeyPatch) -> 
     await handlers.progress_command(update, context)
 
     assert message.replies == [
-        f"Вы ещё не начали обучение. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать."
+        f"Вы ещё не начали обучение. Нажмите кнопку {ASSISTANT_BUTTON_TEXT} или команду /learn, чтобы начать."
     ]
 
 

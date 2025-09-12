@@ -25,7 +25,7 @@ from services.api.app.diabetes.utils.ui import (
     SOS_BUTTON_TEXT,
     SUBSCRIPTION_BUTTON_TEXT,
 )
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 from services.api.app.diabetes.metrics import assistant_mode_total
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ BOTTOM_BUTTON_PATTERNS: Sequence[re.Pattern[str]] = (
     re.compile(re.escape(HELP_BUTTON_TEXT)),
     re.compile(re.escape(SOS_BUTTON_TEXT)),
     re.compile(re.escape(SUBSCRIPTION_BUTTON_TEXT)),
-    re.compile(re.escape(LEARN_BUTTON_TEXT)),
+    re.compile(re.escape(ASSISTANT_BUTTON_TEXT)),
 )
 
 
@@ -80,9 +80,7 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         raise ApplicationHandlerStop
     if mode == "visit":
         user_data[AWAITING_KIND] = "visit"
-        await message.reply_text(
-            "Чек-лист визита: измерения, вопросы врачу, назначения."
-        )
+        await message.reply_text("Чек-лист визита: измерения, вопросы врачу, назначения.")
         set_last_mode(user_data, None)
         raise ApplicationHandlerStop
 

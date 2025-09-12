@@ -23,7 +23,7 @@ from services.api.app.diabetes.handlers import learning_onboarding
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 from services.api.app.assistant.repositories import plans
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 
 
 class DummyMessage:
@@ -33,9 +33,7 @@ class DummyMessage:
         self.markups: list[Any] = []
         self.from_user = SimpleNamespace(id=0)
 
-    async def reply_text(
-        self, text: str, **kwargs: Any
-    ) -> None:  # pragma: no cover - helper
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
         self.replies.append(text)
         self.markups.append(kwargs.get("reply_markup"))
 
@@ -49,9 +47,7 @@ class DummyCallbackQuery:
         self.message = message
         self.answers: list[str | None] = []
 
-    async def answer(
-        self, text: str | None = None, **kwargs: Any
-    ) -> None:  # pragma: no cover - helper
+    async def answer(self, text: str | None = None, **kwargs: Any) -> None:  # pragma: no cover - helper
         self.answers.append(text)
 
 
@@ -67,9 +63,7 @@ def setup_db() -> tuple[sessionmaker[Session], Engine]:
 
 
 @pytest.mark.asyncio
-async def test_learning_onboarding_flow(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_learning_onboarding_flow(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
     monkeypatch.setattr(settings, "learning_content_mode", "static")
@@ -77,9 +71,7 @@ async def test_learning_onboarding_flow(
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
         return {}
 
-    monkeypatch.setattr(
-        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
-    )
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile)
 
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
@@ -115,9 +107,7 @@ async def test_learning_onboarding_flow(
         message3 = DummyMessage("новичок")
         update3 = cast(Update, SimpleNamespace(message=message3, effective_user=None))
         await learning_onboarding.onboarding_reply(update3, context)
-        assert any(
-            LEARN_BUTTON_TEXT in text or "Урок" in text for text in message3.replies
-        )
+        assert any(ASSISTANT_BUTTON_TEXT in text or "Урок" in text for text in message3.replies)
         assert context.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
             "learning_level": "novice",
@@ -126,14 +116,10 @@ async def test_learning_onboarding_flow(
         message5 = DummyMessage()
         update5 = cast(Update, SimpleNamespace(message=message5, effective_user=None))
         await learning_handlers.learn_command(update5, context)
-        assert any(
-            LEARN_BUTTON_TEXT in text or "Урок" in text for text in message5.replies
-        )
+        assert any(ASSISTANT_BUTTON_TEXT in text or "Урок" in text for text in message5.replies)
 
         message_reset = DummyMessage()
-        update_reset = cast(
-            Update, SimpleNamespace(message=message_reset, effective_user=None)
-        )
+        update_reset = cast(Update, SimpleNamespace(message=message_reset, effective_user=None))
         context.user_data["learn_profile_overrides"] = {"a": 1}
         context.user_data["learn_onboarding_stage"] = "stage"
         await learning_onboarding.learn_reset(update_reset, context)
@@ -149,9 +135,7 @@ async def test_learning_onboarding_flow(
 
 
 @pytest.mark.asyncio
-async def test_learning_onboarding_callback_flow(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+async def test_learning_onboarding_callback_flow(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
     monkeypatch.setattr(settings, "learning_command_model", "test-model")
     monkeypatch.setattr(settings, "learning_content_mode", "static")
@@ -159,9 +143,7 @@ async def test_learning_onboarding_callback_flow(
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
         return {}
 
-    monkeypatch.setattr(
-        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
-    )
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile)
 
     sample = [{"title": "Sample", "steps": ["s1"], "quiz": []}]
     path = tmp_path / "lessons.json"
@@ -205,9 +187,7 @@ async def test_learning_onboarding_callback_flow(
             SimpleNamespace(callback_query=q2, message=None, effective_user=None),
         )
         await learning_onboarding.onboarding_callback(upd_cb2, ctx)
-        assert any(
-            LEARN_BUTTON_TEXT in text or "Урок" in text for text in q2_msg.replies
-        )
+        assert any(ASSISTANT_BUTTON_TEXT in text or "Урок" in text for text in q2_msg.replies)
         assert ctx.user_data["learn_profile_overrides"] == {
             "age_group": "adult",
             "learning_level": "novice",
@@ -216,7 +196,7 @@ async def test_learning_onboarding_callback_flow(
         msg2 = DummyMessage()
         upd2 = cast(Update, SimpleNamespace(message=msg2, effective_user=None))
         await learning_handlers.learn_command(upd2, ctx)
-        assert any(LEARN_BUTTON_TEXT in text or "Урок" in text for text in msg2.replies)
+        assert any(ASSISTANT_BUTTON_TEXT in text or "Урок" in text for text in msg2.replies)
     finally:
         engine.dispose()
 
@@ -247,72 +227,48 @@ async def test_ensure_overrides_normalizes_level() -> None:
             }
         ),
     )
-    update = cast(
-        Update, SimpleNamespace(message=None, callback_query=None, effective_user=None)
-    )
+    update = cast(Update, SimpleNamespace(message=None, callback_query=None, effective_user=None))
     assert await onboarding_utils.ensure_overrides(update, context)
     assert context.user_data["learn_profile_overrides"]["learning_level"] == "expert"
     assert context.user_data.get("learning_onboarded") is True
 
 
 @pytest.mark.asyncio
-async def test_ensure_overrides_logs_age(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_ensure_overrides_logs_age(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
         return {}
 
-    monkeypatch.setattr(
-        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
-    )
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile)
     user = SimpleNamespace(id=1)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     msg = DummyMessage()
-    upd = cast(
-        Update, SimpleNamespace(message=msg, callback_query=None, effective_user=user)
-    )
+    upd = cast(Update, SimpleNamespace(message=msg, callback_query=None, effective_user=user))
     with caplog.at_level(logging.INFO):
         assert not await onboarding_utils.ensure_overrides(upd, context)
-    assert any(
-        r.message == "ensure_overrides" and r.asked == "age" for r in caplog.records
-    )
-    assert any(
-        r.message == "onboarding_question" and r.reason == "needs_age"
-        for r in caplog.records
-    )
+    assert any(r.message == "ensure_overrides" and r.asked == "age" for r in caplog.records)
+    assert any(r.message == "onboarding_question" and r.reason == "needs_age" for r in caplog.records)
 
 
 @pytest.mark.asyncio
-async def test_ensure_overrides_logs_level(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
-) -> None:
+async def test_ensure_overrides_logs_level(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
         return {"age_group": "adult"}
 
-    monkeypatch.setattr(
-        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
-    )
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile)
     user = SimpleNamespace(id=1)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
     )
     msg = DummyMessage()
-    upd = cast(
-        Update, SimpleNamespace(message=msg, callback_query=None, effective_user=user)
-    )
+    upd = cast(Update, SimpleNamespace(message=msg, callback_query=None, effective_user=user))
     with caplog.at_level(logging.INFO):
         assert not await onboarding_utils.ensure_overrides(upd, context)
-    assert any(
-        r.message == "ensure_overrides" and r.asked == "level" for r in caplog.records
-    )
-    assert any(
-        r.message == "onboarding_question" and r.reason == "needs_level"
-        for r in caplog.records
-    )
+    assert any(r.message == "ensure_overrides" and r.asked == "level" for r in caplog.records)
+    assert any(r.message == "onboarding_question" and r.reason == "needs_level" for r in caplog.records)
 
 
 @pytest.mark.asyncio
@@ -330,9 +286,7 @@ async def test_lesson_command_requires_onboarding(
         fake_get_profile,
     )
     message = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}, args=["l1"]),
@@ -375,9 +329,7 @@ async def test_ensure_overrides_logs_http_error(
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
         raise httpx.HTTPError("boom")
 
-    monkeypatch.setattr(
-        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
-    )
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile)
     user = SimpleNamespace(id=1)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
@@ -402,9 +354,7 @@ async def test_ensure_overrides_propagates_unexpected(
     async def fake_get_profile(_: int, __: object) -> dict[str, object]:
         raise ValueError("bad")
 
-    monkeypatch.setattr(
-        onboarding_utils.profiles, "get_profile_for_user", fake_get_profile
-    )
+    monkeypatch.setattr(onboarding_utils.profiles, "get_profile_for_user", fake_get_profile)
     user = SimpleNamespace(id=1)
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
