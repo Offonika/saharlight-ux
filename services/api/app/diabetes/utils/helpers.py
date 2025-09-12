@@ -11,11 +11,11 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-INVALID_TIME_MSG = "❌ Неверный формат. Примеры: 22:30 | 6:00 | 5h | 3d"
+INVALID_TIME_MSG = "❌ Неверный формат. Примеры: 22:30 | 6:00 | 5h | 3d | 3 h | 5 d"
 
 
 def parse_time_interval(value: str) -> time | timedelta:
-    """Convert strings like 'HH:MM', 'H:MM', 'Nh' or 'Nd' to time or timedelta."""
+    """Convert strings like 'HH:MM', 'H:MM', 'Nh', 'Nd', 'N h' or 'N d' to time or timedelta."""
 
     value = value.strip()
     # Normalize times like `9:30` -> `09:30` before parsing
@@ -24,7 +24,7 @@ def parse_time_interval(value: str) -> time | timedelta:
     try:
         return datetime.strptime(value, "%H:%M").time()
     except ValueError:
-        match = re.fullmatch(r"(\d+)([hd])", value, re.IGNORECASE)
+        match = re.fullmatch(r"(\d+)\s*([hd])", value, re.IGNORECASE)
         if match:
             num, unit = match.groups()
             unit = unit.lower()
