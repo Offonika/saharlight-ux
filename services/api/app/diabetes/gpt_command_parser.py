@@ -78,23 +78,40 @@ def _sanitize_sensitive_data(text: str) -> str:
 def _extract_first_json(text: str) -> dict[str, object] | None:
     """Return the first JSON dictionary found in *text*.
 
-    The function scans *text* while skipping characters inside string literals
-    and uses :func:`json.JSONDecoder.raw_decode` to parse potential JSON
-    segments. After decoding each segment, it searches recursively for the
-    first dictionary, returning it even when the JSON is wrapped in arrays or
-    nested inside other structures. At most ``MAX_JSON_CHARS`` characters are
-    inspected; if the limit is exceeded before a dictionary is found, ``None``
-    is returned.
+    The function walks through *text* while counting curly and square brackets
+    outside of string literals. Whenever a balanced JSON segment is found, it is
+    parsed with :func:`json.loads` and searched breadth‑first for the first
+    dictionary, preferring one that contains an ``"action"`` key. At most
+    ``MAX_JSON_CHARS`` characters are inspected; if the limit is reached without
+    finding a dictionary, ``None`` is returned.
     """
 
-    decoder = json.JSONDecoder()
+    length = min(len(text), MAX_JSON_CHARS)
     i = 0
-    length = len(text)
     in_str = False
     escape = False
     quote = ""
+    start = -1
+    braces = 0
+    brackets = 0
+    saw_closing = False
 
-    while i < length and i < MAX_JSON_CHARS:
+    def search_dict(obj: object) -> dict[str, object] | None:
+        queue: deque[object] = deque([obj])
+        first_dict: dict[str, object] | None = None
+        while queue:
+            current = queue.popleft()
+            if isinstance(current, dict):
+                if first_dict is None:
+                    first_dict = current
+                if "action" in current:
+                    return current
+                queue.extend(current.values())
+            elif isinstance(current, list):
+                queue.extend(current)
+        return first_dict
+
+    while i < length:
         ch = text[i]
         if in_str:
             if escape:
@@ -110,37 +127,44 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
             quote = ch
             i += 1
             continue
-        if ch not in "{[":
-            i += 1
-            continue
+        if ch == '{' or ch == '[':
+            if braces == 0 and brackets == 0:
+                start = i
+            if ch == '{':
+                braces += 1
+            else:
+                brackets += 1
+        elif ch == '}' or ch == ']':
+            saw_closing = True
+            if ch == '}' and braces > 0:
+                braces -= 1
+            elif ch == ']' and brackets > 0:
+                brackets -= 1
+            else:
+                start = -1
+                braces = 0
+                brackets = 0
+                i += 1
+                continue
+            if braces == 0 and brackets == 0 and start != -1:
+                segment = text[start : i + 1]
+                try:
+                    obj = json.loads(segment)
+                except json.JSONDecodeError:
+                    saw_closing = True
+                    start += 1
+                    i = start
+                    braces = 0
+                    brackets = 0
+                    continue
+                found = search_dict(obj)
+                if found is not None:
+                    return found
+                start = -1
+        i += 1
 
-        try:
-            obj, end = decoder.raw_decode(text, i)
-        except json.JSONDecodeError:
-            i += 1
-            continue
-        if isinstance(obj, list):
-            for item in obj:
-                if isinstance(item, dict):
-                    return item
-
-        i = end
-        queue: deque[object] = deque([obj])
-        first_dict: dict[str, object] | None = None
-        while queue:
-            current = queue.popleft()
-            if isinstance(current, dict):
-                if first_dict is None:
-                    first_dict = current
-                if "action" in current:
-                    return current
-                queue.extend(current.values())
-            elif isinstance(current, list):
-                queue.extend(current)
-
-        if first_dict is not None:
-            return first_dict
-
+    if start != -1:
+        return {} if saw_closing else None
     return None
 
 
