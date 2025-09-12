@@ -345,12 +345,12 @@ async def test_build_http_client_returns_separate_clients_for_each_proxy(
     monkeypatch.setattr(httpx, "Client", client_mock)
     monkeypatch.setattr(openai_utils, "_http_client", {})
 
-    client_a = openai_utils._build_http_client("http://proxy1", False)
-    client_b = openai_utils._build_http_client("http://proxy2", False)
+    client_a = openai_utils.build_http_client("http://proxy1")
+    client_b = openai_utils.build_http_client("http://proxy2")
 
     assert client_a is fake_client1
     assert client_b is fake_client2
-    assert openai_utils._build_http_client("http://proxy1", False) is client_a
+    assert openai_utils.build_http_client("http://proxy1") is client_a
 
     await openai_utils.dispose_http_client()
     fake_client1.close.assert_called_once()
@@ -371,12 +371,12 @@ async def test_build_async_http_client_returns_separate_clients_for_each_proxy(
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
     monkeypatch.setattr(openai_utils, "_http_client", {})
 
-    client_a = openai_utils._build_http_client("http://proxy1", True)
-    client_b = openai_utils._build_http_client("http://proxy2", True)
+    client_a = openai_utils.build_async_http_client("http://proxy1")
+    client_b = openai_utils.build_async_http_client("http://proxy2")
 
     assert client_a is fake_async_client1
     assert client_b is fake_async_client2
-    assert openai_utils._build_http_client("http://proxy1", True) is client_a
+    assert openai_utils.build_async_http_client("http://proxy1") is client_a
 
     await openai_utils.dispose_http_client()
     fake_async_client1.aclose.assert_awaited_once()
