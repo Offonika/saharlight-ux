@@ -157,13 +157,13 @@ async def test_callback_router_delegates_reminder_action(
         ]
     ] = []
 
-    async def fake_router(
+    async def fake_action_cb(
         update: Update,
         context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
     ) -> None:
         calls.append((update, context))
 
-    monkeypatch.setattr(reminder_handlers, "callback_router", fake_router)
+    monkeypatch.setattr(reminder_handlers, "reminder_action_cb", fake_action_cb)
 
     query = DummyQuery(DummyMessage(), "rem_toggle:1")
     update = cast(Update, SimpleNamespace(callback_query=query))
