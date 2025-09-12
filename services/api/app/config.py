@@ -101,6 +101,9 @@ class Settings(BaseSettings):
     learning_content_mode: Literal["dynamic", "static"] = Field(default="dynamic", alias="LEARNING_CONTENT_MODE")
     learning_ui_show_topics: bool = Field(default=False, alias="LEARNING_UI_SHOW_TOPICS")
     learning_logging_required: bool = Field(default=False, alias="LEARNING_LOGGING_REQUIRED")
+    learning_reply_mode: Literal["two_messages", "one_message"] = Field(
+        default="two_messages", alias="LEARNING_REPLY_MODE"
+    )
     pending_log_limit: int = Field(
         default=100,
         alias="PENDING_LOG_LIMIT",

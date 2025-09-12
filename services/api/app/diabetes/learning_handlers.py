@@ -81,6 +81,16 @@ AUTH_REQUIRED_MESSAGE = AuthRequiredError.MESSAGE
 LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
 
 
+def sanitize_feedback(text: str) -> str:
+    """Format feedback and strip the disclaimer if present."""
+
+    formatted = format_reply(text)
+    disc = disclaimer()
+    if formatted.startswith(disc):
+        formatted = formatted[len(disc) :].lstrip()
+    return formatted
+
+
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
     """Return ``True`` if action identified by ``key`` is too frequent."""
 
@@ -710,20 +720,26 @@ async def lesson_answer_handler(
     prev_step = state.step
     try:
         if user_text.lower() == "не знаю":
-            feedback = await assistant_chat(
+            feedback_raw = await assistant_chat(
                 profile, f"Объясни подробнее: {state.last_step_text}"
             )
         else:
-            _correct, feedback = await check_user_answer(
+            _correct, feedback_raw = await check_user_answer(
                 profile,
                 state.topic,
                 user_text,
                 state.last_step_text or "",
             )
-        feedback = format_reply(feedback)
-        await message.reply_text(feedback, reply_markup=build_main_keyboard())
-        if feedback == BUSY_MESSAGE:
-            return
+        if settings.learning_reply_mode == "one_message":
+            feedback_fmt = sanitize_feedback(feedback_raw)
+            if feedback_fmt == BUSY_MESSAGE:
+                await message.reply_text(feedback_fmt, reply_markup=build_main_keyboard())
+                return
+        else:
+            feedback_fmt = format_reply(feedback_raw)
+            await message.reply_text(feedback_fmt, reply_markup=build_main_keyboard())
+            if feedback_fmt == BUSY_MESSAGE:
+                return
         lesson_id = user_data.get("lesson_id")
         try:
             if isinstance(lesson_id, int):
@@ -731,14 +747,14 @@ async def lesson_answer_handler(
                     telegram_id or 0,
                     lesson_id,
                     profile,
-                    feedback,
+                    feedback_raw,
                 )
             else:
                 next_text = await generate_step_text(
                     profile,
                     state.topic,
                     prev_step + 1,
-                    feedback,
+                    feedback_raw,
                 )
         except (
             LessonNotFoundError,
@@ -756,10 +772,14 @@ async def lesson_answer_handler(
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return
         next_text = format_reply(next_text)
-        await message.reply_text(next_text, reply_markup=build_main_keyboard())
+        if settings.learning_reply_mode == "one_message":
+            combined = f"{feedback_fmt}\n\n—\n\n{next_text}"
+            await message.reply_text(combined, reply_markup=build_main_keyboard())
+        else:
+            await message.reply_text(next_text, reply_markup=build_main_keyboard())
         state.step = prev_step + 1
         state.last_step_text = next_text
-        state.prev_summary = feedback
+        state.prev_summary = feedback_fmt
         set_state(user_data, state)
         if telegram_id is not None:
             raw_plan_id = user_data.get("learning_plan_id")
