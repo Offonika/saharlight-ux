@@ -56,13 +56,13 @@ async def test_photo_handler_commit_failure(
         def add(self, obj: Any) -> None:
             pass
 
-    async def fake_create_thread() -> str:
+    def fake_create_thread_sync() -> str:
         return "tid"
 
     send_message_mock = AsyncMock()
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "create_thread_sync", fake_create_thread_sync)
 
     def fail_commit(session: object) -> None:
         raise photo_handlers.CommitError
@@ -136,7 +136,7 @@ async def test_photo_handler_commit_failure_resets_waiting_flag(
         def add(self, obj: Any) -> None:
             pass
 
-    async def fake_create_thread() -> str:
+    def fake_create_thread_sync() -> str:
         return "tid"
 
     def fail_commit(session: object) -> None:
@@ -145,7 +145,7 @@ async def test_photo_handler_commit_failure_resets_waiting_flag(
     send_message_mock = AsyncMock()
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "create_thread_sync", fake_create_thread_sync)
     monkeypatch.setattr(photo_handlers, "commit", fail_commit)
     monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
 
@@ -530,7 +530,7 @@ async def test_photo_handler_long_vision_text(
         send_chat_action=AsyncMock(),
     )
 
-    async def fake_create_thread() -> str:
+    def fake_create_thread_sync() -> str:
         return "tid"
 
     class DummySession:
@@ -570,7 +570,7 @@ async def test_photo_handler_long_vision_text(
         )
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "create_thread_sync", fake_create_thread_sync)
     monkeypatch.setattr(photo_handlers, "commit", lambda s: None)
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
@@ -641,7 +641,7 @@ async def test_photo_handler_long_vision_text_parse_fail(
         send_chat_action=AsyncMock(),
     )
 
-    async def fake_create_thread() -> str:
+    def fake_create_thread_sync() -> str:
         return "tid"
 
     class DummySession:
@@ -681,7 +681,7 @@ async def test_photo_handler_long_vision_text_parse_fail(
         )
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: DummySession())
-    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "create_thread_sync", fake_create_thread_sync)
     monkeypatch.setattr(photo_handlers, "commit", lambda s: None)
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
