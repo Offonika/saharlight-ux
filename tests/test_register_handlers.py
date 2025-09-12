@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from sqlalchemy.orm import Session
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from telegram.error import TelegramError
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -614,5 +615,36 @@ async def test_assistant_mode_timeout_clears_state(
 
     await cb(ctx)
 
+    assert user_data[1] == {}
+    bot.send_message.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_assistant_mode_timeout_handles_telegram_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    scheduled: dict[str, Any] = {}
+
+    def fake_run_repeating(self, callback: Any, *args: Any, **kwargs: Any) -> None:
+        if kwargs.get("name") == "assistant_mode_timeout":
+            scheduled["callback"] = callback
+
+    monkeypatch.setattr(JobQueue, "run_repeating", fake_run_repeating)
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_handlers(app)
+
+    cb = scheduled["callback"]
+    user_data = {1: {assistant_state.LAST_MODE_KEY: "chat"}}
+    bot = SimpleNamespace(
+        send_message=AsyncMock(side_effect=TelegramError("boom"))
+    )
+    ctx = SimpleNamespace(application=SimpleNamespace(user_data=user_data), bot=bot)
+
+    with caplog.at_level(logging.ERROR):
+        await cb(ctx)
+
+    assert "Failed to send assistant menu" in caplog.text
     assert user_data[1] == {}
     bot.send_message.assert_awaited_once()
