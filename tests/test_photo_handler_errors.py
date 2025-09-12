@@ -65,9 +65,22 @@ class NoPhotoMessage(DummyMessage):
 
 
 @pytest.mark.asyncio
-async def test_photo_handler_not_image() -> None:
+async def test_photo_handler_not_image(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+    orig = photo_handlers._clear_waiting_gpt
+
+    def wrapped(user_data: dict[str, Any]) -> None:
+        nonlocal calls
+        calls += 1
+        orig(user_data)
+
+    monkeypatch.setattr(photo_handlers, "_clear_waiting_gpt", wrapped)
     message = NoPhotoMessage()
-    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data={}),
@@ -78,6 +91,7 @@ async def test_photo_handler_not_image() -> None:
     assert context.user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
     assert photo_handlers.WAITING_GPT_TIMESTAMP not in context.user_data
+    assert calls == 1
 
 
 @pytest.mark.asyncio
@@ -114,6 +128,15 @@ async def test_photo_handler_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
 
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
 
+    calls = 0
+    orig = photo_handlers._clear_waiting_gpt
+
+    def wrapped(user_data: dict[str, Any]) -> None:
+        nonlocal calls
+        calls += 1
+        orig(user_data)
+
+    monkeypatch.setattr(photo_handlers, "_clear_waiting_gpt", wrapped)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
@@ -121,6 +144,7 @@ async def test_photo_handler_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     assert context.user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
     assert photo_handlers.WAITING_GPT_TIMESTAMP not in context.user_data
+    assert calls == 1
 
 
 @pytest.mark.asyncio

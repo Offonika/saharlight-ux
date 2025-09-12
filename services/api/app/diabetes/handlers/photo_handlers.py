@@ -44,6 +44,22 @@ def _clear_waiting_gpt(user_data: UserData) -> None:
     user_data.pop(WAITING_GPT_TIMESTAMP, None)
 
 
+async def _delete_status_message(
+    status_message: Message | None, tag: str
+) -> None:
+    if not status_message or not hasattr(status_message, "delete"):
+        return
+    try:
+        await status_message.delete()
+    except TelegramError as exc:
+        logger.warning(
+            "[PHOTO][%s] Failed to delete status message: %s", tag, exc
+        )
+    except OSError as exc:
+        logger.exception("[PHOTO][%s] OS error: %s", tag, exc)
+        raise
+
+
 async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt user to send a food photo for analysis."""
     message = update.message
@@ -89,32 +105,28 @@ async def photo_handler(
             return END
     user_data[WAITING_GPT_FLAG] = True
     user_data[WAITING_GPT_TIMESTAMP] = now
-
-    if file_bytes is None:
-        try:
-            photo = message.photo[-1]
-        except (AttributeError, IndexError, TypeError):
-            await message.reply_text("❗ Файл не распознан как изображение.")
-            _clear_waiting_gpt(user_data)
-            return END
-
-        try:
-            file = await context.bot.get_file(photo.file_id)
-            file_bytes = bytes(await file.download_as_bytearray())
-        except OSError as exc:
-            logger.exception("[PHOTO] Failed to download photo: %s", exc)
-            await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
-            _clear_waiting_gpt(user_data)
-            return END
-        except TelegramError as exc:
-            logger.exception("[PHOTO] Failed to download photo: %s", exc)
-            await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
-            _clear_waiting_gpt(user_data)
-            return END
-
-    logger.info("[PHOTO] Received photo from user %s", user_id)
-
     try:
+        if file_bytes is None:
+            try:
+                photo = message.photo[-1]
+            except (AttributeError, IndexError, TypeError):
+                await message.reply_text("❗ Файл не распознан как изображение.")
+                return END
+
+            try:
+                file = await context.bot.get_file(photo.file_id)
+                file_bytes = bytes(await file.download_as_bytearray())
+            except OSError as exc:
+                logger.exception("[PHOTO] Failed to download photo: %s", exc)
+                await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
+                return END
+            except TelegramError as exc:
+                logger.exception("[PHOTO] Failed to download photo: %s", exc)
+                await message.reply_text("⚠️ Не удалось скачать фото. Попробуйте ещё раз.")
+                return END
+
+        logger.info("[PHOTO] Received photo from user %s", user_id)
+
         thread_id = user_data.get("thread_id")
         if not thread_id:
 
@@ -132,7 +144,6 @@ async def photo_handler(
             except CommitError:
                 logger.exception("[PHOTO] Failed to commit user %s", user_id)
                 await message.reply_text("⚠️ Не удалось сохранить данные пользователя.")
-                _clear_waiting_gpt(user_data)
                 return END
             user_data["thread_id"] = thread_id
 
@@ -147,7 +158,6 @@ async def photo_handler(
             await message.reply_text(
                 "⚠️ Превышено время ожидания ответа. Попробуйте ещё раз."
             )
-            _clear_waiting_gpt(user_data)
             return END
         status_message = await message.reply_text(
             "🔍 Анализирую фото (это займёт 5‑10 с)…"
@@ -192,69 +202,27 @@ async def photo_handler(
                 )
             except asyncio.TimeoutError:
                 logger.warning("[PHOTO][RUN_RETRIEVE] Timed out retrieving run")
-                if status_message and hasattr(status_message, "delete"):
-                    try:
-                        await status_message.delete()
-                    except TelegramError as exc_del:
-                        logger.warning(
-                            "[PHOTO][RUN_RETRIEVE_DELETE] Failed to delete status message: %s",
-                            exc_del,
-                        )
-                    except OSError as exc_os:
-                        logger.exception(
-                            "[PHOTO][RUN_RETRIEVE_DELETE] OS error: %s",
-                            exc_os,
-                        )
-                        raise
+                await _delete_status_message(status_message, "RUN_RETRIEVE_DELETE")
                 await message.reply_text(
                     "⚠️ Превышено время ожидания Vision. Попробуйте ещё раз."
                 )
-                _clear_waiting_gpt(user_data)
                 return END
             except (OpenAIError, httpx.HTTPError) as exc:
                 logger.exception(
                     "[PHOTO][RUN_RETRIEVE] Failed to retrieve run: %s", exc
                 )
-                if status_message and hasattr(status_message, "delete"):
-                    try:
-                        await status_message.delete()
-                    except TelegramError as exc_del:
-                        logger.warning(
-                            "[PHOTO][RUN_RETRIEVE_DELETE] Failed to delete status message: %s",
-                            exc_del,
-                        )
-                    except OSError as exc_os:
-                        logger.exception(
-                            "[PHOTO][RUN_RETRIEVE_DELETE] OS error: %s",
-                            exc_os,
-                        )
-                        raise
+                await _delete_status_message(status_message, "RUN_RETRIEVE_DELETE")
                 await message.reply_text(
                     "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
                 )
-                _clear_waiting_gpt(user_data)
                 return END
             if attempt == warn_after:
                 await send_typing_action()
         else:
-            if status_message and hasattr(status_message, "delete"):
-                try:
-                    await status_message.delete()
-                except TelegramError as exc:
-                    logger.warning(
-                        "[PHOTO][TIMEOUT_DELETE] Failed to delete status message: %s",
-                        exc,
-                    )
-                except OSError as exc:
-                    logger.exception(
-                        "[PHOTO][TIMEOUT_DELETE] OS error: %s",
-                        exc,
-                    )
-                    raise
+            await _delete_status_message(status_message, "TIMEOUT_DELETE")
             await message.reply_text(
                 "⚠️ Время ожидания Vision истекло. Попробуйте позже."
             )
-            _clear_waiting_gpt(user_data)
             return END
 
         if run.status != "completed":
@@ -279,7 +247,6 @@ async def photo_handler(
                 await message.reply_text(
                     "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
                 )
-            _clear_waiting_gpt(user_data)
             return END
 
         try:
@@ -339,7 +306,6 @@ async def photo_handler(
                 reply_markup=build_main_keyboard(),
             )
             user_data.pop("pending_entry", None)
-            _clear_waiting_gpt(user_data)
             return END
 
         pending_entry = cast(
@@ -362,20 +328,7 @@ async def photo_handler(
             }
         )
         user_data["pending_entry"] = pending_entry
-        if status_message and hasattr(status_message, "delete"):
-            try:
-                await status_message.delete()
-            except TelegramError as exc:
-                logger.warning(
-                    "[PHOTO][DELETE_STATUS] Failed to delete status message: %s",
-                    exc,
-                )
-            except OSError as exc:
-                logger.exception(
-                    "[PHOTO][DELETE_STATUS] OS error: %s",
-                    exc,
-                )
-                raise
+        await _delete_status_message(status_message, "DELETE_STATUS")
         prefix = "🍽️ На фото:\n"
         suffix = "Введите текущий сахар (ммоль/л) — и я рассчитаю дозу инсулина."
         text = f"{prefix}{vision_text}\n\n{suffix}"
@@ -405,24 +358,20 @@ async def photo_handler(
         await message.reply_text(
             "⚠️ Ошибка при обработке файла изображения. Попробуйте ещё раз."
         )
-        _clear_waiting_gpt(user_data)
         return END
     except OpenAIError as exc:
         logger.exception("[PHOTO] Vision API error: %s", exc)
         await message.reply_text(
             "⚠️ Vision не смог обработать фото. Попробуйте ещё раз."
         )
-        _clear_waiting_gpt(user_data)
         return END
     except ValueError as exc:
         logger.exception("[PHOTO] Parsing error: %s", exc)
         await message.reply_text("⚠️ Не удалось распознать фото. Попробуйте ещё раз.")
-        _clear_waiting_gpt(user_data)
         return END
     except TelegramError as exc:
         logger.exception("[PHOTO] Telegram error: %s", exc)
         await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
-        _clear_waiting_gpt(user_data)
         return END
     finally:
         _clear_waiting_gpt(user_data)

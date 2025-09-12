@@ -126,6 +126,15 @@ async def test_photo_handler_recognition_success_db_save(
         "extract_nutrition_info",
         lambda text: functions.NutritionInfo(carbs_g=10, xe=0.5),
     )
+    calls = 0
+    orig = photo_handlers._clear_waiting_gpt
+
+    def wrapped(user_data: dict[str, Any]) -> None:
+        nonlocal calls
+        calls += 1
+        orig(user_data)
+
+    monkeypatch.setattr(photo_handlers, "_clear_waiting_gpt", wrapped)
 
     message = DummyMessage()
     update = cast(
@@ -150,6 +159,7 @@ async def test_photo_handler_recognition_success_db_save(
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert message.status.deleted
     assert bot.send_chat_action.called
+    assert calls == 1
 
 
 @pytest.mark.asyncio
