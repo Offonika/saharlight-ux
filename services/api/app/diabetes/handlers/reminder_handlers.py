@@ -622,7 +622,11 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        data = dict(parse_qsl(raw))
+        try:
+            data = dict(parse_qsl(raw, max_num_fields=1000))
+        except ValueError:
+            await msg.reply_text("Слишком много параметров")
+            return
 
     init_data = data.get("init_data")
     if isinstance(init_data, str):

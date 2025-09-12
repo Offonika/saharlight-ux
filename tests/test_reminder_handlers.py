@@ -572,6 +572,18 @@ async def test_reminder_webapp_save_unknown_type(reminder_handlers: Any) -> None
 
 
 @pytest.mark.asyncio
+async def test_reminder_webapp_save_too_many_params(reminder_handlers: Any) -> None:
+    raw = "&".join(f"a{i}=1" for i in range(1001))
+    message = DummyWebAppMessage(raw)
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    assert message.texts == ["Слишком много параметров"]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "payload",
     [json.dumps({"id": 1, "snooze": 7}), "snooze=7&id=1"],
