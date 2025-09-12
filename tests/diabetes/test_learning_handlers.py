@@ -15,7 +15,7 @@ from services.api.app.diabetes import learning_handlers as dynamic_handlers
 from services.api.app.diabetes import learning_onboarding as onboarding_utils
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 
 legacy_handlers = dynamic_handlers
 
@@ -25,9 +25,7 @@ class DummyMessage:
         self.text = text
         self.replies: list[str] = []
 
-    async def reply_text(
-        self, text: str, **kwargs: Any
-    ) -> None:  # pragma: no cover - helper
+    async def reply_text(self, text: str, **kwargs: Any) -> None:  # pragma: no cover - helper
         self.replies.append(text)
 
 
@@ -52,7 +50,7 @@ async def test_learn_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
         SimpleNamespace(user_data={}),
     )
     await legacy_handlers.learn_command(update, context)
-    assert message.replies == [f"🚫 {LEARN_BUTTON_TEXT} недоступен."]
+    assert message.replies == [f"🚫 {ASSISTANT_BUTTON_TEXT} недоступен."]
 
 
 def setup_db() -> sessionmaker[Session]:
@@ -221,9 +219,7 @@ async def test_plan_precedes_step(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(dynamic_handlers, "_persist", fake_persist)
 
     message = DummyMessage()
-    update = cast(
-        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
-    )
+    update = cast(Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)))
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
@@ -322,9 +318,7 @@ async def test_reenter_after_onboarding(monkeypatch: pytest.MonkeyPatch) -> None
     )
 
     msg1 = DummyMessage()
-    upd1 = cast(
-        Update, SimpleNamespace(message=msg1, effective_user=SimpleNamespace(id=1))
-    )
+    upd1 = cast(Update, SimpleNamespace(message=msg1, effective_user=SimpleNamespace(id=1)))
     await dynamic_handlers.learn_command(upd1, context)
     assert msg1.replies == [
         "\U0001f5fa План обучения\nfirst|second",
@@ -332,9 +326,7 @@ async def test_reenter_after_onboarding(monkeypatch: pytest.MonkeyPatch) -> None
     ]
 
     msg2 = DummyMessage()
-    upd2 = cast(
-        Update, SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=1))
-    )
+    upd2 = cast(Update, SimpleNamespace(message=msg2, effective_user=SimpleNamespace(id=1)))
     await dynamic_handlers.learn_command(upd2, context)
     assert msg2.replies == ["first"]
     assert counts == {"start": 1, "next": 1}

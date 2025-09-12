@@ -12,7 +12,7 @@ def _reload_keyboard():
 def test_learn_button_text_has_emoji() -> None:
     keyboard = _reload_keyboard()
 
-    assert keyboard.LEARN_BUTTON_TEXT == "🤖 Ассистент_AI"
+    assert keyboard.ASSISTANT_BUTTON_TEXT == "🤖 Ассистент_AI"
 
 
 def test_learn_button_text_without_emoji(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -25,7 +25,7 @@ def test_learn_button_text_without_emoji(monkeypatch: pytest.MonkeyPatch) -> Non
     importlib.reload(app_config)
     keyboard = _reload_keyboard()
 
-    assert keyboard.LEARN_BUTTON_TEXT == "Ассистент_AI"
+    assert keyboard.ASSISTANT_BUTTON_TEXT == "Ассистент_AI"
 
     monkeypatch.setenv("ASSISTANT_MENU_EMOJI", "true")
     monkeypatch.delenv("TELEGRAM_TOKEN")

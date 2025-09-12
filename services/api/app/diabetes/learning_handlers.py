@@ -36,7 +36,7 @@ from .dynamic_tutor import (
     sanitize_feedback,
     ensure_single_question,
 )
-from ..ui.keyboard import LEARN_BUTTON_TEXT
+from ..ui.keyboard import ASSISTANT_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides, needs_age, needs_level
 from .learning_state import LearnState, clear_state, get_state, set_state
 from .learning_utils import choose_initial_topic
@@ -301,7 +301,7 @@ async def _static_learn_command(update: Update, context: ContextTypes.DEFAULT_TY
     if message is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text(f"🚫 {LEARN_BUTTON_TEXT} недоступен.")
+        await message.reply_text(f"🚫 {ASSISTANT_BUTTON_TEXT} недоступен.")
         return
     if not await ensure_overrides(update, context):
         return
@@ -322,7 +322,7 @@ async def _static_learn_command(update: Update, context: ContextTypes.DEFAULT_TY
 
     titles = "\n".join(f"/lesson {slug} — {title}" for title, slug in lessons)
     await message.reply_text(
-        f"{LEARN_BUTTON_TEXT} активирован. Модель: {model}\n\nДоступные уроки:\n{titles}",
+        f"{ASSISTANT_BUTTON_TEXT} активирован. Модель: {model}\n\nДоступные уроки:\n{titles}",
         reply_markup=build_main_keyboard(),
     )
 
@@ -551,7 +551,7 @@ async def _static_lesson_command(update: Update, context: ContextTypes.DEFAULT_T
     if message is None or user is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text(f"🚫 {LEARN_BUTTON_TEXT} недоступен.")
+        await message.reply_text(f"🚫 {ASSISTANT_BUTTON_TEXT} недоступен.")
         return
     if not await ensure_overrides(update, context):
         return
@@ -569,7 +569,9 @@ async def _static_lesson_command(update: Update, context: ContextTypes.DEFAULT_T
     lesson_id = cast(int | None, user_data.get("lesson_id"))
     if lesson_id is None:
         if lesson_slug is None:
-            await message.reply_text(f"Сначала выберите урок — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn")
+            await message.reply_text(
+                f"Сначала выберите урок — нажмите кнопку {ASSISTANT_BUTTON_TEXT} или команду /learn"
+            )
             return
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
         lesson_id = progress.lesson_id
@@ -624,7 +626,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn")
+        await message.reply_text(f"Сначала выберите тему — нажмите кнопку {ASSISTANT_BUTTON_TEXT} или команду /learn")
         return
     if topic_slug not in TOPICS_RU:
         await message.reply_text("Неизвестная тема")
@@ -840,7 +842,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     if message is None or user is None:
         return
     if not settings.learning_mode_enabled:
-        await message.reply_text(f"🚫 {LEARN_BUTTON_TEXT} недоступен.")
+        await message.reply_text(f"🚫 {ASSISTANT_BUTTON_TEXT} недоступен.")
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
     if _rate_limited(user_data, "_quiz_ts"):
@@ -989,7 +991,7 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     result = await run_db(_load_progress, user_id, sessionmaker=SessionLocal)
     if result is None:
         await message.reply_text(
-            f"Вы ещё не начали обучение. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать."
+            f"Вы ещё не начали обучение. Нажмите кнопку {ASSISTANT_BUTTON_TEXT} или команду /learn, чтобы начать."
         )
         return
     title, current_step, completed, quiz_score = result
@@ -1073,7 +1075,7 @@ async def _static_exit_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await run_db(_complete, user.id, lesson_id, sessionmaker=SessionLocal)
 
     await message.reply_text(
-        f"Сессия {LEARN_BUTTON_TEXT} завершена.",
+        f"Сессия {ASSISTANT_BUTTON_TEXT} завершена.",
         reply_markup=build_main_keyboard(),
     )
     logger.info(
@@ -1101,7 +1103,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if user is not None:
         await _persist(user.id, user_data, context.bot_data)
-    await message.reply_text(f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard())
+    await message.reply_text(f"Сессия {ASSISTANT_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard())
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1116,7 +1118,7 @@ async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
         await message.reply_text(
-            f"План не найден. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать.",
+            f"План не найден. Нажмите кнопку {ASSISTANT_BUTTON_TEXT} или команду /learn, чтобы начать.",
             reply_markup=build_main_keyboard(),
         )
         return
@@ -1135,7 +1137,7 @@ async def skip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     plan = cast(list[str] | None, user_data.get("learning_plan"))
     if not plan:
         await message.reply_text(
-            f"План не найден. Нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn, чтобы начать.",
+            f"План не найден. Нажмите кнопку {ASSISTANT_BUTTON_TEXT} или команду /learn, чтобы начать.",
             reply_markup=build_main_keyboard(),
         )
         return

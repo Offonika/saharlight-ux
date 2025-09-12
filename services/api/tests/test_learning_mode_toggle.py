@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app import config
-from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 from services.api.app.diabetes.learning_fixtures import load_lessons
 import services.api.app.diabetes.learning_handlers as learning_handlers
 from services.api.app.diabetes.services import db
@@ -98,7 +98,7 @@ async def test_learning_mode_enabled_lists_lessons(
 
     await learning_handlers.learn_command(update, context)
 
-    assert message.replies[0].startswith(f"{LEARN_BUTTON_TEXT} активирован.")
+    assert message.replies[0].startswith(f"{ASSISTANT_BUTTON_TEXT} активирован.")
     keyboard = message.kwargs[0].get("reply_markup")
     assert keyboard is not None
     assert keyboard.keyboard
@@ -131,10 +131,8 @@ async def test_learning_mode_disabled_denies_access(
         ),
     )
 
-    with caplog.at_level(
-        logging.INFO, logger="services.api.app.diabetes.learning_fixtures"
-    ):
+    with caplog.at_level(logging.INFO, logger="services.api.app.diabetes.learning_fixtures"):
         await learning_handlers.learn_command(update, context)
 
-    assert message.replies == [f"🚫 {LEARN_BUTTON_TEXT} недоступен."]
+    assert message.replies == [f"🚫 {ASSISTANT_BUTTON_TEXT} недоступен."]
     assert "OK: lessons loaded" not in caplog.text

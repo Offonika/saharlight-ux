@@ -4,8 +4,11 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from services.api.app.diabetes.handlers import assistant_menu
-from services.api.app.diabetes import assistant_state, visit_handlers
+from telegram.ext import MessageHandler, filters
+
+from services.api.app.diabetes.handlers import assistant_menu, registration
+from services.api.app.diabetes import assistant_state, visit_handlers, learning_handlers
+from services.api.app.ui.keyboard import ASSISTANT_BUTTON_TEXT
 
 
 def test_assistant_keyboard_layout() -> None:
@@ -221,9 +224,7 @@ async def test_post_init_restores_modes(monkeypatch: pytest.MonkeyPatch) -> None
     async def fake_get_last_modes() -> list[tuple[int, str]]:
         return [(1, "chat"), (2, "learn")]
 
-    monkeypatch.setattr(
-        assistant_menu.memory_service, "get_last_modes", fake_get_last_modes
-    )
+    monkeypatch.setattr(assistant_menu.memory_service, "get_last_modes", fake_get_last_modes)
     bot = MagicMock()
     bot.send_message = AsyncMock()
     app = SimpleNamespace(bot=bot, user_data=MappingProxyType({}))
@@ -253,10 +254,8 @@ def test_assistant_menu_emoji_off(monkeypatch: pytest.MonkeyPatch) -> None:
     reload(handler_menu)
 
     assert helper.render_assistant_menu(False).assistant == "Ассистент_AI"
-    assert ui_keyboard.LEARN_BUTTON_TEXT == "Ассистент_AI"
-    texts = [
-        btn.text for row in handler_menu.assistant_keyboard().inline_keyboard for btn in row
-    ]
+    assert ui_keyboard.ASSISTANT_BUTTON_TEXT == "Ассистент_AI"
+    texts = [btn.text for row in handler_menu.assistant_keyboard().inline_keyboard for btn in row]
     assert texts == ["Обучение", "Чат", "Анализы", "Визит"]
 
     monkeypatch.delenv("ASSISTANT_MENU_EMOJI", raising=False)
@@ -265,3 +264,26 @@ def test_assistant_menu_emoji_off(monkeypatch: pytest.MonkeyPatch) -> None:
     reload(helper)
     reload(ui_keyboard)
     reload(handler_menu)
+
+
+@pytest.mark.asyncio
+async def test_assistant_button_shows_menu(monkeypatch: pytest.MonkeyPatch) -> None:
+    show = AsyncMock()
+    learn = AsyncMock()
+    monkeypatch.setattr(assistant_menu, "show_menu", show)
+    monkeypatch.setattr(learning_handlers, "learn_command", learn)
+
+    handler = MessageHandler(
+        filters.TEXT & filters.Regex(registration.ASSISTANT_BUTTON_PATTERN),
+        assistant_menu.show_menu,
+    )
+
+    message = MagicMock()
+    message.text = ASSISTANT_BUTTON_TEXT
+    update = SimpleNamespace(message=message)
+    context = MagicMock()
+
+    await handler.callback(update, context)
+
+    show.assert_awaited_once_with(update, context)
+    learn.assert_not_awaited()
