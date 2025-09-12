@@ -49,7 +49,7 @@ async def test_get_openai_client_uses_proxy(
 
     client = openai_utils.get_openai_client()
 
-    http_client_mock.assert_called_once_with(proxies="http://proxy")
+    http_client_mock.assert_called_once_with(proxy="http://proxy")
     fake_http_client.close.assert_not_called()
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_http_client)
     assert client is openai_mock.return_value
@@ -163,7 +163,7 @@ async def test_get_async_openai_client_uses_proxy(
 
     client = openai_utils.get_async_openai_client()
 
-    async_client_mock.assert_called_once_with(proxies="http://proxy")
+    async_client_mock.assert_called_once_with(proxy="http://proxy")
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_async_client)
     assert client is openai_mock.return_value
 
