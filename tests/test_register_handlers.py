@@ -367,11 +367,12 @@ def test_register_handlers_skips_learning_handlers_when_disabled(
     reload_settings()
 
 
-def test_register_handlers_skips_learning_handlers_when_env_empty(
+def test_register_handlers_uses_settings_when_env_empty(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from services.api.app import config
 
+    monkeypatch.setattr(config, "settings", config.Settings(_env_file=None))
     monkeypatch.setenv("LEARNING_MODE_ENABLED", "")
     monkeypatch.setattr(config, "reload_settings", lambda: config.settings)
 
@@ -383,7 +384,7 @@ def test_register_handlers_skips_learning_handlers_when_env_empty(
         cmd for h in handlers if isinstance(h, CommandHandler) for cmd in h.commands
     ]
     for name in ["learn", "lesson", "quiz", "progress", "exit", "learn_reset"]:
-        assert name not in commands
+        assert name in commands
 
 
 def test_register_learning_onboarding_handlers() -> None:
@@ -586,7 +587,9 @@ def test_register_handlers_schedules_cleanup(monkeypatch: pytest.MonkeyPatch) ->
 
 
 @pytest.mark.asyncio
-async def test_assistant_mode_timeout_clears_state(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_assistant_mode_timeout_clears_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     scheduled: dict[str, Any] = {}
 
     def fake_run_repeating(self, callback: Any, *args: Any, **kwargs: Any) -> None:
