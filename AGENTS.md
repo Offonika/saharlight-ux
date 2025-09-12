@@ -40,6 +40,9 @@
 ### Тест-утилиты
 - Для проверки «нет предупреждения» используйте `tests/utils/warn_ctx.py::warn_or_not(None)` вместо `pytest.warns`.
 - Временный `xfail` допускается только с причиной и TODO-сроком.
+- Для тестов, требующих БД, добавляйте фикстуру `session_local` из `tests/conftest.py`.
+  Она настраивает `SessionLocal` на in-memory SQLite, вызывает `init_db()` и
+  подменяет его во всех уже импортированных модулях.
 
 ### Локальный чек перед коммитом
 - `make ci` или `pytest -q --cov && mypy --strict . && ruff check .`.
