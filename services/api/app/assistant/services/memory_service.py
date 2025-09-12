@@ -10,6 +10,8 @@ from ...diabetes.services.repository import commit
 from ..models import AssistantMemory, AssistantNote
 from ..repositories.memory import (
     get_memory as repo_get_memory,
+    list_last_modes as repo_list_last_modes,
+    set_last_mode as repo_set_last_mode,
     upsert_memory as repo_upsert_memory,
 )
 from ..repositories.notes import create_note
@@ -23,6 +25,8 @@ __all__ = [
     "record_turn",
     "cleanup_old_memory",
     "save_note",
+    "set_last_mode",
+    "get_last_modes",
 ]
 
 
@@ -144,3 +148,21 @@ async def cleanup_old_memory(ttl: timedelta | None = None) -> None:
         return deleted
 
     await run_db(_cleanup, sessionmaker=SessionLocal)
+
+
+async def set_last_mode(user_id: int, mode: str | None) -> None:
+    """Persist ``mode`` for ``user_id`` in assistant memory."""
+
+    def _set(session: Session) -> None:
+        repo_set_last_mode(session, user_id=user_id, last_mode=mode)
+
+    await run_db(_set, sessionmaker=SessionLocal)
+
+
+async def get_last_modes() -> list[tuple[int, str]]:
+    """Return list of ``(user_id, last_mode)`` for stored modes."""
+
+    def _get(session: Session) -> list[tuple[int, str]]:
+        return repo_list_last_modes(session)
+
+    return await run_db(_get, sessionmaker=SessionLocal)

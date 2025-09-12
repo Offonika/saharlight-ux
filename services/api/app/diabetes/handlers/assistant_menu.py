@@ -3,11 +3,18 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, TypeAlias, cast
+from typing import TYPE_CHECKING, MutableMapping, TypeAlias, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
-from telegram.ext import CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    ContextTypes,
+    ExtBot,
+    JobQueue,
+)
 
+from services.api.app.assistant.services import memory_service
 from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
 from services.api.app.diabetes.assistant_state import AWAITING_KIND, set_last_mode
 from services.api.app.diabetes.labs_handlers import AWAITING_KIND as LABS_AWAITING_KIND
@@ -19,6 +26,7 @@ __all__ = [
     "assistant_keyboard",
     "show_menu",
     "assistant_callback",
+    "post_init",
     "ASSISTANT_HANDLER",
 ]
 
@@ -57,6 +65,33 @@ def _back_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(((InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data="asst:back"),),))
 
 
+async def post_init(
+    app: Application[
+        ExtBot[None],
+        ContextTypes.DEFAULT_TYPE,
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
+        DefaultJobQueue,
+    ],
+) -> None:
+    """Restore last assistant modes for users on startup."""
+
+    records = await memory_service.get_last_modes()
+    store = cast(MutableMapping[int, dict[str, object]], app.user_data)
+    for user_id, mode in records:
+        if mode not in MODE_TEXTS:
+            continue
+        data = store.setdefault(user_id, {})
+        data[AWAITING_KIND] = mode
+        set_last_mode(data, mode)
+        await app.bot.send_message(
+            chat_id=user_id,
+            text=MODE_TEXTS[mode],
+            reply_markup=_back_keyboard(),
+        )
+
+
 async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle assistant menu callbacks."""
 
@@ -75,6 +110,7 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         return
     mode = data.split(":", 1)[1]
     user = getattr(update, "effective_user", None)
+    user_id = getattr(user, "id", None)
     if mode not in MODE_TEXTS:
         logger.warning(
             "assistant_unknown_callback",
@@ -95,17 +131,25 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         user_data.pop(LABS_AWAITING_KIND, None)
         user_data[AWAITING_KIND] = "labs"
         set_last_mode(user_data, None)
+        if isinstance(user_id, int):
+            await memory_service.set_last_mode(user_id, None)
     else:
         user_data[AWAITING_KIND] = mode
         set_last_mode(user_data, mode)
+        if isinstance(user_id, int):
+            await memory_service.set_last_mode(user_id, mode)
         if mode == "visit":
             await visit_handlers.send_checklist(update, ctx)
             return
 
 
 if TYPE_CHECKING:
-    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[ContextTypes.DEFAULT_TYPE, object]
+    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[
+        ContextTypes.DEFAULT_TYPE, object
+    ]
+    DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
 else:
     CallbackQueryHandlerT = CallbackQueryHandler
+    DefaultJobQueue = JobQueue
 
 ASSISTANT_HANDLER = CallbackQueryHandlerT(assistant_callback, pattern="^asst:")

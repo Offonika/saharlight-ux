@@ -15,6 +15,11 @@ from services.api.app.assistant.services import memory_service
 from services.api.app.services import profile as profile_service
 
 
+@pytest.fixture(autouse=True)
+def _patch_set_last_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
+
+
 @pytest.mark.asyncio
 async def test_menu_chat_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     user_data: dict[str, object] = {}
