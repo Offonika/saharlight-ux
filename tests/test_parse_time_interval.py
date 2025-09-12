@@ -42,7 +42,7 @@ def test_parse_interval_success(text: Any, expected: Any) -> None:
 
 @pytest.mark.parametrize(
     "value",
-    ["", "25:00", "5x", "1:60", "2h30", "3 d"],
+    ["", "25:00", "5x", "1:60", "2h30", "3 d", "0h", "0d"],
 )
 def test_parse_time_invalid(value: Any) -> None:
     with pytest.raises(ValueError) as exc:

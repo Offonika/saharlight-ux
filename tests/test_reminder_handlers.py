@@ -132,6 +132,18 @@ async def test_add_reminder_sugar_invalid_time(reminder_handlers: Any, monkeypat
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("interval", ["0h", "0d"])
+async def test_add_reminder_meal_zero_interval(reminder_handlers: Any, interval: str) -> None:
+    message = DummyMessage()
+    update = make_update(message=message, effective_user=make_user(1))
+    context = make_context(args=["meal", interval])
+
+    await reminder_handlers.add_reminder(update, context)
+
+    assert message.texts == [INVALID_TIME_MSG]
+
+
+@pytest.mark.asyncio
 async def test_add_reminder_sugar_non_numeric_interval(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))

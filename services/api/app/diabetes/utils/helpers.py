@@ -27,6 +27,8 @@ def parse_time_interval(value: str) -> time | timedelta:
             num, unit = match.groups()
             unit = unit.lower()
             amount = int(num)
+            if amount <= 0:
+                raise ValueError(INVALID_TIME_MSG)
             return timedelta(hours=amount) if unit == "h" else timedelta(days=amount)
         raise ValueError(INVALID_TIME_MSG)
 
