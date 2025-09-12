@@ -37,6 +37,15 @@ def sanitize_feedback(text: str) -> str:
     return " ".join(cleaned.split())
 
 
+def ensure_single_question(text: str) -> str:
+    """Leave only the first question mark in the given text."""
+
+    idx = text.find("?")
+    if idx == -1:
+        return text
+    return text[: idx + 1] + text[idx + 1 :].replace("?", "")
+
+
 async def _chat(task: LLMTask, system: str, user: str, *, max_tokens: int = 350) -> str:
     """Call OpenAI chat completion and return the formatted reply."""
     messages: list[ChatCompletionMessageParam] = [
@@ -109,4 +118,10 @@ async def check_user_answer(
     return correct, feedback
 
 
-__all__ = ["generate_step_text", "check_user_answer", "sanitize_feedback", "BUSY_MESSAGE"]
+__all__ = [
+    "generate_step_text",
+    "check_user_answer",
+    "sanitize_feedback",
+    "ensure_single_question",
+    "BUSY_MESSAGE",
+]

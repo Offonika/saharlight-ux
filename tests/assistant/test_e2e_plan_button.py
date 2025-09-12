@@ -107,7 +107,7 @@ async def test_plan_button_flow(
     msg_ans = DummyMessage(text="Не знаю")
     update_ans = SimpleNamespace(message=msg_ans, effective_user=msg_ans.from_user)
     await learning_handlers.lesson_answer_handler(update_ans, context)
-    assert msg_ans.sent == ["feedback", "Шаг 2"]
+    assert msg_ans.sent == ["feedback\n\n—\n\nШаг 2"]
 
     plan_msg = DummyMessage()
     plan_update = SimpleNamespace(message=plan_msg, effective_user=plan_msg.from_user)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -9,6 +10,8 @@ from services.api.app.diabetes.curriculum_engine import (
     next_step,
     start_lesson,
 )
+from services.api.app.diabetes import curriculum_engine
+from collections.abc import Mapping
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.prompts import LESSONS_V0_PATH, disclaimer
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress, QuizQuestion
@@ -43,27 +46,54 @@ async def test_happy_path_one_lesson(monkeypatch: pytest.MonkeyPatch) -> None:
 
     async def fake_completion(**kwargs: object) -> str:
         fake_completion.calls += 1
-        return f"text {fake_completion.calls}"
+        return f"text {fake_completion.calls}? extra?"
 
     fake_completion.calls = 0  # type: ignore[attr-defined]
     monkeypatch.setattr(gpt_client, "create_learning_chat_completion", fake_completion)
+
+    from services.api.app.diabetes.prompts import (
+        build_system_prompt as _build_system_prompt,
+    )
+
+    def fake_build_system_prompt(
+        profile: Mapping[str, str | None], task: object | None = None
+    ) -> str:
+        return _build_system_prompt(profile)
+
+    monkeypatch.setattr(curriculum_engine, "build_system_prompt", fake_build_system_prompt)
 
     progress = await start_lesson(1, slug)
     assert progress.current_step == 0
 
     text, completed = await next_step(1, lesson_id, {})
-    assert text == f"{disclaimer()}\n\ntext 1"
+    assert text == f"{disclaimer()}\n\ntext 1? extra"
+    assert len(re.findall(r"\?", text)) == 1
     assert completed is False
     text, completed = await next_step(1, lesson_id, {})
-    assert text == "text 2"
+    assert text == "text 2? extra"
+    assert len(re.findall(r"\?", text)) == 1
     assert completed is False
     text, completed = await next_step(1, lesson_id, {})
-    assert text == "text 3"
+    assert text == "text 3? extra"
+    assert len(re.findall(r"\?", text)) == 1
     assert completed is False
+
+    # Make sure questions contain only a single question mark
+    with db.SessionLocal() as session:
+        q = (
+            session.query(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
+            .first()
+        )
+        assert q is not None
+        q.question = q.question + "??"
+        session.commit()
 
     question_text, completed = await next_step(1, lesson_id, {})
     assert completed is False
     assert question_text and question_text.startswith(disclaimer())
+    assert len(re.findall(r"\?", question_text)) == 1
 
     with db.SessionLocal() as session:
         questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).all()

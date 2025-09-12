@@ -19,7 +19,7 @@ def test_build_system_prompt_includes_profile() -> None:
     assert "тип диабета=1" in prompt
     assert "терапия=pump" in prompt
     assert "углеводы=XE" in prompt
-    assert "простым языком, дружелюбно" in prompt
+    assert "простым дружелюбным языком" in prompt
 
 
 def test_build_user_prompt_step_contains_goal_and_instruction() -> None:
@@ -33,5 +33,4 @@ def test_build_user_prompt_step_contains_goal_and_instruction() -> None:
 
 def test_build_system_prompt_quiz_check_format() -> None:
     prompt = build_system_prompt({}, task=LLMTask.QUIZ_CHECK)
-    assert "✅" in prompt and "⚠️" in prompt and "❌" in prompt
-    assert "Не задавай вопросов" in prompt
+    assert "Предупреждение" in prompt

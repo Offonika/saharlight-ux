@@ -134,7 +134,7 @@ async def test_first_run_restart_and_type_questions(
     msg_q = DummyMessage(text=question)
     upd_q = SimpleNamespace(message=msg_q, effective_user=msg_q.from_user)
     await learning_handlers.lesson_answer_handler(upd_q, context)
-    assert msg_q.sent == ["feedback", "Шаг 2"]
+    assert msg_q.sent == ["feedback\n\n—\n\nШаг 2"]
 
     profile_store.update(context.user_data.get("learn_profile_overrides", {}))
 

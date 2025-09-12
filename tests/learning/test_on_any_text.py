@@ -61,7 +61,7 @@ async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ApplicationHandlerStop):
         await learning_handlers.on_any_text(update, context)
     assert called
-    assert msg.replies == ["fb", "next"]
+    assert msg.replies == ["fb\n\n—\n\nnext"]
 
 
 @pytest.mark.asyncio
@@ -109,7 +109,7 @@ async def test_on_any_text_idontknow(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ApplicationHandlerStop):
         await learning_handlers.on_any_text(update, context)
     assert called
-    assert msg.replies == ["fb", "next"]
+    assert msg.replies == ["fb\n\n—\n\nnext"]
 
 
 @pytest.mark.asyncio
@@ -190,4 +190,4 @@ async def test_on_any_text_within_grace(monkeypatch: pytest.MonkeyPatch) -> None
     with pytest.raises(ApplicationHandlerStop):
         await learning_handlers.on_any_text(update, context)
     assert called
-    assert msg.replies == ["fb", "next"]
+    assert msg.replies == ["fb\n\n—\n\nnext"]

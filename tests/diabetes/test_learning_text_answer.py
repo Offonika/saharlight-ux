@@ -66,7 +66,7 @@ async def test_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     ctx2 = make_context(user_data=user_data)
     await learning_handlers.quiz_answer_handler(upd2, ctx2)
     msg2 = cast(DummyMessage, upd2.message)
-    assert msg2.replies == ["ok", "Опрос завершён"]
+    assert msg2.replies == ["ok\n\n—\n\nОпрос завершён"]
     assert get_state(user_data) is None
 
 

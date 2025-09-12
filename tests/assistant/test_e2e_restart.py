@@ -168,7 +168,7 @@ async def test_hydrate_generates_snapshot_and_persists(
     msg_ans = DummyMessage(text="Не знаю")
     upd_ans = SimpleNamespace(message=msg_ans, effective_user=msg_ans.from_user)
     await learning_handlers.lesson_answer_handler(upd_ans, context)
-    assert msg_ans.sent == ["feedback", "Шаг 2"]
+    assert msg_ans.sent == ["feedback\n\n—\n\nШаг 2"]
     assert len(calls) == 3
 
     with setup_db() as session:  # type: ignore[misc]

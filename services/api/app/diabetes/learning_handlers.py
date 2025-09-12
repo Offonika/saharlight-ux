@@ -34,6 +34,7 @@ from .dynamic_tutor import (
     check_user_answer,
     generate_step_text,
     sanitize_feedback,
+    ensure_single_question,
 )
 from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides, needs_age, needs_level
@@ -440,7 +441,7 @@ async def _dynamic_learn_command(update: Update, context: ContextTypes.DEFAULT_T
         f"\U0001f5fa План обучения\n{pretty_plan(plan)}",
         reply_markup=build_main_keyboard(),
     )
-    text = format_reply(plan[0])
+    text = ensure_single_question(format_reply(plan[0]))
     await message.reply_text(text, reply_markup=build_main_keyboard())
     await safe_add_lesson_log(
         user.id,
@@ -525,7 +526,7 @@ async def _start_lesson(
         f"\U0001f5fa План обучения\n{pretty_plan(plan)}",
         reply_markup=build_main_keyboard(),
     )
-    text = format_reply(plan[0])
+    text = ensure_single_question(format_reply(plan[0]))
     await message.reply_text(text, reply_markup=build_main_keyboard())
     await safe_add_lesson_log(
         from_user.id,
@@ -760,16 +761,13 @@ async def lesson_answer_handler(
         if next_text == BUSY_MESSAGE or not next_text:
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return
-        next_text = format_reply(next_text)
-        if settings.learning_reply_mode == "one_message":
-            combined = sanitize_feedback(feedback) + "\n\n—\n\n" + next_text
-            await message.reply_text(combined, reply_markup=build_main_keyboard())
-        else:
-            await message.reply_text(feedback, reply_markup=build_main_keyboard())
-            await message.reply_text(next_text, reply_markup=build_main_keyboard())
+        next_text = ensure_single_question(format_reply(next_text))
+        sanitized_feedback = sanitize_feedback(feedback)
+        combined = sanitized_feedback + "\n\n—\n\n" + next_text
+        await message.reply_text(combined, reply_markup=build_main_keyboard())
         state.step = prev_step + 1
         state.last_step_text = next_text
-        state.prev_summary = feedback
+        state.prev_summary = sanitized_feedback
         set_state(user_data, state)
         if telegram_id is not None:
             raw_plan_id = user_data.get("learning_plan_id")
@@ -882,7 +880,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         _correct, feedback = await curriculum_engine.check_answer(
             user.id, lesson_id, {}, answer
         )
-        await message.reply_text(feedback)
+        sanitized_feedback = sanitize_feedback(feedback)
         try:
             question, completed = await curriculum_engine.next_step(
                 user.id, lesson_id, {}
@@ -896,10 +894,14 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await message.reply_text(BUSY_MESSAGE)
             return
         if question is None and completed:
-            await message.reply_text("Опрос завершён")
+            await message.reply_text(
+                sanitized_feedback + "\n\n—\n\nОпрос завершён"
+            )
             clear_state(user_data)
         elif question is not None:
-            await message.reply_text(question)
+            question = ensure_single_question(question)
+            combined = sanitized_feedback + "\n\n—\n\n" + question
+            await message.reply_text(combined)
             if state is None:
                 topic = cast(str | None, user_data.get("lesson_slug")) or ""
                 state = LearnState(topic=topic, step=0, awaiting=False)
@@ -923,6 +925,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await message.reply_text("Опрос завершён")
         clear_state(user_data)
     elif question is not None:
+        question = ensure_single_question(question)
         await message.reply_text(question)
         if state is None:
             topic = cast(str | None, user_data.get("lesson_slug")) or ""
@@ -961,7 +964,7 @@ async def quiz_answer_handler(
     _correct, feedback = await curriculum_engine.check_answer(
         user.id, lesson_id, {}, answer
     )
-    await message.reply_text(feedback)
+    sanitized_feedback = sanitize_feedback(feedback)
     try:
         question, completed = await curriculum_engine.next_step(
             user.id, lesson_id, {}
@@ -975,10 +978,14 @@ async def quiz_answer_handler(
         await message.reply_text(BUSY_MESSAGE)
         return
     if question is None and completed:
-        await message.reply_text("Опрос завершён")
+        await message.reply_text(
+            sanitized_feedback + "\n\n—\n\nОпрос завершён"
+        )
         clear_state(user_data)
     elif question is not None:
-        await message.reply_text(question)
+        question = ensure_single_question(question)
+        combined = sanitized_feedback + "\n\n—\n\n" + question
+        await message.reply_text(combined)
         state.step += 1
         state.awaiting = True
         set_state(user_data, state)

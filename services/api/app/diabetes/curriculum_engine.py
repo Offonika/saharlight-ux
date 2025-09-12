@@ -10,7 +10,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
+from .dynamic_tutor import (
+    BUSY_MESSAGE,
+    check_user_answer,
+    generate_step_text,
+    ensure_single_question,
+)
 from .prompts import (
     SYSTEM_TUTOR_RU,
     build_explain_step,
@@ -123,6 +128,7 @@ async def next_step(
             raise
         if text == BUSY_MESSAGE:
             return BUSY_MESSAGE, False
+        text = ensure_single_question(text)
 
         def _advance(session: Session) -> None:
             progress = session.execute(
@@ -223,10 +229,12 @@ async def next_step(
                 "latency": latency,
             },
         )
+        text = ensure_single_question(text)
         if first_step:
             return f"{disclaimer()}\n\n{text}", completed
         return text, completed
     if question_text is not None:
+        question_text = ensure_single_question(question_text)
         if first_question:
             return f"{disclaimer()}\n\n{question_text}", completed
         return question_text, completed

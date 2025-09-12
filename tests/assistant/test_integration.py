@@ -100,7 +100,7 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     state = get_state(context.user_data)
     assert state is not None and state.step == 2 and state.awaiting
-    assert msg_next.replies == ["fb", "step2?"]
+    assert msg_next.replies == ["fb\n\n—\n\nstep2?"]
 
     msg_idk = DummyMessage("Не знаю")
     await learning_handlers.lesson_answer_handler(
@@ -109,7 +109,7 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     state = get_state(context.user_data)
     assert state is not None and state.step == 3 and state.awaiting
-    assert msg_idk.replies == ["fb", "step3?"]
+    assert msg_idk.replies == ["fb\n\n—\n\nstep3?"]
 
     msg_next2 = DummyMessage("ans3")
     await learning_handlers.lesson_answer_handler(
@@ -118,6 +118,6 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     state = get_state(context.user_data)
     assert state is not None and state.step == 4 and state.awaiting
-    assert msg_next2.replies == ["fb", "step4?"]
+    assert msg_next2.replies == ["fb\n\n—\n\nstep4?"]
 
     assert len(lesson_log.pending_logs) == 10
