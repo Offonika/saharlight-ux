@@ -1,8 +1,12 @@
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 
 from services.api.app.diabetes.utils.ui import menu_keyboard
+from services.api.app.config import get_settings
 
-LEARN_BUTTON_TEXT = "🤖 Ассистент_AI"
+_settings = get_settings()
+LEARN_BUTTON_TEXT = (
+    "🤖 Ассистент_AI" if _settings.assistant_menu_emoji else "Ассистент_AI"
+)
 
 
 def build_main_keyboard() -> ReplyKeyboardMarkup:
