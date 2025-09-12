@@ -102,11 +102,17 @@ async def dispose_http_client() -> None:
     global _http_client, _async_http_client
     with _http_client_lock:
         for sync_client in _http_client.values():
-            sync_client.close()
+            try:
+                sync_client.close()
+            except Exception:  # pragma: no cover - best effort on shutdown
+                logger.exception("[OpenAI] Failed to close sync HTTP client")
         _http_client.clear()
     with _async_http_client_lock:
         for async_client in _async_http_client.values():
-            await async_client.aclose()
+            try:
+                await async_client.aclose()
+            except Exception:  # pragma: no cover - best effort on shutdown
+                logger.exception("[OpenAI] Failed to close async HTTP client")
         _async_http_client.clear()
 
 

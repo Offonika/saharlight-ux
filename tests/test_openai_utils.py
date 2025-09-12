@@ -192,6 +192,43 @@ async def test_dispose_http_client_resets_all(
 
 
 @pytest.mark.asyncio
+async def test_dispose_http_client_continues_on_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    bad_http_client = Mock()
+    bad_http_client.close.side_effect = RuntimeError("boom")
+    good_http_client = Mock()
+    bad_async_client = Mock()
+    bad_async_client.aclose = AsyncMock(side_effect=RuntimeError("boom"))
+    good_async_client = Mock()
+    good_async_client.aclose = AsyncMock()
+
+    monkeypatch.setattr(
+        openai_utils,
+        "_http_client",
+        {"bad": bad_http_client, "good": good_http_client},
+    )
+    monkeypatch.setattr(
+        openai_utils,
+        "_async_http_client",
+        {"bad": bad_async_client, "good": good_async_client},
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await openai_utils.dispose_http_client()
+
+    bad_http_client.close.assert_called_once()
+    good_http_client.close.assert_called_once()
+    bad_async_client.aclose.assert_awaited_once()
+    good_async_client.aclose.assert_awaited_once()
+    assert openai_utils._http_client == {}
+    assert openai_utils._async_http_client == {}
+    assert any("Failed to close sync HTTP client" in r.message for r in caplog.records)
+    assert any("Failed to close async HTTP client" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
 async def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_http_client = Mock()
     http_client_mock = Mock(return_value=fake_http_client)
