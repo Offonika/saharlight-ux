@@ -3,13 +3,16 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-from telegram.ext import ApplicationBuilder
+from telegram.ext import ApplicationBuilder, ContextTypes
 
-async def probe(_ctx):
+
+async def probe(_ctx: ContextTypes.DEFAULT_TYPE) -> None:
     print(f"[{datetime.now(tz=timezone.utc):%H:%M:%S} UTC] PROBE JOB fired ok")
 
-async def main():
+
+async def main() -> None:
     app = ApplicationBuilder().token("TEST:TOKEN").build()
+    assert app.job_queue is not None
     app.job_queue.scheduler.configure(timezone=ZoneInfo("Europe/Moscow"))
     print("APScheduler timezone:", app.job_queue.scheduler.timezone)
     app.job_queue.scheduler.start(paused=False)
