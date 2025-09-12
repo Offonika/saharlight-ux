@@ -18,7 +18,7 @@ BUSY_MESSAGE = "сервер занят, попробуйте позже"
 
 
 _TAGS_RE = re.compile(r"<[^>]+>")
-_SAFE_RE = re.compile(r"[^0-9A-Za-zА-Яа-яёЁ.,!?;:()\-\s✅⚠️❌]")
+_SAFE_RE = re.compile(r"[^0-9A-Za-zА-Яа-яёЁ.,!?;:()\-\s✅⚠️❌'\"]")
 
 _MAX_FEEDBACK_CHARS = 400
 _MAX_FEEDBACK_SENTENCES = 2
