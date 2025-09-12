@@ -83,6 +83,12 @@ async def get_coords_and_link(
         if not lat or not lon:
             logger.warning("Invalid location format: %s", loc)
             return None, None
+        try:
+            float(lat)
+            float(lon)
+        except ValueError:
+            logger.warning("Invalid location format: %s", loc)
+            return None, None
         coords = f"{lat},{lon}"
         link = f"https://maps.google.com/?q={lat},{lon}"
         return coords, link

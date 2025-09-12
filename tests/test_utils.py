@@ -86,6 +86,32 @@ async def test_get_coords_and_link_invalid_loc(
 
 
 @pytest.mark.asyncio
+async def test_get_coords_and_link_non_numeric_coords(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        class Resp:
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
+
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "abc,2"}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+
+    with caplog.at_level(logging.WARNING):
+        coords, link = await utils.get_coords_and_link()
+
+    assert coords is None and link is None
+    assert any("Invalid location format" in msg for msg in caplog.messages)
+
+
+@pytest.mark.asyncio
 async def test_get_coords_and_link_custom_source(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
