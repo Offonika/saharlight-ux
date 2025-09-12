@@ -70,6 +70,7 @@ class DummyCallbackQuery:
 
     async def answer(self, text: str | None = None, **kwargs: Any) -> None:
         self.answers.append(text)
+        self.data = ""
 
     async def edit_message_text(self, text: str, **kwargs: Any) -> None:
         self.edited = (text, kwargs)
