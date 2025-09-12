@@ -4,6 +4,7 @@ import logging
 from typing import Mapping
 
 import httpx
+import re
 from openai import OpenAIError
 from openai.types.chat import ChatCompletionMessageParam
 
@@ -14,6 +15,17 @@ from .services.gpt_client import create_learning_chat_completion
 logger = logging.getLogger(__name__)
 
 BUSY_MESSAGE = "сервер занят, попробуйте позже"
+
+
+_TAGS_RE = re.compile(r"<[^>]+>")
+_SAFE_RE = re.compile(r"[^0-9A-Za-zА-Яа-яёЁ.,!?;:()\-\s✅⚠️❌]")
+
+
+def sanitize_feedback(text: str) -> str:
+    """Remove HTML tags and unsafe characters from LLM output."""
+    cleaned = _TAGS_RE.sub("", text)
+    cleaned = _SAFE_RE.sub(" ", cleaned)
+    return " ".join(cleaned.split())
 
 
 async def _chat(task: LLMTask, system: str, user: str, *, max_tokens: int = 350) -> str:
@@ -67,23 +79,25 @@ async def check_user_answer(
         "объясни в 1–2 предложениях и дай мягкий совет, что повторить."
     )
     try:
-        feedback = await _chat(LLMTask.QUIZ_CHECK, system, user, max_tokens=250)
+        raw_feedback = await _chat(LLMTask.QUIZ_CHECK, system, user, max_tokens=250)
     except (OpenAIError, httpx.HTTPError, RuntimeError):
         logger.exception(
             "failed to check answer",
             extra={"topic": topic_slug, "answer": user_answer},
         )
         return False, BUSY_MESSAGE
-    if not feedback.strip():
+
+    feedback = sanitize_feedback(raw_feedback)
+    if not feedback:
         logger.warning(
             "empty feedback",
             extra={"topic": topic_slug, "answer": user_answer},
         )
         return False, BUSY_MESSAGE
 
-    first = feedback.split(maxsplit=1)[0].strip(".,!?:;\"'«»").lower()
-    correct = first in {"верно", "правильно"}
+    stripped = feedback.lstrip()
+    correct = stripped.startswith("✅")
     return correct, feedback
 
 
-__all__ = ["generate_step_text", "check_user_answer", "BUSY_MESSAGE"]
+__all__ = ["generate_step_text", "check_user_answer", "sanitize_feedback", "BUSY_MESSAGE"]
