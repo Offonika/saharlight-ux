@@ -44,10 +44,22 @@ MENU_LAYOUT: tuple[tuple[InlineKeyboardButton, ...], ...] = (
 )
 
 MODE_TEXTS: dict[str, str] = {
-    "learn": "Режим обучения активирован.",
-    "chat": "Свободный диалог активирован.",
-    "labs": "Пришлите файл или текст анализов.",
-    "visit": "Подготовка чек-листа визита.",
+    "learn": (
+        "Режим обучения активирован. Спрашивайте о продуктах и дозах. "
+        "Присылайте фото — я посчитаю хлебные единицы. 📚"
+    ),
+    "chat": (
+        "Свободный диалог активирован. Делитесь вопросами или переживаниями. "
+        "Просто поговорим или обсудим диабет. 💬"
+    ),
+    "labs": (
+        "Пришлите файл или текст анализов. Я помогу расшифровать показатели и дам "
+        "общие советы. Можно отправить несколько сообщений. 🧪"
+    ),
+    "visit": (
+        "Подготовка чек-листа визита. Я спрошу про анализы и самочувствие. "
+        "Ответьте на вопросы, чтобы получить PDF. 📄"
+    ),
 }
 
 
@@ -68,7 +80,9 @@ async def show_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 def _back_keyboard() -> InlineKeyboardMarkup:
     """Create a back button keyboard."""
 
-    return InlineKeyboardMarkup(((InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data="asst:back"),),))
+    return InlineKeyboardMarkup(
+        ((InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data="asst:back"),),)
+    )
 
 
 async def post_init(
@@ -112,7 +126,9 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         return
     if data in {"asst:back", "asst:menu"}:
         if message and hasattr(message, "edit_text"):
-            await cast(Message, message).edit_text("Ассистент:", reply_markup=assistant_keyboard())
+            await cast(Message, message).edit_text(
+                "Ассистент:", reply_markup=assistant_keyboard()
+            )
         return
     mode = data.split(":", 1)[1]
     user = getattr(update, "effective_user", None)
@@ -123,14 +139,18 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
             extra={"data": data, "user_id": getattr(user, "id", None)},
         )
         if message and hasattr(message, "edit_text"):
-            await cast(Message, message).edit_text("Неизвестная команда.", reply_markup=_back_keyboard())
+            await cast(Message, message).edit_text(
+                "Неизвестная команда.", reply_markup=_back_keyboard()
+            )
         return
     logger.info(
         "assistant_mode_selected",
         extra={"mode": mode, "user_id": getattr(user, "id", None)},
     )
     if message and hasattr(message, "edit_text"):
-        await cast(Message, message).edit_text(MODE_TEXTS[mode], reply_markup=_back_keyboard())
+        await cast(Message, message).edit_text(
+            MODE_TEXTS[mode], reply_markup=_back_keyboard()
+        )
     user_data = cast(dict[str, object], ctx.user_data)
     if mode == "labs":
         user_data["waiting_labs"] = True
