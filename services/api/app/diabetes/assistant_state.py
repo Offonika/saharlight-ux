@@ -13,6 +13,7 @@ ASSISTANT_SUMMARY_TRIGGER: int = _settings.assistant_summary_trigger
 HISTORY_KEY = "assistant_history"
 SUMMARY_KEY = "assistant_summary"
 LAST_MODE_KEY = "assistant_last_mode"
+AWAITING_KIND = "assistant_awaiting_kind"
 
 
 def summarize(parts: list[str]) -> str:
@@ -58,6 +59,13 @@ def reset(user_data: MutableMapping[str, object]) -> None:
     user_data.pop(LAST_MODE_KEY, None)
 
 
+def reset_mode_state(user_data: MutableMapping[str, object]) -> None:
+    """Clear mode-related keys from ``user_data``."""
+
+    user_data.pop(LAST_MODE_KEY, None)
+    user_data.pop(AWAITING_KIND, None)
+
+
 def get_last_mode(user_data: MutableMapping[str, object]) -> str | None:
     """Return previously selected assistant mode from ``user_data``."""
 
@@ -80,9 +88,11 @@ __all__ = [
     "HISTORY_KEY",
     "SUMMARY_KEY",
     "LAST_MODE_KEY",
+    "AWAITING_KIND",
     "summarize",
     "add_turn",
     "reset",
+    "reset_mode_state",
     "get_last_mode",
     "set_last_mode",
 ]

@@ -7,7 +7,11 @@ from typing import MutableMapping, Sequence, cast
 from telegram import Update
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
-from services.api.app.diabetes.assistant_state import get_last_mode, set_last_mode
+from services.api.app.diabetes.assistant_state import (
+    AWAITING_KIND,
+    get_last_mode,
+    set_last_mode,
+)
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.handlers import gpt_handlers
 from services.api.app.diabetes.utils.ui import (
@@ -53,17 +57,21 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     mode = get_last_mode(user_data)
     logger.debug("assistant_router mode=%s text=%s", mode, text)
     if mode == "learn":
+        user_data[AWAITING_KIND] = "learn"
         await learning_handlers.on_any_text(update, context)
         raise ApplicationHandlerStop
     if mode == "chat":
+        user_data[AWAITING_KIND] = "chat"
         await gpt_handlers.freeform_handler(update, context)
         raise ApplicationHandlerStop
     if mode == "labs":
         user_data["waiting_labs"] = True
+        user_data[AWAITING_KIND] = "labs"
         await message.reply_text("Отправьте анализы в виде файла или текста.")
         set_last_mode(user_data, None)
         raise ApplicationHandlerStop
     if mode == "visit":
+        user_data[AWAITING_KIND] = "visit"
         await message.reply_text(
             "Чек-лист визита: измерения, вопросы врачу, назначения."
         )

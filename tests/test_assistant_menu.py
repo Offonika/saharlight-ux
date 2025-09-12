@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 
 from services.api.app.diabetes.handlers import assistant_menu
-from services.api.app.diabetes import visit_handlers
+from services.api.app.diabetes import assistant_state, visit_handlers
 
 
 def test_assistant_keyboard_layout() -> None:
@@ -68,6 +68,7 @@ async def test_assistant_callback_saves_mode() -> None:
     await assistant_menu.assistant_callback(update, ctx)
 
     assert user_data.get("assistant_last_mode") == "learn"
+    assert user_data.get(assistant_state.AWAITING_KIND) == "learn"
 
 
 @pytest.mark.asyncio
@@ -88,6 +89,7 @@ async def test_assistant_callback_labs_waiting() -> None:
 
     assert user_data.get("waiting_labs") is True
     assert user_data.get("assistant_last_mode") is None
+    assert user_data.get(assistant_state.AWAITING_KIND) == "labs"
 
 
 @pytest.mark.asyncio

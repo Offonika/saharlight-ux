@@ -1,8 +1,9 @@
 import os
 import builtins
 import logging
+from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from sqlalchemy.orm import Session
@@ -35,7 +36,7 @@ from services.api.app.diabetes.handlers import (
     learning_onboarding,
     assistant_menu,
 )
-from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes import assistant_state, learning_handlers
 from services.api.app.diabetes import commands
 from services.api.app.config import reload_settings
 
@@ -580,4 +581,35 @@ def test_register_handlers_schedules_cleanup(monkeypatch: pytest.MonkeyPatch) ->
     assert set(run_repeating_names) >= {
         "clear_waiting_gpt_flags",
         "cleanup_old_records",
+        "assistant_mode_timeout",
     }
+
+
+@pytest.mark.asyncio
+async def test_assistant_mode_timeout_clears_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    scheduled: dict[str, Any] = {}
+
+    def fake_run_repeating(self, callback: Any, *args: Any, **kwargs: Any) -> None:
+        if kwargs.get("name") == "assistant_mode_timeout":
+            scheduled["callback"] = callback
+
+    monkeypatch.setattr(JobQueue, "run_repeating", fake_run_repeating)
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_handlers(app)
+
+    cb = scheduled["callback"]
+    user_data = {
+        1: {
+            assistant_state.LAST_MODE_KEY: "chat",
+            assistant_state.AWAITING_KIND: "chat",
+        }
+    }
+    bot = MagicMock()
+    bot.send_message = AsyncMock()
+    ctx = SimpleNamespace(application=SimpleNamespace(user_data=user_data), bot=bot)
+
+    await cb(ctx)
+
+    assert user_data[1] == {}
+    bot.send_message.assert_awaited_once()

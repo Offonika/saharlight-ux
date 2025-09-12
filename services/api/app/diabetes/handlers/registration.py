@@ -211,6 +211,7 @@ def register_handlers(
         billing_handlers,
         assistant_menu,
     )
+    from ..assistant_state import AWAITING_KIND, LAST_MODE_KEY, reset_mode_state
     from services.api.app.diabetes import commands as bot_commands
     from services.api.app.config import reload_settings, settings
     from services.api.app.assistant.repositories.logs import cleanup_old_logs
@@ -338,4 +339,33 @@ def register_handlers(
             interval=datetime.timedelta(days=1),
             first=datetime.timedelta(hours=1),
             name="cleanup_old_records",
+        )
+
+        assistant_mode_timeout = getattr(
+            settings, "assistant_mode_timeout_sec", 300
+        )
+
+        async def _assistant_mode_timeout(
+            context: ContextTypes.DEFAULT_TYPE,
+        ) -> None:
+            bot = context.bot
+            for user_id, data in context.application.user_data.items():
+                if not isinstance(user_id, int) or not isinstance(data, dict):
+                    continue
+                if data.get(LAST_MODE_KEY) or data.get(AWAITING_KIND):
+                    reset_mode_state(data)
+                    try:
+                        await bot.send_message(
+                            chat_id=user_id,
+                            text="Ассистент:",
+                            reply_markup=assistant_menu.assistant_keyboard(),
+                        )
+                    except Exception:
+                        logger.exception("Failed to send assistant menu")
+
+        jq.run_repeating(
+            _assistant_mode_timeout,
+            interval=datetime.timedelta(seconds=assistant_mode_timeout),
+            first=datetime.timedelta(seconds=assistant_mode_timeout),
+            name="assistant_mode_timeout",
         )

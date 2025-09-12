@@ -44,3 +44,12 @@ async def test_reset_command_clears(monkeypatch: pytest.MonkeyPatch) -> None:
     await commands.reset_command(update, context)
     assert user_data == {}
     assert replies and "очищ" in replies[0].lower()
+
+
+def test_reset_mode_state() -> None:
+    data = {
+        assistant_state.LAST_MODE_KEY: "chat",
+        assistant_state.AWAITING_KIND: "chat",
+    }
+    assistant_state.reset_mode_state(data)
+    assert data == {}

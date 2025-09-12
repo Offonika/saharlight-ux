@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 from telegram.ext import ApplicationHandlerStop
 
 from services.api.app.diabetes.handlers import assistant_router
-from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes import assistant_state, learning_handlers
 from services.api.app.diabetes.handlers import gpt_handlers
 from services.api.app.diabetes.utils.ui import SUGAR_BUTTON_TEXT
 
@@ -29,6 +29,7 @@ async def test_router_learn_routes(monkeypatch: pytest.MonkeyPatch) -> None:
         await assistant_router.on_any_text(update, ctx)
 
     assert called
+    assert ctx.user_data.get(assistant_state.AWAITING_KIND) == "learn"
 
 
 @pytest.mark.asyncio
@@ -51,6 +52,7 @@ async def test_router_chat_routes(monkeypatch: pytest.MonkeyPatch) -> None:
         await assistant_router.on_any_text(update, ctx)
 
     assert called
+    assert ctx.user_data.get(assistant_state.AWAITING_KIND) == "chat"
 
 
 @pytest.mark.asyncio
@@ -69,6 +71,7 @@ async def test_router_labs_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
     assert ctx.user_data.get("waiting_labs") is True
     message.reply_text.assert_awaited_once()
     assert ctx.user_data.get("assistant_last_mode") is None
+    assert ctx.user_data.get(assistant_state.AWAITING_KIND) == "labs"
 
 
 @pytest.mark.asyncio
@@ -86,6 +89,7 @@ async def test_router_visit_checklist() -> None:
 
     message.reply_text.assert_awaited_once()
     assert ctx.user_data.get("assistant_last_mode") is None
+    assert ctx.user_data.get(assistant_state.AWAITING_KIND) == "visit"
 
 
 @pytest.mark.asyncio
@@ -108,3 +112,4 @@ async def test_router_passes_menu_buttons(monkeypatch: pytest.MonkeyPatch) -> No
 
     assert called is False
     assert ctx.user_data.get("assistant_last_mode") == "chat"
+    assert assistant_state.AWAITING_KIND not in ctx.user_data
