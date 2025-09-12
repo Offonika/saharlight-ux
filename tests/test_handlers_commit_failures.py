@@ -63,6 +63,12 @@ class ReminderStub:
     minutes_after: int | None = None
 
 
+@dataclass
+class EntryStub:
+    id: int = 1
+    telegram_id: int = 1
+
+
 def make_user(user_id: int) -> MagicMock:
     user = MagicMock(spec=User)
     user.id = user_id
@@ -104,7 +110,9 @@ async def test_profile_command_saves_locally(
 
     dummy_api = MagicMock()
     dummy_api.profiles_post = MagicMock()
-    monkeypatch.setattr(profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock))
+    monkeypatch.setattr(
+        profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
+    )
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -138,7 +146,9 @@ async def test_profile_command_db_error(
 
     dummy_api = MagicMock()
     dummy_api.profiles_post = MagicMock()
-    monkeypatch.setattr(profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock))
+    monkeypatch.setattr(
+        profile_handlers, "get_api", lambda: (dummy_api, Exception, MagicMock)
+    )
 
     message = DummyMessage()
     update = make_update(message=message, effective_user=make_user(1))
@@ -187,7 +197,40 @@ async def test_callback_router_commit_failure(
 
 
 @pytest.mark.asyncio
-async def test_add_reminder_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_handle_edit_or_delete_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
+
+    session = MagicMock()
+    session.__enter__.return_value = session
+    session.__exit__.return_value = None
+    session.get.return_value = EntryStub(id=1, telegram_id=1)
+    session.delete = MagicMock()
+
+    monkeypatch.setattr(router, "SessionLocal", lambda: session)
+
+    def failing_commit(session: Any) -> None:
+        raise router.CommitError
+
+    monkeypatch.setattr(router, "commit", failing_commit)
+
+    query = DummyQuery(DummyMessage(), "del:1")
+    update = make_update(callback_query=query, effective_user=make_user(1))
+    context = make_context()
+
+    with caplog.at_level(logging.ERROR):
+        await router.handle_edit_or_delete(update, context, query, "del:1")
+
+    assert "Failed to delete entry" in caplog.text
+    assert query.edited == ["⚠️ Не удалось удалить запись."]
+
+
+@pytest.mark.asyncio
+async def test_add_reminder_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
@@ -248,7 +291,9 @@ async def test_reminder_webapp_save_commit_failure(
     render_mock = MagicMock()
     monkeypatch.setattr(reminder_handlers, "_render_reminders", render_mock)
 
-    message = DummyWebAppMessage(json.dumps({"type": "sugar", "value": "23:00", "id": 1}))
+    message = DummyWebAppMessage(
+        json.dumps({"type": "sugar", "value": "23:00", "id": 1})
+    )
     update = make_update(effective_message=message, effective_user=make_user(1))
     job_queue = MagicMock(spec=JobQueue)
     job_queue.run_once = MagicMock()
@@ -296,7 +341,9 @@ async def test_delete_reminder_commit_failure(
 
 
 @pytest.mark.asyncio
-async def test_reminder_job_commit_failure(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+async def test_reminder_job_commit_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     session = MagicMock()
     session.__enter__.return_value = session
     session.__exit__.return_value = None
