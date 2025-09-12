@@ -8,12 +8,7 @@ from services.api.app.diabetes import labs_handlers
 
 
 def test_parse_labs_basic() -> None:
-    text = (
-        "Глюкоза: 5 (3.3-5.5)\n"
-        "HbA1c: 7 (4-6)\n"
-        "ALT: 41 (10-40)\n"
-        "Метформин 500 мг"
-    )
+    text = "Глюкоза: 5 (3.3-5.5)\nHbA1c: 7 (4-6)\nALT: 41 (10-40)\nМетформин 500 мг"
     results = labs_handlers.parse_labs(text)
     names = [r.name for r in results]
     assert "Глюкоза" in names
@@ -38,3 +33,26 @@ async def test_labs_handler_text() -> None:
     assert result == labs_handlers.END
     assert ctx.user_data.get("waiting_labs") is None
     message.reply_text.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_labs_handler_unsupported_mime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    update = MagicMock()
+    message = MagicMock()
+    message.text = None
+    message.reply_text = AsyncMock()
+    update.effective_message = message
+    ctx = MagicMock()
+    ctx.user_data = {"waiting_labs": True}
+    monkeypatch.setattr(
+        labs_handlers,
+        "_download_file",
+        AsyncMock(return_value=(b"data", "application/zip")),
+    )
+    result = await labs_handlers.labs_handler(update, ctx)
+    assert result == labs_handlers.END
+    message.reply_text.assert_awaited_once()
+    assert ctx.user_data.get("waiting_labs") is True
+    assert labs_handlers.AWAITING_KIND not in ctx.user_data

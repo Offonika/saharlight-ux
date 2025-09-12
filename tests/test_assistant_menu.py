@@ -150,3 +150,26 @@ async def test_assistant_callback_save_note_routes(monkeypatch: pytest.MonkeyPat
     await assistant_menu.assistant_callback(update, MagicMock())
 
     handler.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_assistant_callback_unknown(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    message = MagicMock()
+    message.edit_text = AsyncMock()
+    query = MagicMock()
+    query.data = "asst:unknown"
+    query.message = message
+    query.answer = AsyncMock()
+    update = MagicMock()
+    update.callback_query = query
+    update.effective_user = MagicMock(id=13)
+    ctx = MagicMock()
+    ctx.user_data = {}
+    with caplog.at_level(logging.WARNING):
+        await assistant_menu.assistant_callback(update, ctx)
+    message.edit_text.assert_awaited_once()
+    assert ctx.user_data == {}
+    record = next(r for r in caplog.records if r.message == "assistant_unknown_callback")
+    assert record.data == "asst:unknown"
