@@ -1,5 +1,5 @@
 import logging
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -226,12 +226,13 @@ async def test_post_init_restores_modes(monkeypatch: pytest.MonkeyPatch) -> None
     )
     bot = MagicMock()
     bot.send_message = AsyncMock()
-    app = SimpleNamespace(bot=bot, user_data={})
+    app = SimpleNamespace(bot=bot, user_data=MappingProxyType({}))
+    app._user_data = {}
 
     await assistant_menu.post_init(app)
 
-    assert app.user_data[1][assistant_state.LAST_MODE_KEY] == "chat"
-    assert app.user_data[2][assistant_state.LAST_MODE_KEY] == "learn"
+    assert app._user_data[1][assistant_state.LAST_MODE_KEY] == "chat"
+    assert app._user_data[2][assistant_state.LAST_MODE_KEY] == "learn"
     assert bot.send_message.await_count == 2
 
 
