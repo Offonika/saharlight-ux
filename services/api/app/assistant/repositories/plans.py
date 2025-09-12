@@ -41,7 +41,8 @@ async def create_plan(
         sess.add(plan)
         commit(sess)
         sess.refresh(plan)
-        assert plan.id is not None
+        if plan.id is None:
+            raise RuntimeError("Plan ID was not generated")
         return plan.id
 
     return cast(int, await run_db(_create, sessionmaker=SessionLocal))

@@ -104,3 +104,25 @@ async def test_create_plan_deactivates_previous_active(
 async def test_create_plan_without_user(session_local: sessionmaker[Session]) -> None:
     with pytest.raises(RuntimeError, match="not registered"):
         await plans.create_plan(5, version=1, plan_json=[])
+
+
+@pytest.mark.asyncio
+async def test_create_plan_without_id(
+    session_local: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with session_local() as session:
+        session.add(db.User(telegram_id=6, thread_id=""))
+        session.commit()
+
+    original_refresh = Session.refresh
+
+    def fake_refresh(
+        self: Session, instance: object, *args: object, **kwargs: object
+    ) -> None:
+        original_refresh(self, instance, *args, **kwargs)
+        setattr(instance, "id", None)
+
+    monkeypatch.setattr(Session, "refresh", fake_refresh)
+    with pytest.raises(RuntimeError, match="ID was not generated"):
+        await plans.create_plan(6, version=1, plan_json=[])
