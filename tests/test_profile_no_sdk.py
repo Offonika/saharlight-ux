@@ -136,7 +136,6 @@ async def test_profile_command_and_view_without_sdk(
     monkeypatch.delenv("API_URL", raising=False)
     import services.api.app.config as config_module
     monkeypatch.setattr(config_module, "settings", Settings(_env_file=None))
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
     import importlib
 

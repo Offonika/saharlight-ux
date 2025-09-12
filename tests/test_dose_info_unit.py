@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 import services.api.app.diabetes.handlers.dose_calc as dose_calc
 import services.api.app.diabetes.handlers.gpt_handlers as gpt_handlers
 
