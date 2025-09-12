@@ -708,6 +708,41 @@ async def test_reminder_webapp_save_interval_minutes(reminder_handlers: Any, mon
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("value", [0, -5])
+async def test_reminder_webapp_save_interval_minutes_non_positive(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch, value: int
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None))
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+    )
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    message = DummyWebAppMessage(
+        json.dumps({"type": "sugar", "kind": "every", "intervalMinutes": value})
+    )
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    assert message.texts == ["Значение должно быть больше 0."]
+    with TestSession() as session:
+        assert session.query(Reminder).count() == 0
+
+
+@pytest.mark.asyncio
 async def test_reminder_webapp_save_minutes_after(reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -739,6 +774,41 @@ async def test_reminder_webapp_save_minutes_after(reminder_handlers: Any, monkey
         assert rem_db.time is None
         assert rem_db.interval_minutes is None
         assert rem_db.interval_hours is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("value", [0, -10])
+async def test_reminder_webapp_save_minutes_after_non_positive(
+    reminder_handlers: Any, monkeypatch: pytest.MonkeyPatch, value: int
+) -> None:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    TestSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    monkeypatch.setattr(reminder_handlers, "SessionLocal", TestSession)
+    monkeypatch.setattr(reminder_handlers, "commit", commit)
+    monkeypatch.setattr(reminder_handlers, "run_db", None)
+    monkeypatch.setattr(reminder_handlers, "_render_reminders", lambda s, uid: ("ok", None))
+    monkeypatch.setattr(
+        reminder_handlers,
+        "reminder_events",
+        SimpleNamespace(notify_reminder_saved=AsyncMock()),
+    )
+
+    with TestSession() as session:
+        session.add(DbUser(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    message = DummyWebAppMessage(
+        json.dumps({"type": "after_meal", "kind": "after_event", "minutesAfter": value})
+    )
+    update = make_update(effective_message=message, effective_user=make_user(1))
+    context = make_context()
+
+    await reminder_handlers.reminder_webapp_save(update, context)
+
+    assert message.texts == ["Значение должно быть больше 0."]
+    with TestSession() as session:
+        assert session.query(Reminder).count() == 0
 
 
 @pytest.mark.asyncio

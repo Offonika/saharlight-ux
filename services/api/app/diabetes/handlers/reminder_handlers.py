@@ -857,12 +857,18 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
     elif interval_minutes_raw is not None:
         try:
             interval_minutes = int(interval_minutes_raw)
+            if interval_minutes <= 0:
+                await msg.reply_text("Значение должно быть больше 0.")
+                return
         except (TypeError, ValueError):
             await msg.reply_text("Неверный формат")
             return
     elif minutes_after_raw is not None:
         try:
             minutes = int(minutes_after_raw)
+            if minutes <= 0:
+                await msg.reply_text("Значение должно быть больше 0.")
+                return
         except (TypeError, ValueError):
             await msg.reply_text("Неверный формат")
             return
