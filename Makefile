@@ -46,4 +46,11 @@ seed-l1:
 	$(RUN_AS_POSTGRES) psql -d $(DB_NAME) -v ON_ERROR_STOP=1 -f scripts/seed_lesson_l1.sql
 
 db-check:
-	$(RUN_AS_POSTGRES) env DATABASE_URL="$(DB_URL)" $(PY) scripts/check_learning_db.py
+        $(RUN_AS_POSTGRES) env DATABASE_URL="$(DB_URL)" $(PY) scripts/check_learning_db.py
+
+# === CI ===
+
+ci:
+	pytest -q --cov
+	mypy --strict .
+	ruff check .
