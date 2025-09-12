@@ -35,6 +35,7 @@ def test_upgrade(monkeypatch: pytest.MonkeyPatch) -> None:
         inspector = sa.inspect(engine)
         cols = [col["name"] for col in inspector.get_columns("assistant_memory")]
         assert "summary_text" in cols
+        assert "last_mode" in cols
 
         logging.config.dictConfig({"version": 1, "disable_existing_loggers": False})
         assert logging.getLogger(__name__).disabled is False
