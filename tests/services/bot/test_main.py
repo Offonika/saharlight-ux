@@ -18,11 +18,6 @@ async def test_post_init_without_redis(monkeypatch) -> None:
 
     monkeypatch.setattr(builtins, "__import__", fake_import)
     monkeypatch.setattr(main, "redis", main.redis_stub)
-
-    def fake_from_url(*args: object, **kwargs: object) -> None:
-        raise AssertionError("redis.from_url should not be called")
-
-    monkeypatch.setattr(main.redis_stub, "from_url", fake_from_url)
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
     monkeypatch.setattr(
         "services.api.app.diabetes.handlers.assistant_menu.post_init",

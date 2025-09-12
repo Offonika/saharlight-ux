@@ -78,12 +78,20 @@ class DummyRedis:
         return None
 
 
+class DummyRedisModule:
+    def __init__(self, client: DummyRedis) -> None:
+        self._client = client
+
+    def from_url(self, url: str) -> DummyRedis:
+        return self._client
+
+
 @pytest.mark.asyncio
 async def test_post_init_skips_recent_commands(monkeypatch: pytest.MonkeyPatch) -> None:
     main = _reload_main()
     now = datetime.now(timezone.utc)
     redis_client = DummyRedis(now.isoformat().encode())
-    monkeypatch.setattr(main.redis.Redis, "from_url", lambda url: redis_client)
+    monkeypatch.setattr(main, "redis", DummyRedisModule(redis_client))
     bot = SimpleNamespace(set_my_commands=AsyncMock())
     app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
@@ -102,7 +110,7 @@ async def test_post_init_sets_and_caches(monkeypatch: pytest.MonkeyPatch) -> Non
     main = _reload_main()
     past = datetime.now(timezone.utc) - timedelta(hours=25)
     redis_client = DummyRedis(past.isoformat().encode())
-    monkeypatch.setattr(main.redis.Redis, "from_url", lambda url: redis_client)
+    monkeypatch.setattr(main, "redis", DummyRedisModule(redis_client))
     bot = SimpleNamespace(set_my_commands=AsyncMock())
     app = SimpleNamespace(bot=bot, job_queue=None, user_data={})
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())

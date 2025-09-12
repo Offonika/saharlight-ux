@@ -48,7 +48,6 @@ TELEGRAM_TOKEN = settings.telegram_token
 
 redis_stub = SimpleNamespace()
 redis_stub.Redis = SimpleNamespace(from_url=lambda *a, **k: None)
-redis_stub.from_url = lambda *a, **k: redis_stub.Redis.from_url(*a, **k)
 redis: ModuleType | SimpleNamespace = redis_stub
 
 commands = [
@@ -77,7 +76,7 @@ async def post_init(
     ],
 ) -> None:
     global redis
-    if not isinstance(redis, ModuleType):
+    if not hasattr(redis, "from_url"):
         try:
             import redis.asyncio as real_redis  # type: ignore[import-not-found]
         except ModuleNotFoundError:
@@ -90,19 +89,17 @@ async def post_init(
 
     redis_client: Any | None = None
     should_set = True
-    if not isinstance(redis, ModuleType):
-        logger.warning("Redis package not installed; command caching disabled")
-    else:
-        try:
-            redis_raw = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
-            redis_client = cast(Any, redis_raw)
-            raw_ts = await redis_client.get("bot:commands_set_at")
-            if raw_ts:
-                last_set = datetime.fromisoformat(raw_ts.decode())
-                if datetime.now(timezone.utc) - last_set < timedelta(hours=24):
-                    should_set = False
-        except Exception as exc:  # pragma: no cover - network/cache issues
-            logger.warning("Redis unavailable: %s", exc)
+    try:
+        from_url = getattr(redis, "from_url")
+        redis_raw = from_url(settings.redis_url)  # type: ignore[no-untyped-call]
+        redis_client = cast(Any, redis_raw)
+        raw_ts = await redis_client.get("bot:commands_set_at")
+        if raw_ts:
+            last_set = datetime.fromisoformat(raw_ts.decode())
+            if datetime.now(timezone.utc) - last_set < timedelta(hours=24):
+                should_set = False
+    except Exception as exc:  # pragma: no cover - network/cache issues
+        logger.warning("Redis unavailable: %s", exc)
 
     if should_set:
         try:
