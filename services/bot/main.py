@@ -11,9 +11,11 @@ os.environ.setdefault(
 
 import logging
 import sys
-from datetime import timedelta
-from typing import TYPE_CHECKING, TypeAlias
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, TypeAlias, cast
 from zoneinfo import ZoneInfo
+
+import redis.asyncio as redis
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
@@ -57,6 +59,46 @@ commands = [
 ]
 
 
+REDIS_KEY = "bot:commands_set_at"
+COMMANDS_TTL = timedelta(hours=24, minutes=5)
+
+
+async def update_commands_if_needed(bot: ExtBot[None]) -> None:
+    """Update bot commands at most once per day.
+
+    Commands are updated only if the last update stored in Redis is older than
+    24 hours. After a successful update, the current timestamp is stored with a
+    TTL slightly over one day.
+    """
+
+    redis_client = cast(
+        redis.Redis,
+        redis.from_url(settings.redis_url, decode_responses=True),  # type: ignore[no-untyped-call]
+    )
+    try:
+        ts_raw = await redis_client.get(REDIS_KEY)
+        if ts_raw:
+            try:
+                ts = datetime.fromisoformat(ts_raw)
+            except ValueError:
+                ts = None
+            if ts and datetime.now(timezone.utc) - ts < timedelta(hours=24):
+                logger.info("Bot commands were updated recently; skipping")
+                return
+
+        await bot.set_my_commands(commands)
+        await redis_client.set(
+            REDIS_KEY,
+            datetime.now(timezone.utc).isoformat(),
+            ex=COMMANDS_TTL,
+        )
+    except Exception as exc:  # pragma: no cover - runtime safety
+        logger.warning("Redis unavailable, setting commands without cache", exc_info=exc)
+        await bot.set_my_commands(commands)
+    finally:
+        await redis_client.close()
+
+
 async def post_init(
     app: Application[
         ExtBot[None],
@@ -67,7 +109,7 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
-    await app.bot.set_my_commands(commands)
+    await update_commands_if_needed(app.bot)
     await menu_button_post_init(app)
     from services.api.app.diabetes.handlers import assistant_menu
 
@@ -79,14 +121,10 @@ async def post_init(
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    logger.exception(
-        "Exception while handling update %s", update, exc_info=context.error
-    )
+    logger.exception("Exception while handling update %s", update, exc_info=context.error)
 
 
-def build_persistence() -> (
-    PicklePersistence[dict[str, object], dict[str, object], dict[str, object]]
-):
+def build_persistence() -> PicklePersistence[dict[str, object], dict[str, object], dict[str, object]]:
     """Create PicklePersistence with configurable path.
 
     Path can be overridden via ``BOT_PERSISTENCE_PATH``. By default it is stored
@@ -101,14 +139,10 @@ def build_persistence() -> (
     state_dir.mkdir(parents=True, exist_ok=True)
     default_path = state_dir / "bot_persistence.pkl"
     persistence_path_str = os.environ.get("BOT_PERSISTENCE_PATH")
-    persistence_path = (
-        Path(persistence_path_str) if persistence_path_str else default_path
-    )
+    persistence_path = Path(persistence_path_str) if persistence_path_str else default_path
     persistence_path.parent.mkdir(parents=True, exist_ok=True)
     if not os.access(persistence_path.parent, os.W_OK):
-        raise RuntimeError(
-            f"Persistence directory is not writable: {persistence_path.parent}"
-        )
+        raise RuntimeError(f"Persistence directory is not writable: {persistence_path.parent}")
     return PicklePersistence(str(persistence_path), single_file=True)
 
 
@@ -116,9 +150,7 @@ def main() -> None:  # pragma: no cover
     level = settings.log_level
     if isinstance(level, str):  # pragma: no cover - runtime config
         level = getattr(logging, level.upper(), logging.INFO)
-    logging.basicConfig(
-        level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     logger.info("=== Bot started ===")
 
     # применяем воркараунд к PTB JobQueue.stop
@@ -131,9 +163,7 @@ def main() -> None:  # pragma: no cover
         sys.exit("Invalid configuration. Please check your settings and try again.")
     except SQLAlchemyError as exc:
         logger.error("Failed to initialize the database", exc_info=exc)
-        sys.exit(
-            "Database initialization failed. Please check your configuration and try again."
-        )
+        sys.exit("Database initialization failed. Please check your configuration and try again.")
 
     BOT_TOKEN = TELEGRAM_TOKEN
     if not BOT_TOKEN:
@@ -145,8 +175,7 @@ def main() -> None:  # pragma: no cover
         persistence = build_persistence()
     except Exception as exc:  # pragma: no cover - runtime safety
         logger.error(
-            "Failed to initialize persistence. "
-            "Ensure STATE_DIRECTORY points to a writable directory.",
+            "Failed to initialize persistence. Ensure STATE_DIRECTORY points to a writable directory.",
             exc_info=exc,
         )
         sys.exit(1)
@@ -157,13 +186,7 @@ def main() -> None:  # pragma: no cover
         dict[str, object],
         dict[str, object],
         DefaultJobQueue,
-    ] = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .persistence(persistence)
-        .post_init(post_init)
-        .build()
-    )
+    ] = Application.builder().token(BOT_TOKEN).persistence(persistence).post_init(post_init).build()
 
     application.add_handler(build_start_handler(), group=0)
     logger.info("✅ /start → WebApp CTA mode enabled")
@@ -199,9 +222,7 @@ def main() -> None:  # pragma: no cover
         if admin_id is None:
             logger.warning("Admin ID not configured; skipping test reminder")
             return
-        await context.bot.send_message(
-            chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅"
-        )
+        await context.bot.send_message(chat_id=admin_id, text="🔔 Test reminder fired! JobQueue работает ✅")
 
     job_queue.run_once(test_job, when=timedelta(seconds=30), name="test_job")
     logger.info("🧪 Scheduled test_job in +30s")
@@ -210,7 +231,14 @@ def main() -> None:  # pragma: no cover
     application.run_polling()
 
 
-__all__ = ["main", "error_handler", "settings", "TELEGRAM_TOKEN", "build_persistence"]
+__all__ = [
+    "main",
+    "error_handler",
+    "settings",
+    "TELEGRAM_TOKEN",
+    "build_persistence",
+    "update_commands_if_needed",
+]
 
 if __name__ == "__main__":  # pragma: no cover
     main()
