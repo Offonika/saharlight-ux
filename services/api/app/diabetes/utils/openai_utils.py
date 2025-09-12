@@ -4,7 +4,6 @@ import logging
 import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Literal, overload
 
 import httpx
 from openai import AsyncOpenAI, OpenAI
@@ -20,34 +19,11 @@ _async_http_client: dict[str, httpx.AsyncClient] = {}
 _async_http_client_lock = threading.Lock()
 
 
-@overload
-def _build_http_client(
-    proxy: str | None, async_: Literal[False]
-) -> httpx.Client | None: ...
-
-
-@overload
-def _build_http_client(
-    proxy: str | None, async_: Literal[True]
-) -> httpx.AsyncClient | None: ...
-
-
-def _build_http_client(
-    proxy: str | None, async_: bool
-) -> httpx.Client | httpx.AsyncClient | None:
-    """Return an httpx client configured with optional proxy."""
+def build_http_client(proxy: str | None) -> httpx.Client | None:
+    """Return a synchronous ``httpx`` client configured with optional proxy."""
 
     if proxy is None:
         return None
-
-    if async_:
-        global _async_http_client
-        with _async_http_client_lock:
-            async_client = _async_http_client.get(proxy)
-            if async_client is None:
-                async_client = httpx.AsyncClient(proxies=proxy)
-                _async_http_client[proxy] = async_client
-            return async_client
 
     global _http_client
     with _http_client_lock:
@@ -56,6 +32,21 @@ def _build_http_client(
             sync_client = httpx.Client(proxies=proxy)
             _http_client[proxy] = sync_client
         return sync_client
+
+
+def build_async_http_client(proxy: str | None) -> httpx.AsyncClient | None:
+    """Return an asynchronous ``httpx`` client configured with optional proxy."""
+
+    if proxy is None:
+        return None
+
+    global _async_http_client
+    with _async_http_client_lock:
+        async_client = _async_http_client.get(proxy)
+        if async_client is None:
+            async_client = httpx.AsyncClient(proxies=proxy)
+            _async_http_client[proxy] = async_client
+        return async_client
 
 
 def get_openai_client() -> OpenAI:
@@ -72,7 +63,7 @@ def get_openai_client() -> OpenAI:
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    http_client = _build_http_client(settings.openai_proxy, False)
+    http_client = build_http_client(settings.openai_proxy)
     client = OpenAI(api_key=settings.openai_api_key, http_client=http_client)
 
     if settings.openai_assistant_id:
@@ -89,7 +80,7 @@ def get_async_openai_client() -> AsyncOpenAI:
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    http_client = _build_http_client(settings.openai_proxy, True)
+    http_client = build_async_http_client(settings.openai_proxy)
     client = AsyncOpenAI(api_key=settings.openai_api_key, http_client=http_client)
 
     if settings.openai_assistant_id:
