@@ -155,31 +155,16 @@ async def async_openai_client_ctx() -> AsyncIterator[AsyncOpenAI]:
 def _dispose_http_client_sync() -> None:
     """Synchronously run ``dispose_http_client`` for ``atexit`` hooks."""
 
-    loop: asyncio.AbstractEventLoop
-    created_loop = False
-    previous_loop: asyncio.AbstractEventLoop | None = None
     try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
         try:
-            loop = asyncio.get_event_loop()
-            if not loop.is_running():
-                raise RuntimeError
-        except RuntimeError:
-            try:
-                previous_loop = asyncio.get_event_loop()
-            except RuntimeError:
-                previous_loop = None
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            created_loop = True
-
-        loop.run_until_complete(dispose_http_client())
-    except Exception:  # pragma: no cover - best effort on shutdown
-        logger.exception("[OpenAI] Failed to dispose HTTP client")
-    finally:
-        if created_loop:
-            loop.close()
-            if previous_loop is not None:
-                asyncio.set_event_loop(previous_loop)
+            with asyncio.Runner() as runner:
+                runner.run(dispose_http_client())
+        except Exception:  # pragma: no cover - best effort on shutdown
+            logger.exception("[OpenAI] Failed to dispose HTTP client")
+    else:
+        loop.create_task(dispose_http_client())
 
 
 atexit.register(_dispose_http_client_sync)

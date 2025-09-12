@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, Mock, call
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -261,29 +261,36 @@ def test_dispose_http_client_sync(monkeypatch: pytest.MonkeyPatch) -> None:
     assert openai_utils._http_client == {}
 
 
-def test_dispose_http_client_sync_creates_event_loop(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    fake_loop = Mock()
-    fake_loop.is_running.return_value = True
-    fake_loop.run_until_complete = Mock()
-    fake_loop.close = Mock()
+def test_dispose_http_client_sync_uses_runner(monkeypatch: pytest.MonkeyPatch) -> None:
+    class DummyRunner:
+        def __init__(self) -> None:
+            self.run = Mock()
+            self.close = Mock()
 
-    monkeypatch.setattr(asyncio, "get_event_loop", Mock(side_effect=RuntimeError()))
-    monkeypatch.setattr(asyncio, "new_event_loop", Mock(return_value=fake_loop))
-    set_loop = Mock()
-    monkeypatch.setattr(asyncio, "set_event_loop", set_loop)
+        def __enter__(self) -> "DummyRunner":
+            return self
 
-    dispose_mock = Mock()
+        def __exit__(self, exc_type, exc, tb) -> None:  # type: ignore[override]
+            self.close()
+
+    dummy_runner = DummyRunner()
+    runner_factory = Mock(return_value=dummy_runner)
+    monkeypatch.setattr(asyncio, "Runner", runner_factory)
+    monkeypatch.setattr(asyncio, "get_running_loop", Mock(side_effect=RuntimeError()))
+
+    dispose_mock = AsyncMock()
     monkeypatch.setattr(openai_utils, "dispose_http_client", dispose_mock)
     monkeypatch.setattr(openai_utils, "_http_client", {})
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
 
     openai_utils._dispose_http_client_sync()
 
-    assert set_loop.call_args_list[0] == call(fake_loop)
-    fake_loop.run_until_complete.assert_called_once()
-    fake_loop.close.assert_called_once()
+    runner_factory.assert_called_once_with()
+    dispose_mock.assert_called_once_with()
+    dummy_runner.run.assert_called_once()
+    args, _ = dummy_runner.run.call_args
+    assert asyncio.iscoroutine(args[0])
+    dummy_runner.close.assert_called_once()
 
 
 @pytest.mark.asyncio
