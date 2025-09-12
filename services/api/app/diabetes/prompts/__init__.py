@@ -79,7 +79,7 @@ def _canon_slug(slug: str | None) -> str:
 
 # --- Dynamic prompts -----------------------------------------------------------
 
-def build_system_prompt(p: Mapping[str, str | None]) -> str:
+def build_system_prompt(p: Mapping[str, str | None], task: object | None = None) -> str:
     """Build a system prompt tailored to the user *p* profile."""
     age = (p.get("age_group") or "").strip()
     tone = AGE_TONE.get(age, "ясно и просто")

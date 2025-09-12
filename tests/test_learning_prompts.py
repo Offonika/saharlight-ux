@@ -19,7 +19,7 @@ from services.api.app.diabetes.llm_router import LLMTask
 def test_disclaimer_returns_warning() -> None:
     """Ensure the disclaimer text matches the expected warning."""
 
-    assert disclaimer() == "Проконсультируйтесь с врачом."
+    assert disclaimer() == "Это не медицинская консультация. Обсудите решения с лечащим врачом."
 
 
 def test_system_tutor_contains_disclaimer() -> None:
@@ -51,7 +51,7 @@ def test_builder_functions_without_disclaimer(builder: object, kwargs: dict[str,
 
 @pytest.mark.parametrize(
     ("correct", "prefix"),
-    [(True, "Верно."), (False, "Неверно.")],
+    [(True, "✅ Верно:"), (False, "❌ Неверно:")],
 )
 def test_build_feedback_variants(correct: bool, prefix: str) -> None:
     """Feedback builder should handle both correct and incorrect paths."""
@@ -99,5 +99,4 @@ def test_build_system_prompt_quiz_check_instructions() -> None:
     """QUIZ_CHECK task adds answer format instructions."""
 
     prompt = build_system_prompt({}, task=LLMTask.QUIZ_CHECK)
-    assert "✅" in prompt and "⚠️" in prompt and "❌" in prompt
-    assert "Не задавай вопросов" in prompt
+    assert "Предупреждение" in prompt

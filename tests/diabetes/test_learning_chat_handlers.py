@@ -194,7 +194,7 @@ async def test_lesson_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     context2 = make_context(user_data=context.user_data)
 
     await learning_handlers.lesson_answer_handler(update2, context2)
-    assert msg2.replies == ["feedback", "step2?"]
+    assert msg2.replies == ["feedback\n\n—\n\nstep2?"]
     assert all(isinstance(m, ReplyKeyboardMarkup) for m in msg2.markups)
     state = get_state(context2.user_data)
     assert state is not None and state.step == 2 and state.awaiting
@@ -394,7 +394,7 @@ async def test_lesson_answer_double_click(monkeypatch: pytest.MonkeyPatch) -> No
     await learning_handlers.lesson_answer_handler(update2, context2)
     await task
 
-    assert msg1.replies == ["fb", "next"]
+    assert msg1.replies == ["fb\n\n—\n\nnext"]
     assert msg2.replies == []
 
 
@@ -493,7 +493,7 @@ async def test_lesson_answer_handler_add_log_failure(
 
     await learning_handlers.lesson_answer_handler(update, context)
     assert calls, "check_user_answer should be called"
-    assert msg.replies == ["feedback", "step2"]
+    assert msg.replies == ["feedback\n\n—\n\nstep2"]
     state = get_state(user_data)
     assert state is not None
     assert state.step == 2

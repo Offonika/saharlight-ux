@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from types import SimpleNamespace
 from typing import cast
+import re
 
 import pytest
 from telegram import (
@@ -63,24 +64,19 @@ class DummyBot(Bot):
         return True
 
 
-@pytest.mark.parametrize("reply_mode", ["two_messages", "one_message"])
 @pytest.mark.asyncio
-async def test_learning_flow(
-    monkeypatch: pytest.MonkeyPatch, reply_mode: str
-) -> None:
+async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(settings, "learning_ui_show_topics", True)
-    monkeypatch.setattr(settings, "learning_reply_mode", reply_mode)
-    steps = iter(["step1", "step2"])
+    steps = iter(["step1? extra?question", "step2?? more?"])
+    call_count = 0
 
-    async def fake_create_learning_chat_completion(**kwargs: object) -> str:
-        return "<b>✅ feedback</b>"
+    async def fake_check_user_answer(
+        profile: object, topic: str, answer: str, last_step_text: str
+    ) -> tuple[bool, str]:
+        return True, "<b>✅ feedback</b>"
 
-    monkeypatch.setattr(
-        dynamic_tutor,
-        "create_learning_chat_completion",
-        fake_create_learning_chat_completion,
-    )
+    monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
 
     async def fake_add_log(*args: object, **kwargs: object) -> None:
         return None
@@ -93,7 +89,12 @@ async def test_learning_flow(
     async def fake_next_step(
         user_id: int, lesson_id: int, profile: object, prev_summary: str | None = None
     ) -> tuple[str, bool]:
-        return next(steps), False
+        nonlocal call_count
+        call_count += 1
+        text = next(steps)
+        if call_count == 1:
+            return dynamic_tutor.ensure_single_question(text), False
+        return text, False
 
     monkeypatch.setattr(
         learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
@@ -150,24 +151,16 @@ async def test_learning_flow(
     )
     ans_msg._bot = bot
     await app.process_update(Update(update_id=3, message=ans_msg))
-    plan = learning_handlers.generate_learning_plan("step1")
-    if reply_mode == "one_message":
-        assert bot.sent == [
-            "Выберите тему:",
-            "Доступные темы:",
-            f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
-            "step1",
-            "✅ feedback\n\n—\n\nstep2",
-        ]
-    else:
-        assert bot.sent == [
-            "Выберите тему:",
-            "Доступные темы:",
-            f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
-            "step1",
-            "✅ feedback",
-            "step2",
-        ]
+    plan = learning_handlers.generate_learning_plan("step1? extraquestion")
+    assert bot.sent == [
+        "Выберите тему:",
+        "Доступные темы:",
+        f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
+        "step1? extraquestion",
+        "✅ feedback\n\n—\n\nstep2? more",
+    ]
+    assert len(re.findall(r"\?", bot.sent[3])) == 1
+    assert len(re.findall(r"\?", bot.sent[4])) == 1
 
     await app.shutdown()
 
