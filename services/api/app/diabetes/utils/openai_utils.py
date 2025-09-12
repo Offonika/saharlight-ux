@@ -178,7 +178,8 @@ def _dispose_http_client_sync() -> None:
     finally:
         if created_loop:
             loop.close()
-            asyncio.set_event_loop(previous_loop)
+            if previous_loop is not None:
+                asyncio.set_event_loop(previous_loop)
 
 
 atexit.register(_dispose_http_client_sync)

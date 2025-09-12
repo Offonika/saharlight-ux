@@ -15,6 +15,7 @@ from .prompts import (
     SYSTEM_TUTOR_RU,
     build_explain_step,
     build_feedback,
+    build_system_prompt,
     disclaimer,
 )
 from .llm_router import LLMTask
@@ -289,7 +290,10 @@ async def check_answer(
     message = await gpt_client.create_learning_chat_completion(
         task=LLMTask.QUIZ_CHECK,
         messages=[
-            {"role": "system", "content": SYSTEM_TUTOR_RU},
+            {
+                "role": "system",
+                "content": build_system_prompt(profile, task=LLMTask.QUIZ_CHECK),
+            },
             {"role": "user", "content": build_feedback(correct, explanation)},
         ],
     )

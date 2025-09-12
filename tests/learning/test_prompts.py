@@ -4,6 +4,7 @@ from services.api.app.diabetes.prompts import (
     build_system_prompt,
     build_user_prompt_step,
 )
+from services.api.app.diabetes.llm_router import LLMTask
 
 
 def test_build_system_prompt_includes_profile() -> None:
@@ -28,3 +29,9 @@ def test_build_user_prompt_step_contains_goal_and_instruction() -> None:
     assert "Номер шага: 2" in prompt
     assert prompt.endswith("Ответ не показывай.")
     assert len(prompt) <= 1_500
+
+
+def test_build_system_prompt_quiz_check_format() -> None:
+    prompt = build_system_prompt({}, task=LLMTask.QUIZ_CHECK)
+    assert "✅" in prompt and "⚠️" in prompt and "❌" in prompt
+    assert "Не задавай вопросов" in prompt
