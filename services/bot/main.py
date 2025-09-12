@@ -3,6 +3,7 @@
 
 import os
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
 
 os.environ.setdefault(
     "MPLCONFIGDIR",
@@ -15,8 +16,6 @@ import sys
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, TypeAlias, cast
 from zoneinfo import ZoneInfo
-
-import redis.asyncio as redis
 
 from sqlalchemy.exc import SQLAlchemyError
 from telegram import BotCommand
@@ -46,6 +45,10 @@ else:
 logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
 
+redis: ModuleType | SimpleNamespace = SimpleNamespace(
+    Redis=SimpleNamespace(from_url=lambda *a, **k: None)
+)
+
 commands = [
     BotCommand("start", "🚀 Запустить бота"),
     BotCommand("menu", "📋 Главное меню"),
@@ -71,6 +74,20 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
+    global redis
+    if not isinstance(redis, ModuleType):
+        try:
+            import redis.asyncio as real_redis  # type: ignore[import-not-found]
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "Redis functionality requires the 'redis' package. Install it via 'pip install redis'."
+            ) from exc
+        patched_from_url = getattr(redis.Redis, "from_url", None)
+        if patched_from_url is not None:
+            real_redis.Redis.from_url = patched_from_url
+        redis = real_redis
+    assert isinstance(redis, ModuleType)
+
     redis_client: redis.Redis | None = None
     should_set = True
     try:
