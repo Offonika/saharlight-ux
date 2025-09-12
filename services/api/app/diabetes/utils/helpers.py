@@ -34,7 +34,6 @@ def parse_time_interval(value: str) -> time | timedelta:
 
 
 ALLOWED_GEO_HOSTS = {"ipinfo.io"}
-GEO_DATA_URL = os.getenv("GEO_DATA_URL", "https://ipinfo.io/json")
 
 
 async def get_coords_and_link(
@@ -42,7 +41,7 @@ async def get_coords_and_link(
 ) -> tuple[str | None, str | None]:
     """Return approximate coordinates and Google Maps link based on IP."""
 
-    url = source_url or GEO_DATA_URL
+    url = source_url or os.getenv("GEO_DATA_URL") or "https://ipinfo.io/json"
 
     parsed = urlparse(url)
     host = parsed.hostname.lower() if parsed.hostname else None
