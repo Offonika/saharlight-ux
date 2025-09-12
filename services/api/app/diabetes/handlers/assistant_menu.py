@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, MutableMapping, TypeAlias, cast
+from collections import defaultdict
+from typing import TYPE_CHECKING, TypeAlias, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import (
@@ -98,7 +99,7 @@ async def post_init(
     """Restore last assistant modes for users on startup."""
 
     records = await memory_service.get_last_modes()
-    store = cast(MutableMapping[int, dict[str, object]], app.user_data)
+    store = cast(defaultdict[int, dict[str, object]], app._user_data)  # type: ignore[redundant-cast]
     for user_id, mode in records:
         if mode not in MODE_TEXTS:
             continue
