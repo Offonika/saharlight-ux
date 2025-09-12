@@ -209,6 +209,12 @@ async def test_photo_flow_saves_entry(
     assert user_data["pending_entry"]["sugar_before"] == 5.5
 
     monkeypatch.setattr(router, "SessionLocal", session_factory)
+
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(router, "run_db", run_db_stub)
     import services.api.app.diabetes.handlers.alert_handlers as alert_handlers
 
     async def noop(*args: Any, **kwargs: Any) -> None:

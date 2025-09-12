@@ -12,7 +12,9 @@ from telegram import (
 from telegram.ext import ContextTypes
 from typing import Awaitable, Callable, cast
 
-from services.api.app.diabetes.services.db import Entry, SessionLocal
+from sqlalchemy.orm import Session
+
+from services.api.app.diabetes.services.db import Entry, SessionLocal, run_db
 from services.api.app.ui.keyboard import build_main_keyboard
 
 from services.api.app.diabetes.services.repository import CommitError, commit
@@ -24,6 +26,15 @@ logger = logging.getLogger(__name__)
 Handler = Callable[
     [Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]
 ]
+
+
+def _save_entry(session: Session, entry_data: EntryData) -> None:
+    """Persist an entry to the database."""
+    allowed_keys = set(Entry.__table__.columns.keys())
+    clean_data = {k: v for k, v in entry_data.items() if k in allowed_keys}
+    entry = Entry(**clean_data)
+    session.add(entry)
+    commit(session)
 
 
 async def handle_confirm_entry(
@@ -39,18 +50,12 @@ async def handle_confirm_entry(
         await query.edit_message_text("❗ Нет данных для сохранения.")
         return
     entry_data: EntryData = entry_data_raw
-    with SessionLocal() as session:
-        # Filter out fields not defined in the ORM model to avoid TypeError
-        allowed_keys = set(Entry.__table__.columns.keys())
-        clean_data = {k: v for k, v in entry_data.items() if k in allowed_keys}
-        entry = Entry(**clean_data)
-        session.add(entry)
-        try:
-            commit(session)
-        except CommitError:
-            user_data["pending_entry"] = entry_data
-            await query.edit_message_text("⚠️ Не удалось сохранить запись.")
-            return
+    try:
+        await run_db(_save_entry, entry_data, sessionmaker=SessionLocal)
+    except CommitError:
+        user_data["pending_entry"] = entry_data
+        await query.edit_message_text("⚠️ Не удалось сохранить запись.")
+        return
     sugar = entry_data.get("sugar_before")
     if sugar is not None:
         from .alert_handlers import check_alert
