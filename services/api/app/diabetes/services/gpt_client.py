@@ -48,7 +48,7 @@ CHAT_COMPLETION_MAX_RETRIES = 2
 _client: OpenAI | None = None
 _client_lock = threading.Lock()
 
-_async_client: AsyncOpenAI | None = None
+_async_clients: dict[AbstractEventLoop, AsyncOpenAI] = {}
 _async_client_locks: WeakKeyDictionary[AbstractEventLoop, asyncio.Lock] = (
     WeakKeyDictionary()
 )
@@ -77,42 +77,33 @@ def _get_client() -> OpenAI:
 
 
 async def _get_async_client() -> AsyncOpenAI:
-    """Return cached AsyncOpenAI client, creating it once in an async-safe manner."""
-    global _async_client
+    """Return AsyncOpenAI client for current loop, creating it as needed."""
+    global _async_clients
     loop = asyncio.get_running_loop()
-    lock = _async_client_locks.setdefault(loop, asyncio.Lock())
-    if _async_client is None:
+    client = _async_clients.get(loop)
+    if client is None:
+        lock = _async_client_locks.setdefault(loop, asyncio.Lock())
         async with lock:
-            if _async_client is None:
-                _async_client = get_async_openai_client()
-    return _async_client
+            client = _async_clients.get(loop)
+            if client is None:
+                client = get_async_openai_client()
+                _async_clients[loop] = client
+    return client
 
 
 async def dispose_openai_clients() -> None:
     """Close and reset cached OpenAI clients."""
-    global _client, _async_client
+    global _client, _async_clients
     with _client_lock:
         if _client is not None:
             _client.close()
             _client = None
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
 
-    if loop is None:
-        if _async_client is not None:
-            asyncio.run(_async_client.close())
-            _async_client = None
-        _async_client_locks.clear()
-        return
-
-    lock = _async_client_locks.setdefault(loop, asyncio.Lock())
-    async with lock:
-        if _async_client is not None:
-            await _async_client.close()
-            _async_client = None
+    clients = list(_async_clients.values())
+    _async_clients.clear()
     _async_client_locks.clear()
+    for client in clients:
+        await client.close()
 
 
 def format_reply(text: str, *, max_len: int = 800) -> str:
