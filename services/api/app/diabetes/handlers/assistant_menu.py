@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Inline assistant menu with callback handlers."""
+
+from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeAlias, cast
 
@@ -9,6 +9,7 @@ from telegram.ext import CallbackQueryHandler, ContextTypes
 
 from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
 from services.api.app.diabetes.assistant_state import set_last_mode
+from services.api.app.diabetes.labs_handlers import AWAITING_KIND
 
 __all__ = [
     "assistant_keyboard",
@@ -74,7 +75,12 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
     if message and hasattr(message, "edit_text"):
         await cast(Message, message).edit_text(text, reply_markup=_back_keyboard())
     user_data = cast(dict[str, object], ctx.user_data)
-    set_last_mode(user_data, mode)
+    if mode == "labs":
+        user_data["waiting_labs"] = True
+        user_data.pop(AWAITING_KIND, None)
+        set_last_mode(user_data, None)
+    else:
+        set_last_mode(user_data, mode)
 
 
 if TYPE_CHECKING:

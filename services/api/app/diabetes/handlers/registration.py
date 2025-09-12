@@ -24,6 +24,7 @@ from .common_handlers import help_command, smart_input_help
 from .router import callback_router
 from . import assistant_router
 from .. import learning_handlers
+from ..labs_handlers import labs_handler
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
     REMINDERS_BUTTON_TEXT,
@@ -296,6 +297,12 @@ def register_handlers(
     )
     if learning_enabled:
         learning_handlers.register_handlers(app)
+    app.add_handler(
+        MessageHandlerT(
+            (filters.TEXT | filters.PHOTO | filters.Document.ALL) & ~filters.COMMAND,
+            labs_handler,
+        )
+    )
     app.add_handler(MessageHandlerT(filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler))
     app.add_handler(MessageHandlerT(filters.PHOTO, photo_handlers.photo_handler))
     app.add_handler(MessageHandlerT(filters.Document.IMAGE, photo_handlers.doc_handler))
