@@ -1,5 +1,7 @@
-import pytest
+import logging
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from services.api.app.diabetes.handlers import assistant_menu
 from services.api.app.diabetes import assistant_state, visit_handlers
@@ -49,6 +51,29 @@ async def test_assistant_callback_mode_has_back_button() -> None:
     markup = message.edit_text.call_args.kwargs["reply_markup"]
     callbacks = [btn.callback_data for row in markup.inline_keyboard for btn in row]
     assert "asst:back" in callbacks
+
+
+@pytest.mark.asyncio
+async def test_assistant_callback_logs_selection(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    user_data: dict[str, object] = {}
+    message = MagicMock()
+    message.edit_text = AsyncMock()
+    query = MagicMock()
+    query.data = "asst:chat"
+    query.message = message
+    query.answer = AsyncMock()
+    update = MagicMock()
+    update.callback_query = query
+    update.effective_user = MagicMock(id=42)
+    ctx = MagicMock()
+    ctx.user_data = user_data
+    with caplog.at_level(logging.INFO):
+        await assistant_menu.assistant_callback(update, ctx)
+    record = next(r for r in caplog.records if r.message == "assistant_mode_selected")
+    assert record.mode == "chat"
+    assert record.user_id == 42
 
 
 @pytest.mark.asyncio

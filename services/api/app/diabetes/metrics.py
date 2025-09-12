@@ -55,3 +55,7 @@ learning_prompt_cache_hit: Counter = Counter(
 learning_prompt_cache_miss: Counter = Counter(
     "learning_prompt_cache_miss", "Number of learning prompt cache misses",
 )
+
+assistant_mode_total: Counter = Counter(
+    "assistant_mode_total", "Total number of assistant mode requests", ("mode",)
+)

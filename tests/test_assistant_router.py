@@ -1,5 +1,7 @@
-import pytest
+import logging
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from telegram.ext import ApplicationHandlerStop
 
@@ -7,6 +9,7 @@ from services.api.app.diabetes.handlers import assistant_router
 from services.api.app.diabetes import assistant_state, learning_handlers
 from services.api.app.diabetes.handlers import gpt_handlers
 from services.api.app.diabetes.utils.ui import SUGAR_BUTTON_TEXT
+from services.api.app.diabetes.metrics import assistant_mode_total
 
 
 @pytest.mark.asyncio
@@ -33,7 +36,9 @@ async def test_router_learn_routes(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_router_chat_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_router_chat_routes(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     called = False
 
     async def fake(update, context):  # type: ignore[override]
@@ -45,14 +50,19 @@ async def test_router_chat_routes(monkeypatch: pytest.MonkeyPatch) -> None:
     message = MagicMock()
     message.text = "hi"
     update.message = message
+    update.effective_user = MagicMock(id=77)
     ctx = MagicMock()
     ctx.user_data = {"assistant_last_mode": "chat"}
-
-    with pytest.raises(ApplicationHandlerStop):
+    base = assistant_mode_total.labels(mode="chat")._value.get()
+    with caplog.at_level(logging.INFO), pytest.raises(ApplicationHandlerStop):
         await assistant_router.on_any_text(update, ctx)
 
     assert called
     assert ctx.user_data.get(assistant_state.AWAITING_KIND) == "chat"
+    assert assistant_mode_total.labels(mode="chat")._value.get() == base + 1
+    record = next(r for r in caplog.records if r.message == "assistant_mode_request")
+    assert record.mode == "chat"
+    assert record.user_id == 77
 
 
 @pytest.mark.asyncio

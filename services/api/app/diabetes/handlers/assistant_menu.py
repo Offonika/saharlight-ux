@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
@@ -75,6 +76,11 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
             )
         return
     mode = data.split(":", 1)[1]
+    user = getattr(update, "effective_user", None)
+    logging.info(
+        "assistant_mode_selected",
+        extra={"mode": mode, "user_id": getattr(user, "id", None)},
+    )
     text = MODE_TEXTS.get(mode, "Неизвестная команда.")
     if message and hasattr(message, "edit_text"):
         await cast(Message, message).edit_text(text, reply_markup=_back_keyboard())
