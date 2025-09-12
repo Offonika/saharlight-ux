@@ -26,7 +26,6 @@ class DummyMessage:
 async def test_photo_button_without_emoji_triggers_prompt() -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 
     app = ApplicationBuilder().token("TESTTOKEN").build()
     handlers.register_handlers(app)

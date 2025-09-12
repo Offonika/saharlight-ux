@@ -23,6 +23,14 @@ pytest_plugins = ("pytest_asyncio",)
 setattr(_dynamic_learning_handlers, "curriculum_engine", curriculum_engine)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _import_openai_utils() -> None:
+    """Import ``openai_utils`` once to register its side effects."""
+    import importlib
+
+    importlib.import_module("services.api.app.diabetes.utils.openai_utils")
+
+
 @pytest.fixture(autouse=True)
 def _fake_learning_profile(monkeypatch: pytest.MonkeyPatch) -> None:
     """Stub profile lookups to avoid external API calls in tests."""

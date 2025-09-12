@@ -43,7 +43,6 @@ async def test_report_request_and_custom_flow(
 ) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
     import services.api.app.diabetes.handlers.dose_calc as dose_calc
 
@@ -118,7 +117,6 @@ async def test_report_period_callback_week(
 ) -> None:
     os.environ.setdefault("OPENAI_API_KEY", "test")
     os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.reporting_handlers as reporting_handlers
 
     called: dict[str, dt.datetime | str] = {}

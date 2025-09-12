@@ -47,7 +47,6 @@ async def test_callback_router_cancel_entry_sends_menu(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery(DummyMessage(), "cancel_entry")
@@ -80,7 +79,6 @@ async def test_callback_router_invalid_entry_id(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery(DummyMessage(), "del:abc")
@@ -104,7 +102,6 @@ async def test_handle_edit_or_delete_missing_colon(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery(DummyMessage(), "del")
@@ -128,7 +125,6 @@ async def test_callback_router_unknown_data(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery(DummyMessage(), "foo")
@@ -151,7 +147,6 @@ async def test_callback_router_ignores_reminder_action(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
     import services.api.app.diabetes.handlers.router as router
 
     query = DummyQuery(DummyMessage(), "rem_toggle:1")

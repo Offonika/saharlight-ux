@@ -13,7 +13,7 @@ from services.api.app.assistant.repositories.logs import (
     cleanup_old_logs,
     get_lesson_logs,
 )
-from services.api.app.assistant.models import LessonLog  # noqa: F401
+from services.api.app.assistant.models import LessonLog
 
 
 @pytest.fixture()

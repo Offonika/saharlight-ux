@@ -95,7 +95,6 @@ async def test_profile_command_saves_locally(
     """Profile command persists profile to local DB."""
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
@@ -133,7 +132,6 @@ async def test_profile_command_db_error(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
     run_db = AsyncMock(return_value=False)
     monkeypatch.setattr(profile_handlers, "run_db", run_db)
@@ -159,7 +157,6 @@ async def test_callback_router_commit_failure(
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
-    import services.api.app.diabetes.utils.openai_utils  # noqa: F401
 
     session = MagicMock()
     session.__enter__.return_value = session

@@ -11,7 +11,6 @@ from telegram.ext import BaseHandler, CallbackContext, MessageHandler
 
 os.environ.setdefault("OPENAI_API_KEY", "test")
 os.environ.setdefault("OPENAI_ASSISTANT_ID", "asst_test")
-import services.api.app.diabetes.utils.openai_utils as openai_utils  # noqa: F401
 from services.api.app.diabetes.handlers import (
     dose_calc,
     profile as profile_handlers,
