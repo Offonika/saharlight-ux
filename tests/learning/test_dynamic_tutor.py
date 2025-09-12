@@ -60,3 +60,42 @@ async def test_cancellation_not_suppressed(monkeypatch: pytest.MonkeyPatch) -> N
         await dynamic_tutor.generate_step_text({}, "topic", 1, None)
     with pytest.raises(asyncio.CancelledError):
         await dynamic_tutor.check_user_answer({}, "topic", "42", "step")
+
+
+@pytest.mark.asyncio
+async def test_sanitize_feedback_strips_questions(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_create_learning_chat_completion(**kwargs: object) -> str:
+        return "✅ Всё понятно? Повтори? Третье?"
+
+    monkeypatch.setattr(
+        dynamic_tutor,
+        "create_learning_chat_completion",
+        fake_create_learning_chat_completion,
+    )
+
+    _, feedback = await dynamic_tutor.check_user_answer({}, "t", "a", "s")
+
+    assert "?" not in feedback
+    assert feedback.startswith("✅")
+
+
+@pytest.mark.asyncio
+async def test_sanitize_feedback_limits_sentences_and_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    long_tail = "вторая" * 200
+    text = f"⚠️ первая. {long_tail}. третья лишняя."  # three sentences
+
+    async def fake_create_learning_chat_completion(**kwargs: object) -> str:
+        return text
+
+    monkeypatch.setattr(
+        dynamic_tutor,
+        "create_learning_chat_completion",
+        fake_create_learning_chat_completion,
+    )
+
+    _, feedback = await dynamic_tutor.check_user_answer({}, "t", "a", "s")
+
+    assert "третья" not in feedback
+    assert len(feedback) <= 400
