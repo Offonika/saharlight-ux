@@ -19,6 +19,11 @@ from datetime import (
 )
 from typing import Any, TYPE_CHECKING, TypeAlias, cast
 
+try:
+    from apscheduler.exceptions import APSchedulerError  # type: ignore[import-untyped]
+except ModuleNotFoundError:  # pragma: no cover - fallback for older APScheduler
+    APSchedulerError = Exception
+
 from telegram.ext import ContextTypes, Job, JobQueue
 
 
@@ -190,7 +195,7 @@ def _safe_remove(job: object) -> bool:
         try:
             remover()
             return True
-        except (AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive
+        except (AttributeError, RuntimeError, APSchedulerError) as exc:  # pragma: no cover - defensive
             logger.warning(
                 "remove() failed for job id=%s name=%s: %s",
                 job_id,
@@ -204,6 +209,7 @@ def _safe_remove(job: object) -> bool:
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
+            raise
 
     queue = getattr(job, "queue", None)
     scheduler = getattr(queue, "scheduler", None)
@@ -221,6 +227,7 @@ def _safe_remove(job: object) -> bool:
             except (
                 AttributeError,
                 RuntimeError,
+                APSchedulerError,
             ) as exc:  # pragma: no cover - defensive
                 logger.warning(
                     "remove_job(%s) failed: %s",
@@ -233,7 +240,12 @@ def _safe_remove(job: object) -> bool:
                     job_id,
                     exc,
                 )  # pragma: no cover - defensive
-        except (AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive
+                raise
+        except (
+            AttributeError,
+            RuntimeError,
+            APSchedulerError,
+        ) as exc:  # pragma: no cover - defensive
             logger.warning(
                 "remove_job(job_id=%s) failed: %s",
                 job_id,
@@ -245,6 +257,7 @@ def _safe_remove(job: object) -> bool:
                 job_id,
                 exc,
             )  # pragma: no cover - defensive
+            raise
 
     schedule_removal = cast(
         Callable[[], None] | None, getattr(job, "schedule_removal", None)
@@ -253,7 +266,11 @@ def _safe_remove(job: object) -> bool:
         try:
             schedule_removal()
             return True
-        except (AttributeError, RuntimeError) as exc:  # pragma: no cover - defensive
+        except (
+            AttributeError,
+            RuntimeError,
+            APSchedulerError,
+        ) as exc:  # pragma: no cover - defensive
             logger.warning(
                 "schedule_removal() failed for job id=%s name=%s: %s",
                 job_id,
@@ -267,6 +284,7 @@ def _safe_remove(job: object) -> bool:
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
+            raise
     return False
 
 
@@ -301,6 +319,7 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                 except (
                     AttributeError,
                     RuntimeError,
+                    APSchedulerError,
                 ) as exc:  # pragma: no cover - defensive
                     logger.warning(
                         "remove_job_direct(%s) failed: %s",
@@ -313,9 +332,11 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                         name,
                         exc,
                     )  # pragma: no cover - defensive
+                    raise
             except (
                 AttributeError,
                 RuntimeError,
+                APSchedulerError,
             ) as exc:  # pragma: no cover - defensive
                 logger.warning(
                     "remove_job_direct(job_id=%s) failed: %s",
@@ -328,6 +349,7 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                     name,
                     exc,
                 )  # pragma: no cover - defensive
+                raise
             if existed:
                 removed += 1
 
