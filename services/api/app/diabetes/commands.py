@@ -12,6 +12,7 @@ from .learning_handlers import learn_command, topics_command
 from .handlers.onboarding_handlers import reset_onboarding as _reset_onboarding
 from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .assistant_state import reset as _reset_assistant
+from .handlers.registration import MODE_DISCLAIMED_KEY
 from ..assistant.services.memory_service import clear_memory as _clear_memory
 from services.api.app.config import settings
 
@@ -111,9 +112,7 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         try:
             await context.bot.send_message(
                 chat_id=message.chat_id,
-                text=(
-                    "Не удалось отправить предупреждение о сбросе. Попробуйте снова."
-                ),
+                text=("Не удалось отправить предупреждение о сбросе. Попробуйте снова."),
             )
         except telegram.error.TelegramError as exc2:
             logger.exception(
@@ -131,6 +130,7 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
     user_data = cast(dict[str, object], context.user_data)
     _reset_assistant(user_data)
+    user_data.pop(MODE_DISCLAIMED_KEY, None)
     if user is not None:
         await _clear_memory(user.id)
     await message.reply_text("История очищена.")
