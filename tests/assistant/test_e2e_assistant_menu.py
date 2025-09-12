@@ -241,7 +241,7 @@ async def test_unknown_callback_data() -> None:
     await assistant_menu.assistant_callback(update, ctx)
     message.edit_text.assert_awaited_once()
     assert "Неизвестная команда" in message.edit_text.call_args.args[0]
-    assert user_data.get(assistant_state.LAST_MODE_KEY) == "unknown"
+    assert assistant_state.LAST_MODE_KEY not in user_data
 
 
 @pytest.mark.asyncio

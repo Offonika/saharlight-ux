@@ -13,6 +13,8 @@ from services.api.app.diabetes.assistant_state import AWAITING_KIND, set_last_mo
 from services.api.app.diabetes.labs_handlers import AWAITING_KIND as LABS_AWAITING_KIND
 from services.api.app.diabetes import visit_handlers
 
+logger = logging.getLogger(__name__)
+
 __all__ = [
     "assistant_keyboard",
     "show_menu",
@@ -52,9 +54,7 @@ async def show_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 def _back_keyboard() -> InlineKeyboardMarkup:
     """Create a back button keyboard."""
 
-    return InlineKeyboardMarkup(
-        ((InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data="asst:back"),),)
-    )
+    return InlineKeyboardMarkup(((InlineKeyboardButton(BACK_BUTTON_TEXT, callback_data="asst:back"),),))
 
 
 async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -71,19 +71,24 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         return
     if data in {"asst:back", "asst:menu"}:
         if message and hasattr(message, "edit_text"):
-            await cast(Message, message).edit_text(
-                "Ассистент:", reply_markup=assistant_keyboard()
-            )
+            await cast(Message, message).edit_text("Ассистент:", reply_markup=assistant_keyboard())
         return
     mode = data.split(":", 1)[1]
     user = getattr(update, "effective_user", None)
-    logging.info(
+    if mode not in MODE_TEXTS:
+        logger.warning(
+            "assistant_unknown_callback",
+            extra={"data": data, "user_id": getattr(user, "id", None)},
+        )
+        if message and hasattr(message, "edit_text"):
+            await cast(Message, message).edit_text("Неизвестная команда.", reply_markup=_back_keyboard())
+        return
+    logger.info(
         "assistant_mode_selected",
         extra={"mode": mode, "user_id": getattr(user, "id", None)},
     )
-    text = MODE_TEXTS.get(mode, "Неизвестная команда.")
     if message and hasattr(message, "edit_text"):
-        await cast(Message, message).edit_text(text, reply_markup=_back_keyboard())
+        await cast(Message, message).edit_text(MODE_TEXTS[mode], reply_markup=_back_keyboard())
     user_data = cast(dict[str, object], ctx.user_data)
     if mode == "labs":
         user_data["waiting_labs"] = True
@@ -99,9 +104,7 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
 
 
 if TYPE_CHECKING:
-    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[
-        ContextTypes.DEFAULT_TYPE, object
-    ]
+    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[ContextTypes.DEFAULT_TYPE, object]
 else:
     CallbackQueryHandlerT = CallbackQueryHandler
 
