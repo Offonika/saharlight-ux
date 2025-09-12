@@ -67,3 +67,23 @@ async def test_assistant_callback_saves_mode() -> None:
     await assistant_menu.assistant_callback(update, ctx)
 
     assert user_data.get("assistant_last_mode") == "learn"
+
+
+@pytest.mark.asyncio
+async def test_assistant_callback_labs_waiting() -> None:
+    user_data: dict[str, object] = {}
+    message = MagicMock()
+    message.edit_text = AsyncMock()
+    query = MagicMock()
+    query.data = "asst:labs"
+    query.message = message
+    query.answer = AsyncMock()
+    update = MagicMock()
+    update.callback_query = query
+    ctx = MagicMock()
+    ctx.user_data = user_data
+
+    await assistant_menu.assistant_callback(update, ctx)
+
+    assert user_data.get("waiting_labs") is True
+    assert user_data.get("assistant_last_mode") is None
