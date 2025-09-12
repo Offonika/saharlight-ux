@@ -32,12 +32,13 @@ from services.api.app.diabetes.handlers import (
     security_handlers,
     reminder_handlers as rh,
     billing_handlers,
-    learning_handlers,
     learning_onboarding,
 )
-from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes import commands
 from services.api.app.config import reload_settings
+
+dynamic_learning_handlers = learning_handlers
 
 
 def test_register_handlers_attaches_expected_handlers(

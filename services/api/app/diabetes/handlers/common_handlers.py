@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from services.api.app.ui.keyboard import build_main_keyboard
-from .learning_handlers import learn_command
+from ..learning_handlers import learn_command
 
 
 async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

@@ -6,9 +6,10 @@ import pytest
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers as dynamic_handlers
 from services.api.app.diabetes.dynamic_tutor import BUSY_MESSAGE
-from services.api.app.diabetes.handlers import learning_handlers as legacy_handlers
 from services.api.app.diabetes.learning_state import get_state
 from tests.utils.telegram import make_context, make_update
+
+legacy_handlers = dynamic_handlers
 
 
 class DummyMessage:
@@ -79,6 +80,7 @@ async def test_dynamic_learn_command_busy(monkeypatch: pytest.MonkeyPatch) -> No
 @pytest.mark.asyncio
 async def test_legacy_lesson_command_busy(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     async def fake_start(user_id: int, slug: str) -> object:
         return SimpleNamespace(lesson_id=1)

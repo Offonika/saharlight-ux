@@ -17,7 +17,7 @@ from sqlalchemy.pool import StaticPool
 from services.api.app import config
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 from services.api.app.diabetes.learning_fixtures import load_lessons
-from services.api.app.diabetes.handlers import learning_handlers
+import services.api.app.diabetes.learning_handlers as learning_handlers
 from services.api.app.diabetes.services import db
 
 

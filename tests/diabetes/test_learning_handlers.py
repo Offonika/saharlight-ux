@@ -13,10 +13,11 @@ from telegram.ext import CallbackContext
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_handlers as dynamic_handlers
 from services.api.app.diabetes import learning_onboarding as onboarding_utils
-from services.api.app.diabetes.handlers import learning_handlers as legacy_handlers
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
+
+legacy_handlers = dynamic_handlers
 
 
 class DummyMessage:
@@ -43,6 +44,7 @@ class DummyCallback:
 @pytest.mark.asyncio
 async def test_learn_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", False)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
     message = DummyMessage()
     update = cast(Update, SimpleNamespace(message=message, effective_user=None))
     context = cast(

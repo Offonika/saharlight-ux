@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
-from services.api.app.diabetes.handlers import learning_handlers
+from services.api.app.diabetes import learning_handlers
 
 
 class DummyMessage:
@@ -31,6 +31,7 @@ def make_context(**kwargs: Any) -> CallbackContext[Any, Any, Any, Any]:
 @pytest.mark.asyncio
 async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
     async def fake_ensure_overrides(update: object, context: object) -> bool:
         return True
 
@@ -89,6 +90,7 @@ async def test_lesson_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_quiz_rate_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
+    monkeypatch.setattr(settings, "learning_content_mode", "static")
 
     questions = iter([("Q1", False), ("Q2", False), (None, True)])
 
