@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from services.api.app.diabetes.services.db import SessionLocal, User, run_db
 from services.api.app.diabetes.services.gpt_client import (
     _get_client,
-    create_thread,
+    create_thread_sync,
     send_message,
 )
 from services.api.app.diabetes.services.repository import CommitError, commit
@@ -122,7 +122,7 @@ async def photo_handler(
                 user = session.get(User, user_id)
                 if user:
                     return user.thread_id
-                thread_id_local = asyncio.run(create_thread())
+                thread_id_local = create_thread_sync()
                 session.add(User(telegram_id=user_id, thread_id=thread_id_local))
                 commit(session)
                 return thread_id_local

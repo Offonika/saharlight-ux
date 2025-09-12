@@ -185,9 +185,7 @@ def test_dispose_openai_clients_resets_all_sync(
 
     monkeypatch.setattr(gpt_client, "_client", fake_client)
     loop = asyncio.new_event_loop()
-    monkeypatch.setattr(
-        gpt_client, "_async_clients", {loop: fake_async_client}
-    )
+    monkeypatch.setattr(gpt_client, "_async_clients", {loop: fake_async_client})
 
     asyncio.run(gpt_client.dispose_openai_clients())
 
@@ -208,9 +206,7 @@ async def test_dispose_openai_clients_resets_all_async(
 
     monkeypatch.setattr(gpt_client, "_client", fake_client)
     loop = asyncio.get_running_loop()
-    monkeypatch.setattr(
-        gpt_client, "_async_clients", {loop: fake_async_client}
-    )
+    monkeypatch.setattr(gpt_client, "_async_clients", {loop: fake_async_client})
 
     await gpt_client.dispose_openai_clients()
 
@@ -333,6 +329,25 @@ async def test_create_thread_timeout(
             await gpt_client.create_thread()
 
     assert any("Thread creation timed out" in r.message for r in caplog.records)
+
+
+def test_create_thread_sync(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_create_thread() -> str:
+        return "tid"
+
+    monkeypatch.setattr(gpt_client, "create_thread", fake_create_thread)
+
+    assert gpt_client.create_thread_sync() == "tid"
+
+
+def test_create_thread_sync_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_create_thread() -> str:
+        raise OpenAIError("boom")
+
+    monkeypatch.setattr(gpt_client, "create_thread", fake_create_thread)
+
+    with pytest.raises(OpenAIError):
+        gpt_client.create_thread_sync()
 
 
 @pytest.mark.asyncio

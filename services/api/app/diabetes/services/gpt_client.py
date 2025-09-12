@@ -305,6 +305,22 @@ async def create_thread() -> str:
     return thread.id
 
 
+def create_thread_sync() -> str:
+    """Synchronously create an empty thread.
+
+    This is a convenience wrapper around :func:`create_thread` for code that
+    runs in a synchronous context.  It simply executes the asynchronous helper
+    via :func:`asyncio.run`.
+
+    Returns
+    -------
+    str
+        Identifier of the created thread.
+    """
+
+    return asyncio.run(create_thread())
+
+
 def _validate_image_path(image_path: str) -> str:
     """Return absolute path within ``settings.photos_dir`` if valid.
 

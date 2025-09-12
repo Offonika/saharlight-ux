@@ -82,7 +82,7 @@ async def test_photo_handler_recognition_success_db_save(
         nonlocal commit_called
         commit_called = True
 
-    async def fake_create_thread() -> str:
+    def fake_create_thread_sync() -> str:
         return "tid"
 
     class Run:
@@ -109,7 +109,7 @@ async def test_photo_handler_recognition_success_db_save(
         )
 
     monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: session)
-    monkeypatch.setattr(photo_handlers, "create_thread", fake_create_thread)
+    monkeypatch.setattr(photo_handlers, "create_thread_sync", fake_create_thread_sync)
     monkeypatch.setattr(photo_handlers, "commit", fake_commit)
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
