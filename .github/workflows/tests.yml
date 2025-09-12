@@ -68,6 +68,23 @@ jobs:
           set -o pipefail
           pytest --cov=services.api.app.diabetes --cov-report=term-missing --cov-report=xml --cov-fail-under=85 | tee coverage.txt
           cat coverage.txt >> $GITHUB_STEP_SUMMARY
+      - name: Dump assistant config
+        run: |
+          python - <<'PY'
+          from services.api.app.config import get_settings
+          import json
+          s = get_settings()
+          with open('assistant_config.json', 'w') as f:
+              json.dump({
+                  'assistant_default_mode': s.assistant_default_mode,
+                  'assistant_menu_emoji': s.assistant_menu_emoji,
+              }, f)
+          PY
+      - name: Upload assistant config
+        uses: actions/upload-artifact@v4
+        with:
+          name: assistant-config
+          path: assistant_config.json
       - name: Run e2e reminder flow
         run: python tests/e2e_reminder_flow.py
       - name: Upload coverage report
