@@ -72,7 +72,7 @@ async def profiles_get(
     except sqlalchemy_exc.SQLAlchemyError as exc:
         logger.exception("failed to fetch profile %s", tid)
         raise HTTPException(status_code=500, detail="database error") from exc
-    except Exception:
+    except Exception:  # noqa: BLE001 - log and re-raise unexpected errors
         logger.exception("failed to fetch profile %s", tid)
         raise
 
