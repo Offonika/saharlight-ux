@@ -157,12 +157,17 @@ def _dispose_http_client_sync() -> None:
 
     loop: asyncio.AbstractEventLoop
     created_loop = False
+    previous_loop: asyncio.AbstractEventLoop | None = None
     try:
         try:
             loop = asyncio.get_event_loop()
             if not loop.is_running():
                 raise RuntimeError
         except RuntimeError:
+            try:
+                previous_loop = asyncio.get_event_loop()
+            except RuntimeError:
+                previous_loop = None
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             created_loop = True
@@ -173,6 +178,7 @@ def _dispose_http_client_sync() -> None:
     finally:
         if created_loop:
             loop.close()
+            asyncio.set_event_loop(previous_loop)
 
 
 atexit.register(_dispose_http_client_sync)
