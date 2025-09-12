@@ -30,6 +30,7 @@ from .diabetes.handlers.reminder_jobs import DefaultJobQueue
 from .diabetes.models_learning import Lesson
 from .diabetes.services.db import init_db, run_db
 from services.api.app.diabetes.services.gpt_client import dispose_openai_clients
+from services.api.app.diabetes.utils.helpers import dispose_geo_client
 from services.api.app.diabetes.utils.openai_utils import dispose_http_client
 from .telegram_auth import require_tg_user  # noqa: F401
 from .legacy import router as legacy_router
@@ -82,6 +83,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
     finally:
         reminder_events.register_job_queue(None)
+        await dispose_geo_client()
         await dispose_http_client()
         await dispose_openai_clients()
         await stop_flush_task()

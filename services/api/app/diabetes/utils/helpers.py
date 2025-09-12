@@ -1,3 +1,5 @@
+import asyncio
+import atexit
 import logging
 import os
 import re
@@ -37,6 +39,44 @@ ALLOWED_GEO_HOSTS = {"ipinfo.io"}
 GEO_DATA_URL = os.getenv("GEO_DATA_URL", "https://ipinfo.io/json")
 
 
+_geo_client: httpx.AsyncClient | None = None
+_geo_client_lock = asyncio.Lock()
+
+
+async def _get_geo_client() -> httpx.AsyncClient:
+    async with _geo_client_lock:
+        global _geo_client
+        if _geo_client is None:
+            _geo_client = httpx.AsyncClient()
+        client = _geo_client
+    return client
+
+
+async def dispose_geo_client() -> None:
+    global _geo_client
+    async with _geo_client_lock:
+        client = _geo_client
+        _geo_client = None
+    if client is not None:
+        await client.aclose()
+
+
+def _dispose_geo_client_sync() -> None:
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        try:
+            with asyncio.Runner() as runner:
+                runner.run(dispose_geo_client())
+        except Exception:  # pragma: no cover - best effort on shutdown
+            logger.exception("Failed to dispose geo client")
+    else:
+        loop.create_task(dispose_geo_client())
+
+
+atexit.register(_dispose_geo_client_sync)
+
+
 async def get_coords_and_link(
     source_url: str | None = None,
 ) -> tuple[str | None, str | None]:
@@ -55,9 +95,9 @@ async def get_coords_and_link(
         return None, None
 
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(url, timeout=5.0)
-            resp.raise_for_status()
+        client = await _get_geo_client()
+        resp = await client.get(url, timeout=5.0)
+        resp.raise_for_status()
     except httpx.HTTPError as exc:  # pragma: no cover - network failures
         logger.warning("Failed to fetch coordinates from %s: %s", url, exc)
         return None, None
