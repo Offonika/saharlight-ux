@@ -9,6 +9,7 @@ from services.api.app.config import get_settings
 _settings = get_settings()
 ASSISTANT_MAX_TURNS: int = _settings.assistant_max_turns
 ASSISTANT_SUMMARY_TRIGGER: int = _settings.assistant_summary_trigger
+ASSISTANT_DEFAULT_MODE: str = _settings.assistant_default_mode
 
 HISTORY_KEY = "assistant_history"
 SUMMARY_KEY = "assistant_summary"
@@ -66,11 +67,14 @@ def reset_mode_state(user_data: MutableMapping[str, object]) -> None:
     user_data.pop(AWAITING_KIND, None)
 
 
-def get_last_mode(user_data: MutableMapping[str, object]) -> str | None:
-    """Return previously selected assistant mode from ``user_data``."""
+def get_last_mode(user_data: MutableMapping[str, object]) -> str:
+    """Return assistant mode from ``user_data`` initializing with default."""
 
     value = user_data.get(LAST_MODE_KEY)
-    return cast(str | None, value) if isinstance(value, str) else None
+    if isinstance(value, str):
+        return value
+    user_data[LAST_MODE_KEY] = ASSISTANT_DEFAULT_MODE
+    return ASSISTANT_DEFAULT_MODE
 
 
 def set_last_mode(user_data: MutableMapping[str, object], mode: str | None) -> None:
@@ -85,6 +89,7 @@ def set_last_mode(user_data: MutableMapping[str, object], mode: str | None) -> N
 __all__ = [
     "ASSISTANT_MAX_TURNS",
     "ASSISTANT_SUMMARY_TRIGGER",
+    "ASSISTANT_DEFAULT_MODE",
     "HISTORY_KEY",
     "SUMMARY_KEY",
     "LAST_MODE_KEY",

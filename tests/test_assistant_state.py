@@ -53,3 +53,10 @@ def test_reset_mode_state() -> None:
     }
     assistant_state.reset_mode_state(data)
     assert data == {}
+
+
+def test_get_last_mode_initializes_with_default() -> None:
+    data: dict[str, Any] = {}
+    mode = assistant_state.get_last_mode(data)
+    assert mode == assistant_state.ASSISTANT_DEFAULT_MODE
+    assert data[assistant_state.LAST_MODE_KEY] == assistant_state.ASSISTANT_DEFAULT_MODE
