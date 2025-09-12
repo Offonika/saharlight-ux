@@ -71,10 +71,10 @@ async def test_photo_handler_not_image(
     calls = 0
     orig = photo_handlers._clear_waiting_gpt
 
-    def wrapped(user_data: dict[str, Any]) -> None:
+    def wrapped(context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]) -> None:
         nonlocal calls
         calls += 1
-        orig(user_data)
+        orig(context)
 
     monkeypatch.setattr(photo_handlers, "_clear_waiting_gpt", wrapped)
     message = NoPhotoMessage()
@@ -131,10 +131,10 @@ async def test_photo_handler_timeout(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     calls = 0
     orig = photo_handlers._clear_waiting_gpt
 
-    def wrapped(user_data: dict[str, Any]) -> None:
+    def wrapped(context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]) -> None:
         nonlocal calls
         calls += 1
-        orig(user_data)
+        orig(context)
 
     monkeypatch.setattr(photo_handlers, "_clear_waiting_gpt", wrapped)
     result = await photo_handlers.photo_handler(update, context)

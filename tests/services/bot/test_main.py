@@ -35,3 +35,35 @@ async def test_post_init_without_redis(monkeypatch) -> None:
     await main.post_init(app)
 
     bot.set_my_commands.assert_awaited_once_with(main.commands)
+
+
+@pytest.mark.asyncio
+async def test_post_init_handles_none_redis_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_import = builtins.__import__
+
+    def fake_import(name: str, *args: object, **kwargs: object):
+        if name == "redis.asyncio":
+            raise ModuleNotFoundError
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    monkeypatch.setattr(main, "redis", main.redis_stub)
+
+    def fake_from_url(*args: object, **kwargs: object) -> None:
+        return None
+
+    monkeypatch.setattr(main.redis_stub, "from_url", fake_from_url)
+    monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
+    monkeypatch.setattr(
+        "services.api.app.diabetes.handlers.assistant_menu.post_init",
+        AsyncMock(),
+    )
+
+    bot = AsyncMock()
+    app = SimpleNamespace(bot=bot, job_queue=None)
+
+    await main.post_init(app)
+
+    bot.set_my_commands.assert_awaited_once_with(main.commands)

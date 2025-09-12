@@ -5,6 +5,8 @@ import datetime
 import html
 import io
 import logging
+from collections.abc import MutableMapping
+from types import MappingProxyType
 from typing import cast
 
 from openai import OpenAIError
@@ -39,9 +41,25 @@ RUN_RETRIEVE_TIMEOUT = 10  # seconds
 END = ConversationHandler.END
 
 
-def _clear_waiting_gpt(user_data: UserData) -> None:
+def _clear_waiting_gpt(context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_data = _get_mutable_user_data(context)
     user_data.pop(WAITING_GPT_FLAG, None)
     user_data.pop(WAITING_GPT_TIMESTAMP, None)
+
+
+def _get_mutable_user_data(context: ContextTypes.DEFAULT_TYPE) -> UserData:
+    existing = getattr(context, "_user_data", None)
+    if existing is not None:
+        return cast(UserData, existing)
+    raw = context.user_data
+    if raw is None:
+        data: UserData = {}
+    elif isinstance(raw, MutableMapping):
+        data = cast(UserData, raw)
+    else:
+        data = dict(raw)
+    context._user_data = data
+    return data
 
 
 async def _delete_status_message(
@@ -76,10 +94,7 @@ async def photo_handler(
     file_bytes: bytes | None = None,
 ) -> int:
     """Process food photos and trigger nutrition analysis."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return END
-    user_data = cast(UserData, user_data_raw)
+    user_data = _get_mutable_user_data(context)
     message = update.message
     if message is None:
         query = update.callback_query
@@ -99,7 +114,7 @@ async def photo_handler(
             isinstance(flag_ts, datetime.datetime)
             and now - flag_ts > WAITING_GPT_TIMEOUT
         ):
-            _clear_waiting_gpt(user_data)
+            _clear_waiting_gpt(context)
         else:
             await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
             return END
@@ -374,14 +389,14 @@ async def photo_handler(
         await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
         return END
     finally:
-        _clear_waiting_gpt(user_data)
+        _clear_waiting_gpt(context)
 
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle images sent as documents."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    if getattr(context, "user_data", None) is None:
         return END
+    _get_mutable_user_data(context)
     message = update.message
     if message is None:
         return END
