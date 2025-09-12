@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
 from typing import cast
 
 import httpx
 from telegram.ext import ContextTypes
 
 from .app.config import get_settings
+
+
+logger = logging.getLogger(__name__)
 
 
 class AuthRequiredError(RuntimeError):
@@ -68,7 +72,11 @@ async def get_json(
     if not headers:
         raise AuthRequiredError()
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers)
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        try:
+            resp = await client.get(url, headers=headers)
+        except httpx.TimeoutException:
+            logger.exception("API request timeout")
+            raise
         resp.raise_for_status()
         return cast(dict[str, object], resp.json())

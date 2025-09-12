@@ -97,7 +97,7 @@ async def _assert_header(
 ) -> None:
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
-    monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_: DummyClient(captured))
     await rest_client.get_json("/api/foo", ctx=ctx)
     assert captured["headers"]["Authorization"] == "tg secret"
 
@@ -187,7 +187,7 @@ async def test_existing_init_data_authorizes_request(
 
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
-    monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_: DummyClient(captured))
     await rest_client.get_json("/api/foo", ctx=ctx)
     assert captured["headers"]["Authorization"] == f"tg {init_data}"
 

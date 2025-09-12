@@ -1,5 +1,6 @@
 from typing import Any
 
+import logging
 import httpx
 import pytest
 
@@ -48,7 +49,7 @@ async def test_get_json_uses_tg_init_data(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
-    monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_: DummyClient(captured))
     await rest_client.get_json("/api/foo", ctx=DummyCtx("abc"))
     assert captured["headers"]["Authorization"] == "tg abc"
 
@@ -119,7 +120,7 @@ async def test_get_json_prefers_internal_key(monkeypatch: pytest.MonkeyPatch) ->
 
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     captured: dict[str, object] = {}
-    monkeypatch.setattr(httpx, "AsyncClient", lambda: DummyClient(captured))
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_: DummyClient(captured))
     await rest_client.get_json("/api/foo", ctx=DummyCtx("abc"))
     assert captured["headers"]["Authorization"] == "Bearer secret"
 
@@ -133,3 +134,28 @@ async def test_get_json_requires_auth(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
     with pytest.raises(AuthRequiredError):
         await rest_client.get_json("/api/foo", ctx=DummyCtx())
+
+
+@pytest.mark.asyncio
+async def test_get_json_logs_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class Settings:
+        api_url = "http://example"
+        internal_api_key = "secret"
+
+    monkeypatch.setattr(rest_client, "get_settings", lambda: Settings())
+
+    class TimeoutClient(DummyClient):
+        async def get(
+            self, url: str, headers: dict[str, str] | None = None
+        ) -> DummyResponse:
+            raise httpx.TimeoutException("boom")
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **_: TimeoutClient({}))
+
+    with caplog.at_level(logging.ERROR):
+        with pytest.raises(httpx.TimeoutException):
+            await rest_client.get_json("/api/foo", ctx=DummyCtx("abc"))
+    assert "API request timeout" in caplog.text
