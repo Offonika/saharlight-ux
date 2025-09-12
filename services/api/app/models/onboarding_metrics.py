@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date as DateType, datetime
 
 from sqlalchemy import Date, Integer, String, TIMESTAMP, func, Index
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,7 +35,7 @@ class OnboardingMetricDaily(Base):
 
     __tablename__ = "onboarding_metrics_daily"
 
-    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    date: Mapped[DateType] = mapped_column(Date, primary_key=True)
     variant: Mapped[str] = mapped_column(String, primary_key=True)
     step: Mapped[str] = mapped_column(String, primary_key=True)
     count: Mapped[int] = mapped_column(Integer, nullable=False)
