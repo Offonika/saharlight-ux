@@ -1,0 +1,110 @@
+import pytest
+from unittest.mock import AsyncMock, MagicMock
+
+from telegram.ext import ApplicationHandlerStop
+
+from services.api.app.diabetes.handlers import assistant_router
+from services.api.app.diabetes import learning_handlers
+from services.api.app.diabetes.handlers import gpt_handlers
+from services.api.app.diabetes.utils.ui import SUGAR_BUTTON_TEXT
+
+
+@pytest.mark.asyncio
+async def test_router_learn_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = False
+
+    async def fake(update, context):  # type: ignore[override]
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(learning_handlers, "on_any_text", fake)
+    update = MagicMock()
+    message = MagicMock()
+    message.text = "hi"
+    update.message = message
+    ctx = MagicMock()
+    ctx.user_data = {"assistant_last_mode": "learn"}
+
+    with pytest.raises(ApplicationHandlerStop):
+        await assistant_router.on_any_text(update, ctx)
+
+    assert called
+
+
+@pytest.mark.asyncio
+async def test_router_chat_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = False
+
+    async def fake(update, context):  # type: ignore[override]
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(gpt_handlers, "freeform_handler", fake)
+    update = MagicMock()
+    message = MagicMock()
+    message.text = "hi"
+    update.message = message
+    ctx = MagicMock()
+    ctx.user_data = {"assistant_last_mode": "chat"}
+
+    with pytest.raises(ApplicationHandlerStop):
+        await assistant_router.on_any_text(update, ctx)
+
+    assert called
+
+
+@pytest.mark.asyncio
+async def test_router_labs_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    update = MagicMock()
+    message = MagicMock()
+    message.text = "result"
+    message.reply_text = AsyncMock()
+    update.message = message
+    ctx = MagicMock()
+    ctx.user_data = {"assistant_last_mode": "labs"}
+
+    with pytest.raises(ApplicationHandlerStop):
+        await assistant_router.on_any_text(update, ctx)
+
+    assert ctx.user_data.get("waiting_labs") is True
+    message.reply_text.assert_awaited_once()
+    assert ctx.user_data.get("assistant_last_mode") is None
+
+
+@pytest.mark.asyncio
+async def test_router_visit_checklist() -> None:
+    update = MagicMock()
+    message = MagicMock()
+    message.text = "visit"
+    message.reply_text = AsyncMock()
+    update.message = message
+    ctx = MagicMock()
+    ctx.user_data = {"assistant_last_mode": "visit"}
+
+    with pytest.raises(ApplicationHandlerStop):
+        await assistant_router.on_any_text(update, ctx)
+
+    message.reply_text.assert_awaited_once()
+    assert ctx.user_data.get("assistant_last_mode") is None
+
+
+@pytest.mark.asyncio
+async def test_router_passes_menu_buttons(monkeypatch: pytest.MonkeyPatch) -> None:
+    called = False
+
+    async def fake(update, context):  # type: ignore[override]
+        nonlocal called
+        called = True
+
+    monkeypatch.setattr(gpt_handlers, "freeform_handler", fake)
+    update = MagicMock()
+    message = MagicMock()
+    message.text = SUGAR_BUTTON_TEXT
+    update.message = message
+    ctx = MagicMock()
+    ctx.user_data = {"assistant_last_mode": "chat"}
+
+    await assistant_router.on_any_text(update, ctx)
+
+    assert called is False
+    assert ctx.user_data.get("assistant_last_mode") == "chat"

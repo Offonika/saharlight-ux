@@ -7,12 +7,8 @@ from typing import TYPE_CHECKING, TypeAlias, cast
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes
 
-from services.api.app.diabetes.utils.ui import (
-    BACK_BUTTON_TEXT,
-    PROFILE_BUTTON_TEXT,
-    REMINDERS_BUTTON_TEXT,
-    REPORT_BUTTON_TEXT,
-)
+from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
+from services.api.app.diabetes.assistant_state import set_last_mode
 
 __all__ = [
     "assistant_keyboard",
@@ -22,15 +18,17 @@ __all__ = [
 ]
 
 MENU_LAYOUT: tuple[tuple[InlineKeyboardButton, ...], ...] = (
-    (InlineKeyboardButton(PROFILE_BUTTON_TEXT, callback_data="asst:profile"),),
-    (InlineKeyboardButton(REMINDERS_BUTTON_TEXT, callback_data="asst:reminders"),),
-    (InlineKeyboardButton(REPORT_BUTTON_TEXT, callback_data="asst:report"),),
+    (InlineKeyboardButton("🎓 Обучение", callback_data="asst:learn"),),
+    (InlineKeyboardButton("💬 Чат", callback_data="asst:chat"),),
+    (InlineKeyboardButton("🧪 Анализы", callback_data="asst:labs"),),
+    (InlineKeyboardButton("🩺 Визит", callback_data="asst:visit"),),
 )
 
 MODE_TEXTS: dict[str, str] = {
-    "profile": "Раздел профиля недоступен.",
-    "reminders": "Раздел напоминаний недоступен.",
-    "report": "Раздел отчётов недоступен.",
+    "learn": "Режим обучения активирован.",
+    "chat": "Свободный диалог активирован.",
+    "labs": "Пришлите файл или текст анализов.",
+    "visit": "Подготовка чек-листа визита.",
 }
 
 
@@ -74,13 +72,15 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
     mode = data.split(":", 1)[1]
     text = MODE_TEXTS.get(mode, "Неизвестная команда.")
     if message and hasattr(message, "edit_text"):
-        await cast(Message, message).edit_text(
-            text, reply_markup=_back_keyboard()
-        )
+        await cast(Message, message).edit_text(text, reply_markup=_back_keyboard())
+    user_data = cast(dict[str, object], ctx.user_data)
+    set_last_mode(user_data, mode)
 
 
 if TYPE_CHECKING:
-    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[ContextTypes.DEFAULT_TYPE, object]
+    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[
+        ContextTypes.DEFAULT_TYPE, object
+    ]
 else:
     CallbackQueryHandlerT = CallbackQueryHandler
 
