@@ -11,7 +11,6 @@ __pycache__/
 venv/
 .venv/
 /env/
-.env
 
 # OS files
 .DS_Store
@@ -29,7 +28,6 @@ photos/
 webapp_data/
 
 # Temporary/test files
-test123.txt
 .pytest_cache/
 
 # Runtime timezone storage
@@ -40,12 +38,7 @@ services/api/app/timezone.txt
 # CLI flag artifacts
 --*
 
-# виртуалки
-venv*/
-
-.coverage
 services/api/app/*.bak.*
-.env
 # Generated SDKs
 libs/py-sdk/*
 !libs/py-sdk/requirements.txt
@@ -64,18 +57,8 @@ log/
 # debug и временные скрипты
 debug_reminders.py
 
-# случайно созданные команды в виде файлов
--bot.service -n 100 -f | grep job_queue
-ql -h localhost -U diabetes_user -d diabetes_bot -c SELECT id, time, pg_typeof(time) FROM reminders WHERE id=3;
-services/webapp/ui/udo systemctl status diabetes-bot
-services/webapp/ui/udo systemctl status diabetes-bot --no-pager -l
--ef | grep python | grep -v 3.12
+# Misc data
 libs/ts-sdk/.openapi-generator/
 .cache/
 data/
 backup.sql
-p.jpg
-pnpm-lock.yaml
-
-tore -- pnpm-lock.yaml
-tore -- pnpm-lock.yaml
