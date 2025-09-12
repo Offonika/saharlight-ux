@@ -125,6 +125,11 @@ async def openai_client_ctx() -> AsyncIterator[OpenAI]:
         yield client
     finally:
         try:
+            client.close()
+        except Exception:  # pragma: no cover - best effort on shutdown
+            logger.exception("[OpenAI] Failed to close client")
+
+        try:
             loop: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
@@ -146,6 +151,11 @@ async def async_openai_client_ctx() -> AsyncIterator[AsyncOpenAI]:
     try:
         yield client
     finally:
+        try:
+            await client.close()
+        except Exception:  # pragma: no cover - best effort on shutdown
+            logger.exception("[OpenAI] Failed to close client")
+
         try:
             await dispose_http_client()
         except Exception:  # pragma: no cover - best effort on shutdown
