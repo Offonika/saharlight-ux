@@ -358,6 +358,25 @@ def test_register_handlers_skips_learning_handlers_when_disabled(
     reload_settings()
 
 
+def test_register_handlers_skips_learning_handlers_when_env_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from services.api.app import config
+
+    monkeypatch.setenv("LEARNING_MODE_ENABLED", "")
+    monkeypatch.setattr(config, "reload_settings", lambda: config.settings)
+
+    app = ApplicationBuilder().token("TESTTOKEN").build()
+    register_handlers(app)
+
+    handlers = app.handlers[0]
+    commands = [
+        cmd for h in handlers if isinstance(h, CommandHandler) for cmd in h.commands
+    ]
+    for name in ["learn", "lesson", "quiz", "progress", "exit", "learn_reset"]:
+        assert name not in commands
+
+
 def test_register_learning_onboarding_handlers() -> None:
     app = ApplicationBuilder().token("TESTTOKEN").build()
     learning_onboarding.register_handlers(app)

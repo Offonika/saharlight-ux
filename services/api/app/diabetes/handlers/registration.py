@@ -211,8 +211,10 @@ def register_handlers(
 
     reload_settings()
     learning_env = os.getenv("LEARNING_MODE_ENABLED")
-    if learning_env is not None:
-        learning_enabled = learning_env.lower() not in {"0", "false"}
+    if learning_env not in (None, "", "0", "false"):
+        learning_enabled = True
+    elif learning_env in {"0", "false", ""}:
+        learning_enabled = False
     else:
         learning_enabled = settings.learning_mode_enabled
 
