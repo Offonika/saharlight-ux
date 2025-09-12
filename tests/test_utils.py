@@ -13,6 +13,7 @@ import httpx
 import services.api.app.diabetes.utils.helpers as utils
 from services.api.app.diabetes.utils.helpers import parse_time_interval
 
+
 @pytest.mark.asyncio
 async def test_get_coords_and_link_non_blocking(
     monkeypatch: pytest.MonkeyPatch,
@@ -130,6 +131,30 @@ async def test_get_coords_and_link_invalid_host(
 
     assert coords is None and link is None
     assert any("Invalid source URL" in msg for msg in caplog.messages)
+
+
+@pytest.mark.asyncio
+async def test_get_coords_and_link_mixed_case_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def fake_get(self: httpx.AsyncClient, url: str, **kwargs: Any) -> Any:
+        class Resp:
+            status_code = 200
+            headers = {"Content-Type": "application/json"}
+
+            def raise_for_status(self) -> None:  # pragma: no cover - dummy
+                pass
+
+            def json(self) -> dict[str, str]:
+                return {"loc": "1,2"}
+
+        return Resp()
+
+    monkeypatch.setattr(httpx.AsyncClient, "get", fake_get)
+
+    coords, link = await utils.get_coords_and_link("https://IPInfo.io/json")
+    assert coords == "1,2"
+    assert link == "https://maps.google.com/?q=1,2"
 
 
 @pytest.mark.asyncio

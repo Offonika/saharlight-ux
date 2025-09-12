@@ -45,7 +45,7 @@ async def get_coords_and_link(
     url = source_url or GEO_DATA_URL
 
     parsed = urlparse(url)
-    host = parsed.hostname
+    host = parsed.hostname.lower() if parsed.hostname else None
     if (
         parsed.scheme not in {"http", "https"}
         or host is None
