@@ -14,7 +14,7 @@ import asyncio
 import logging
 import sys
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 from zoneinfo import ZoneInfo
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -46,9 +46,10 @@ else:
 logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
 
-redis: ModuleType | SimpleNamespace = SimpleNamespace(
-    Redis=SimpleNamespace(from_url=lambda *a, **k: None)
-)
+redis_stub = SimpleNamespace()
+redis_stub.Redis = SimpleNamespace(from_url=lambda *a, **k: None)
+redis_stub.from_url = lambda *a, **k: redis_stub.Redis.from_url(*a, **k)
+redis: ModuleType | SimpleNamespace = redis_stub
 
 commands = [
     BotCommand("start", "🚀 Запустить бота"),
@@ -79,21 +80,21 @@ async def post_init(
     if not isinstance(redis, ModuleType):
         try:
             import redis.asyncio as real_redis  # type: ignore[import-not-found]
-        except ModuleNotFoundError as exc:
-            raise RuntimeError(
-                "Redis functionality requires the 'redis' package. Install it via 'pip install redis'."
-            ) from exc
-        patched_from_url = getattr(redis.Redis, "from_url", None)
-        if patched_from_url is not None:
-            real_redis.Redis.from_url = patched_from_url
-        redis = real_redis
-    assert isinstance(redis, ModuleType)
+        except ModuleNotFoundError:
+            logger.warning(
+                "Redis package not installed; command caching disabled"
+            )
+        else:
+            patched_from_url = getattr(redis.Redis, "from_url", None)
+            if patched_from_url is not None:
+                real_redis.Redis.from_url = patched_from_url
+            redis = real_redis
 
-    redis_client: redis.Redis | None = None
+    redis_client: Any | None = None
     should_set = True
     try:
         redis_raw = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
-        redis_client = cast(redis.Redis, redis_raw)
+        redis_client = cast(Any, redis_raw)
         raw_ts = await redis_client.get("bot:commands_set_at")
         if raw_ts:
             last_set = datetime.fromisoformat(raw_ts.decode())
