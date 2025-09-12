@@ -22,8 +22,7 @@ from typing import TYPE_CHECKING, TypeAlias
 
 from .common_handlers import help_command, smart_input_help
 from .router import callback_router
-from . import learning_handlers
-from services.api.app.diabetes import learning_handlers as dynamic_learning_handlers
+from .. import learning_handlers
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
     REMINDERS_BUTTON_TEXT,
@@ -221,7 +220,7 @@ def register_handlers(
     app.add_handler(
         MessageHandlerT(
             filters.TEXT & filters.Regex(LEARN_BUTTON_PATTERN),
-            dynamic_learning_handlers.learn_command,
+            learning_handlers.learn_command,
         )
     )
     app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
@@ -273,7 +272,7 @@ def register_handlers(
     app.add_handler(
         MessageHandlerT(
             filters.TEXT & ~filters.COMMAND,
-            dynamic_learning_handlers.on_any_text,
+            learning_handlers.on_any_text,
             block=False,
         ),
         group=0,

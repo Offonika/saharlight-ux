@@ -18,7 +18,8 @@ from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
 from services.api.app.diabetes import learning_onboarding as onboarding_utils
-from services.api.app.diabetes.handlers import learning_handlers, learning_onboarding
+import services.api.app.diabetes.learning_handlers as learning_handlers
+from services.api.app.diabetes.handlers import learning_onboarding
 from services.api.app.diabetes.learning_fixtures import load_lessons
 from services.api.app.diabetes.services import db
 from services.api.app.assistant.repositories import plans

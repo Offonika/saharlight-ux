@@ -9,8 +9,8 @@ from telegram.ext import Application, CommandHandler
 
 from services.api.app.config import settings
 from services.api.app.diabetes import curriculum_engine
-from services.api.app.diabetes import learning_handlers as dynamic_handlers
-from services.api.app.diabetes.handlers import learning_handlers
+import services.api.app.diabetes.learning_handlers as learning_handlers
+dynamic_handlers = learning_handlers
 
 
 class DummyBot(Bot):

@@ -7,7 +7,8 @@ from sqlalchemy.pool import StaticPool
 from telegram import Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.learning_handlers as handlers
+import services.api.app.diabetes.learning_handlers as handlers
+from services.api.app.config import settings
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
@@ -37,6 +38,8 @@ def setup_db() -> None:
 
 @pytest.mark.asyncio
 async def test_progress_command_no_progress(monkeypatch: pytest.MonkeyPatch) -> None:
+    settings.learning_mode_enabled = True
+    settings.learning_content_mode = "static"
     message = DummyMessage()
     update = cast(
         Update,
@@ -59,6 +62,8 @@ async def test_progress_command_no_progress(monkeypatch: pytest.MonkeyPatch) -> 
 
 @pytest.mark.asyncio
 async def test_progress_command_with_progress() -> None:
+    settings.learning_mode_enabled = True
+    settings.learning_content_mode = "static"
     message = DummyMessage()
     update = cast(
         Update,

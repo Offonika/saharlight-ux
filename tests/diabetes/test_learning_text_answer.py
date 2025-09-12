@@ -6,7 +6,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 
 from services.api.app.config import settings
-from services.api.app.diabetes.handlers import learning_handlers
+from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.learning_state import LearnState, get_state, set_state
 
 

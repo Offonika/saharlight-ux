@@ -11,10 +11,11 @@ from services.api.app.diabetes.curriculum_engine import (
     LessonNotFoundError,
     ProgressNotFoundError,
 )
-from services.api.app.diabetes import learning_handlers as dynamic_handlers
-import services.api.app.diabetes.handlers.learning_handlers as handlers
+import services.api.app.diabetes.learning_handlers as handlers
 from services.api.app.diabetes.learning_state import get_state
 from tests.utils.telegram import make_context, make_update
+
+dynamic_handlers = handlers
 
 
 class DummyMessage:

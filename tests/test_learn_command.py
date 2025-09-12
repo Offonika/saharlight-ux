@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 from telegram import Update, KeyboardButton
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.learning_handlers as handlers
+import services.api.app.diabetes.learning_handlers as handlers
 from services.api.app.diabetes.handlers import registration
 from services.api.app.config import Settings
 from services.api.app.diabetes.learning_fixtures import load_lessons

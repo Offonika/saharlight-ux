@@ -9,7 +9,8 @@ from sqlalchemy.pool import StaticPool
 from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
-import services.api.app.diabetes.handlers.learning_handlers as handlers
+import services.api.app.diabetes.learning_handlers as handlers
+from services.api.app.config import settings
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services import db
 
@@ -42,6 +43,8 @@ def setup_db() -> None:
 
 @pytest.mark.asyncio
 async def test_exit_command_clears_state_and_marks_progress() -> None:
+    settings.learning_mode_enabled = True
+    settings.learning_content_mode = "static"
     message = DummyMessage()
     user_id = 1
     update = cast(
