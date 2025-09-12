@@ -60,3 +60,7 @@ def test_get_last_mode_initializes_with_default() -> None:
     mode = assistant_state.get_last_mode(data)
     assert mode == assistant_state.ASSISTANT_DEFAULT_MODE
     assert data[assistant_state.LAST_MODE_KEY] == assistant_state.ASSISTANT_DEFAULT_MODE
+
+
+def test_default_mode_from_env() -> None:
+    assert assistant_state.ASSISTANT_DEFAULT_MODE == "menu"
