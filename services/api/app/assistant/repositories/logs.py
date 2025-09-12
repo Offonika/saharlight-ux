@@ -202,6 +202,22 @@ def start_flush_task(interval: float = _FLUSH_INTERVAL) -> None:
     if _flush_task is None or _flush_task.done():
         _flush_task = asyncio.create_task(_flush_periodically(interval))
 
+        def _on_done(task: asyncio.Task[None]) -> None:
+            global _flush_task
+            exc: BaseException | None = None
+            try:
+                exc = task.exception()
+            except asyncio.CancelledError:  # pragma: no cover - expected
+                pass
+            if exc is not None:
+                logger.exception("Background flush task failed", exc_info=exc)
+                _flush_task = None
+                start_flush_task(interval)
+            else:
+                _flush_task = None
+
+        _flush_task.add_done_callback(_on_done)
+
 
 async def stop_flush_task() -> None:
     """Cancel the background flush task if it's running."""

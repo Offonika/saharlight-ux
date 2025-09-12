@@ -209,6 +209,39 @@ async def test_stop_flush_task_cancels_task() -> None:
 
 
 @pytest.mark.asyncio
+async def test_start_flush_task_restarts_on_failure(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """start_flush_task should log and restart on background failures."""
+
+    await logs.stop_flush_task()
+
+    calls = 0
+
+    async def fail_once(_: float) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("boom")
+        await asyncio.sleep(0.01)
+
+    monkeypatch.setattr(logs, "_flush_periodically", fail_once)
+
+    with caplog.at_level(logging.ERROR):
+        logs.start_flush_task(0.01)
+        first = logs._flush_task
+        assert first is not None
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+        second = logs._flush_task
+        assert second is not None
+        assert second is not first
+        assert "Background flush task failed" in caplog.text
+
+    await logs.stop_flush_task()
+
+
+@pytest.mark.asyncio
 async def test_pending_logs_respects_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
