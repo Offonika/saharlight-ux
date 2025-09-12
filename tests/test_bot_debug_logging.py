@@ -18,6 +18,8 @@ def test_log_level_debug(monkeypatch: pytest.MonkeyPatch) -> None:
     # Prepare environment for config module
     monkeypatch.setenv("DB_PASSWORD", "pwd")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("TELEGRAM_TOKEN", "token")
 
     # Ensure fresh imports so that env vars are read
     for mod in ["services.api.app.config", "services.bot.main"]:
