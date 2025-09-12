@@ -1,5 +1,4 @@
 from typing import Any
-
 from datetime import time, timedelta
 
 import pytest
@@ -34,6 +33,8 @@ def test_parse_time_success(text: Any, expected: Any) -> None:
     [
         ("5h", timedelta(hours=5)),
         ("3d", timedelta(days=3)),
+        ("3 h", timedelta(hours=3)),
+        ("5 d", timedelta(days=5)),
     ],
 )
 def test_parse_interval_success(text: Any, expected: Any) -> None:
@@ -42,7 +43,7 @@ def test_parse_interval_success(text: Any, expected: Any) -> None:
 
 @pytest.mark.parametrize(
     "value",
-    ["", "25:00", "5x", "1:60", "2h30", "3 d", "0h", "0d"],
+    ["", "25:00", "5x", "1:60", "2h30", "0h", "0d"],
 )
 def test_parse_time_invalid(value: Any) -> None:
     with pytest.raises(ValueError) as exc:
