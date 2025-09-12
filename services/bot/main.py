@@ -92,16 +92,19 @@ async def post_init(
     should_set = True
     try:
         redis_raw = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
+        if redis_raw is None:
+            raise ValueError("Redis client is not configured")
         redis_client = cast(Any, redis_raw)
-        try:
-            raw_ts = await redis_client.get("bot:commands_set_at")
-        except Exception as exc:  # pragma: no cover - network/cache issues
-            logger.warning("Failed to read commands timestamp: %s", exc)
-        else:
-            if raw_ts:
-                last_set = datetime.fromisoformat(raw_ts.decode())
-                if datetime.now(timezone.utc) - last_set < timedelta(hours=24):
-                    should_set = False
+        if redis_client is not None:
+            try:
+                raw_ts = await redis_client.get("bot:commands_set_at")
+            except Exception as exc:  # pragma: no cover - network/cache issues
+                logger.warning("Failed to read commands timestamp: %s", exc)
+            else:
+                if raw_ts:
+                    last_set = datetime.fromisoformat(raw_ts.decode())
+                    if datetime.now(timezone.utc) - last_set < timedelta(hours=24):
+                        should_set = False
     except Exception as exc:  # pragma: no cover - network/cache issues
         logger.warning("Redis unavailable: %s", exc)
 
