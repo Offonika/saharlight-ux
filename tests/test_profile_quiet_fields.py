@@ -1,9 +1,10 @@
-import pytest
+import importlib
 from datetime import time as dt_time
 
+import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
-from services.api.app.diabetes.services import db
+import services.api.app.diabetes.services.db as db_module
 from services.api.app.schemas.profile import ProfileUpdateSchema
 from services.api.app.services import profile as profile_service
 
@@ -13,7 +14,11 @@ async def test_save_profile_stores_quiet_fields(
     session_local: sessionmaker[Session],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(profile_service.db, "SessionLocal", session_local, raising=False)
+    module = importlib.import_module(db_module.__name__)
+    db = importlib.reload(module)
+    monkeypatch.setattr(
+        profile_service.db, "SessionLocal", session_local, raising=False
+    )
     with session_local() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
         session.commit()
@@ -39,7 +44,11 @@ async def test_save_profile_defaults_quiet_fields(
     session_local: sessionmaker[Session],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(profile_service.db, "SessionLocal", session_local, raising=False)
+    module = importlib.import_module(db_module.__name__)
+    db = importlib.reload(module)
+    monkeypatch.setattr(
+        profile_service.db, "SessionLocal", session_local, raising=False
+    )
     with session_local() as session:
         session.add(db.User(telegram_id=2, thread_id="t"))
         session.commit()
