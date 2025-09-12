@@ -5,6 +5,7 @@ import datetime
 import html
 import io
 import logging
+from types import MappingProxyType
 from typing import cast
 
 from openai import OpenAIError
@@ -44,6 +45,21 @@ def _clear_waiting_gpt(user_data: UserData) -> None:
     user_data.pop(WAITING_GPT_TIMESTAMP, None)
 
 
+def _get_mutable_user_data(context: ContextTypes.DEFAULT_TYPE) -> UserData:
+    existing = getattr(context, "_user_data", None)
+    if existing is not None:
+        return cast(UserData, existing)
+    raw = context.user_data
+    if raw is None:
+        data: UserData = {}
+    elif isinstance(raw, MappingProxyType):
+        data = dict(raw)
+    else:
+        data = cast(UserData, raw)
+    context._user_data = data
+    return data
+
+
 async def _delete_status_message(
     status_message: Message | None, tag: str
 ) -> None:
@@ -76,10 +92,7 @@ async def photo_handler(
     file_bytes: bytes | None = None,
 ) -> int:
     """Process food photos and trigger nutrition analysis."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
-        return END
-    user_data = cast(UserData, user_data_raw)
+    user_data = _get_mutable_user_data(context)
     message = update.message
     if message is None:
         query = update.callback_query
@@ -379,9 +392,9 @@ async def photo_handler(
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Handle images sent as documents."""
-    user_data_raw = context.user_data
-    if user_data_raw is None:
+    if getattr(context, "user_data", None) is None:
         return END
+    _get_mutable_user_data(context)
     message = update.message
     if message is None:
         return END

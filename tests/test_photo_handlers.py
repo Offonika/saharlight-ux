@@ -1,15 +1,17 @@
 import logging
 import datetime
 from pathlib import Path
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from typing import Any, cast
 
 import pytest
 from telegram import Update
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext
+from unittest.mock import AsyncMock
 
 import services.api.app.diabetes.handlers.photo_handlers as photo_handlers
+import services.api.app.diabetes.utils.functions as functions
 
 
 class DummyMessage:
@@ -161,3 +163,105 @@ async def test_photo_handler_telegram_error(
     assert message.texts == ["⚠️ Произошла ошибка Telegram. Попробуйте ещё раз."]
     assert context.user_data is not None
     assert photo_handlers.WAITING_GPT_FLAG not in context.user_data
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_mapping_proxy_mutable_user_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    message = DummyMessage()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data=MappingProxyType({"thread_id": "tid"})),
+    )
+
+    async def fake_send_message(**kwargs: Any) -> Any:
+        raise ValueError("fail")
+
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    result = await photo_handlers.photo_handler(update, context, file_bytes=b"img")
+
+    assert result == photo_handlers.END
+    user_data = context._user_data
+    assert isinstance(user_data, dict)
+    assert photo_handlers.WAITING_GPT_FLAG not in user_data
+    assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
+
+
+@pytest.mark.asyncio
+async def test_photo_handler_pending_entry_mapping_proxy(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class StatusMessage:
+        async def delete(self) -> None:
+            pass
+
+    class DummyMessage2:
+        def __init__(self) -> None:
+            self.texts: list[str] = []
+            self.chat_id = 1
+
+        async def reply_text(self, text: str, **kwargs: Any) -> Any:
+            self.texts.append(text)
+            if text.startswith("🔍"):
+                return StatusMessage()
+            return None
+
+    message = DummyMessage2()
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            bot=SimpleNamespace(send_chat_action=AsyncMock()),
+            user_data=MappingProxyType({"thread_id": "tid"}),
+        ),
+    )
+
+    class Run:
+        status = "completed"
+        thread_id = "tid"
+        id = "rid"
+
+    async def fake_send_message(**kwargs: Any) -> Run:
+        return Run()
+
+    class Messages:
+        data = [
+            SimpleNamespace(
+                role="assistant",
+                content=[SimpleNamespace(text=SimpleNamespace(value="text"))],
+            )
+        ]
+
+    class DummyClient:
+        beta = SimpleNamespace(
+            threads=SimpleNamespace(
+                messages=SimpleNamespace(
+                    list=lambda thread_id, run_id=None: Messages()
+                )
+            )
+        )
+
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(carbs_g=10, xe=0.5),
+    )
+
+    result = await photo_handlers.photo_handler(update, context, file_bytes=b"img")
+
+    assert result == photo_handlers.PHOTO_SUGAR
+    user_data = context._user_data
+    assert isinstance(user_data, dict)
+    pending = user_data.get("pending_entry")
+    assert pending is not None
+    assert pending["carbs_g"] == 10
+    assert pending["xe"] == 0.5
+    assert photo_handlers.WAITING_GPT_FLAG not in user_data
