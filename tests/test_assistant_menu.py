@@ -233,3 +233,34 @@ async def test_post_init_restores_modes(monkeypatch: pytest.MonkeyPatch) -> None
     assert app.user_data[1][assistant_state.LAST_MODE_KEY] == "chat"
     assert app.user_data[2][assistant_state.LAST_MODE_KEY] == "learn"
     assert bot.send_message.await_count == 2
+
+
+def test_assistant_menu_emoji_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ASSISTANT_MENU_EMOJI", "false")
+    from importlib import reload
+
+    from services.api.app import config
+
+    reload(config)
+    config.reload_settings()
+    import services.api.app.assistant.assistant_menu as helper
+    import services.api.app.ui.keyboard as ui_keyboard
+    import services.api.app.diabetes.handlers.assistant_menu as handler_menu
+
+    reload(helper)
+    reload(ui_keyboard)
+    reload(handler_menu)
+
+    assert helper.render_assistant_menu(False).assistant == "Ассистент_AI"
+    assert ui_keyboard.LEARN_BUTTON_TEXT == "Ассистент_AI"
+    texts = [
+        btn.text for row in handler_menu.assistant_keyboard().inline_keyboard for btn in row
+    ]
+    assert texts == ["Обучение", "Чат", "Анализы", "Визит"]
+
+    monkeypatch.delenv("ASSISTANT_MENU_EMOJI", raising=False)
+    reload(config)
+    config.reload_settings()
+    reload(helper)
+    reload(ui_keyboard)
+    reload(handler_menu)

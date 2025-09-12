@@ -14,6 +14,9 @@ from telegram.ext import (
     JobQueue,
 )
 
+from services.api.app.assistant.assistant_menu import render_assistant_menu
+from services.api.app.config import get_settings
+
 from services.api.app.assistant.services import memory_service
 from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
 from services.api.app.diabetes.assistant_state import AWAITING_KIND, set_last_mode
@@ -30,11 +33,14 @@ __all__ = [
     "ASSISTANT_HANDLER",
 ]
 
+_settings = get_settings()
+_menu_texts = render_assistant_menu(_settings.assistant_menu_emoji)
+
 MENU_LAYOUT: tuple[tuple[InlineKeyboardButton, ...], ...] = (
-    (InlineKeyboardButton("🎓 Обучение", callback_data="asst:learn"),),
-    (InlineKeyboardButton("💬 Чат", callback_data="asst:chat"),),
-    (InlineKeyboardButton("🧪 Анализы", callback_data="asst:labs"),),
-    (InlineKeyboardButton("🩺 Визит", callback_data="asst:visit"),),
+    (InlineKeyboardButton(_menu_texts.learn, callback_data="asst:learn"),),
+    (InlineKeyboardButton(_menu_texts.chat, callback_data="asst:chat"),),
+    (InlineKeyboardButton(_menu_texts.labs, callback_data="asst:labs"),),
+    (InlineKeyboardButton(_menu_texts.visit, callback_data="asst:visit"),),
 )
 
 MODE_TEXTS: dict[str, str] = {
