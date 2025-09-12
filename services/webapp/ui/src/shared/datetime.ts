@@ -1,4 +1,4 @@
-export function formatNextAt(nextAt?: string | null) {
+export function formatNextAt(nextAt?: string | null): string {
   if (!nextAt) return "—";
   const d = new Date(nextAt);
   const dd = d.toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" });
