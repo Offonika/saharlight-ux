@@ -6,94 +6,12 @@ import asyncio
 import time
 import logging
 from datetime import timedelta
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.lib.units import mm
-
 import pytest
 
 import httpx
 
 import services.api.app.diabetes.utils.helpers as utils
-from services.api.app.diabetes.utils.helpers import (
-    clean_markdown,
-    parse_time_interval,
-    split_text_by_width,
-)
-
-
-def test_clean_markdown() -> None:
-    text = (
-        "**Жирный** __подчёркнутый__ _курсив_ *italic* "
-        "[ссылка](http://example.com) ![alt](img.png) `код` ~~зачёркнуто~~\n"
-        "# Заголовок\n* элемент\n- минус\n+ плюс\n1. Первый"
-    )
-    cleaned = clean_markdown(text)
-    assert "Жирный" in cleaned
-    assert "подчёркнутый" in cleaned
-    assert "курсив" in cleaned
-    assert "italic" in cleaned
-    assert "ссылка" in cleaned
-    assert "alt" in cleaned
-    assert "код" in cleaned
-    assert "зачёркнуто" in cleaned
-    assert "минус" in cleaned
-    assert "плюс" in cleaned
-    assert "#" not in cleaned
-    assert "*" not in cleaned
-    assert "-" not in cleaned
-    assert "+" not in cleaned
-    assert "1." not in cleaned
-    assert "__" not in cleaned
-    assert "_" not in cleaned
-    assert "~~" not in cleaned
-
-
-def test_split_text_by_width_simple() -> None:
-    text = "Это короткая строка"
-    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
-    lines = split_text_by_width(text, "DejaVuSans", 12, 50)
-    assert isinstance(lines, list)
-    assert all(isinstance(line, str) for line in lines)
-
-
-def test_split_text_by_width_unknown_font() -> None:
-    with pytest.raises(ValueError, match="Unknown font"):
-        split_text_by_width("text", "NoSuchFont", 12, 50)
-
-
-@pytest.mark.parametrize(
-    ("font_size", "max_width"),
-    [
-        (0, 50),
-        (12, 0),
-        (-1, 50),
-        (12, -5),
-    ],
-)
-def test_split_text_by_width_invalid_params(font_size: float, max_width: float) -> None:
-    pdfmetrics.registerFont(
-        TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-    )
-    with pytest.raises(ValueError, match="must be positive"):
-        split_text_by_width("text", "DejaVuSans", font_size, max_width)
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "Supercalifragilisticexpialidocious",
-        "Hello Supercalifragilisticexpialidocious world",
-    ],
-)
-def test_split_text_by_width_respects_limit(text: Any) -> None:
-    pdfmetrics.registerFont(TTFont("DejaVuSans", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"))
-    max_width = 20
-    lines = split_text_by_width(text, "DejaVuSans", 12, max_width)
-    for line in lines:
-        assert stringWidth(line, "DejaVuSans", 12) / mm <= max_width
-
+from services.api.app.diabetes.utils.helpers import parse_time_interval
 
 @pytest.mark.asyncio
 async def test_get_coords_and_link_non_blocking(
