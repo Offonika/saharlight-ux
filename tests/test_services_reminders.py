@@ -174,6 +174,30 @@ async def test_save_reminder_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.mark.asyncio
+async def test_save_reminder_missing_id(
+    monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
+) -> None:
+    monkeypatch.setattr(reminders, "SessionLocal", session_factory)
+    with cast(ContextManager[SASession], session_factory()) as session:
+        session.add(User(telegram_id=1, thread_id="t"))
+        session.commit()
+
+    original_refresh = SASession.refresh
+
+    def fake_refresh(self: SASession, instance: Any, *args: Any, **kwargs: Any) -> None:
+        original_refresh(self, instance, *args, **kwargs)
+        instance.id = None
+
+    monkeypatch.setattr(SASession, "refresh", fake_refresh)
+
+    with pytest.raises(HTTPException) as exc:
+        await reminders.save_reminder(ReminderSchema(telegramId=1, type="sugar"))
+
+    assert exc.value.status_code == 500
+    assert exc.value.detail == "reminder id missing after commit"
+
+
+@pytest.mark.asyncio
 async def test_list_reminders_invalid_user(
     monkeypatch: pytest.MonkeyPatch, session_factory: SessionMaker[SASession]
 ) -> None:
@@ -192,9 +216,7 @@ async def test_list_reminders_stats(
         session.add(User(telegram_id=1, thread_id="t"))
         session.add(Reminder(id=1, telegram_id=1, type="sugar"))
         recent = now - timedelta(days=1)
-        session.add(
-            ReminderLog(reminder_id=1, telegram_id=1, event_time=recent)
-        )
+        session.add(ReminderLog(reminder_id=1, telegram_id=1, event_time=recent))
         session.add(
             ReminderLog(
                 reminder_id=1, telegram_id=1, event_time=now - timedelta(days=8)
