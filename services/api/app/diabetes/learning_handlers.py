@@ -29,7 +29,12 @@ from services.api.rest_client import AuthRequiredError
 from services.api.app.diabetes.models_learning import Lesson, LessonProgress
 from services.api.app.diabetes.services.db import SessionLocal, run_db
 from services.api.app.diabetes.services.repository import commit
-from .dynamic_tutor import BUSY_MESSAGE, check_user_answer, generate_step_text
+from .dynamic_tutor import (
+    BUSY_MESSAGE,
+    check_user_answer,
+    generate_step_text,
+    sanitize_feedback,
+)
 from ..ui.keyboard import LEARN_BUTTON_TEXT
 from .learning_onboarding import ensure_overrides, needs_age, needs_level
 from .learning_state import LearnState, clear_state, get_state, set_state
@@ -721,8 +726,8 @@ async def lesson_answer_handler(
                 state.last_step_text or "",
             )
         feedback = format_reply(feedback)
-        await message.reply_text(feedback, reply_markup=build_main_keyboard())
         if feedback == BUSY_MESSAGE:
+            await message.reply_text(feedback, reply_markup=build_main_keyboard())
             return
         lesson_id = user_data.get("lesson_id")
         try:
@@ -756,7 +761,12 @@ async def lesson_answer_handler(
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return
         next_text = format_reply(next_text)
-        await message.reply_text(next_text, reply_markup=build_main_keyboard())
+        if settings.learning_reply_mode == "one_message":
+            combined = sanitize_feedback(feedback) + "\n\n—\n\n" + next_text
+            await message.reply_text(combined, reply_markup=build_main_keyboard())
+        else:
+            await message.reply_text(feedback, reply_markup=build_main_keyboard())
+            await message.reply_text(next_text, reply_markup=build_main_keyboard())
         state.step = prev_step + 1
         state.last_step_text = next_text
         state.prev_summary = feedback

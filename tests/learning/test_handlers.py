@@ -63,10 +63,14 @@ class DummyBot(Bot):
         return True
 
 
+@pytest.mark.parametrize("reply_mode", ["two_messages", "one_message"])
 @pytest.mark.asyncio
-async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_learning_flow(
+    monkeypatch: pytest.MonkeyPatch, reply_mode: str
+) -> None:
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
     monkeypatch.setattr(settings, "learning_ui_show_topics", True)
+    monkeypatch.setattr(settings, "learning_reply_mode", reply_mode)
     steps = iter(["step1", "step2"])
 
     async def fake_create_learning_chat_completion(**kwargs: object) -> str:
@@ -147,14 +151,23 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     ans_msg._bot = bot
     await app.process_update(Update(update_id=3, message=ans_msg))
     plan = learning_handlers.generate_learning_plan("step1")
-    assert bot.sent == [
-        "Выберите тему:",
-        "Доступные темы:",
-        f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
-        "step1",
-        "✅ feedback",
-        "step2",
-    ]
+    if reply_mode == "one_message":
+        assert bot.sent == [
+            "Выберите тему:",
+            "Доступные темы:",
+            f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
+            "step1",
+            "✅ feedback\n\n—\n\nstep2",
+        ]
+    else:
+        assert bot.sent == [
+            "Выберите тему:",
+            "Доступные темы:",
+            f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
+            "step1",
+            "✅ feedback",
+            "step2",
+        ]
 
     await app.shutdown()
 
