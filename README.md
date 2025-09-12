@@ -158,7 +158,7 @@ curl -H 'Authorization: tg <init-data>' \
 - `TELEGRAM_TOKEN` — токен бота;
 - `PUBLIC_ORIGIN` — публичный URL API;
 - `WEBAPP_URL` — адрес WebApp для онбординга;
-- `API_URL` — базовый URL внешнего API; требует установленный пакет `diabetes_sdk`;
+- `API_URL` — базовый URL внешнего API (поддерживается устаревший `API_BASE_URL`); требует установленный пакет `diabetes_sdk`;
 - `INTERNAL_API_KEY` — ключ для внутренней аутентификации; при отсутствии нужно передавать `tg_init_data`;
 - `REDIS_URL` — адрес подключения к Redis для кеширования команд (по умолчанию `redis://localhost:6379/0`);
 - `OPENAI_API_KEY` — ключ OpenAI для распознавания фото;

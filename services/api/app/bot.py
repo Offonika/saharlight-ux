@@ -13,6 +13,22 @@ from .diabetes.bot_status_handlers import build_status_handler
 logger = logging.getLogger(__name__)
 
 
+def get_api_base_url() -> str:
+    """Return API base URL from environment.
+
+    Prefers ``API_URL`` but falls back to the deprecated ``API_BASE_URL``.
+    Defaults to ``/api`` when neither variable is set.
+    """
+
+    api_url = os.environ.get("API_URL")
+    if api_url:
+        return api_url
+    api_base_url = os.environ.get("API_BASE_URL")
+    if api_base_url:
+        return api_base_url
+    return "/api"
+
+
 def main() -> None:
     """Run the telegram bot with the /start WebApp links and status command."""
 
@@ -21,7 +37,7 @@ def main() -> None:
         logger.error("TELEGRAM_TOKEN is not set")
         raise RuntimeError("TELEGRAM_TOKEN is not configured")
     ui_base_url = os.environ.get("UI_BASE_URL", "/ui")
-    api_base_url = os.environ.get("API_BASE_URL", "/api")
+    api_base_url = get_api_base_url()
 
     persistence = build_persistence()
 
