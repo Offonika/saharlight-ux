@@ -78,8 +78,12 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 )
         except asyncio.CancelledError:
             raise
-        except Exception:
-            logger.exception("Reset onboarding timeout task failed")
+        except (telegram.error.TelegramError, RuntimeError) as exc:
+            # Swallow known Telegram/runtime errors: they are logged to avoid double
+            # reporting and the task shouldn't fail because of them.
+            logger.exception("Reset onboarding timeout task failed: %s", exc)
+        except Exception as exc:
+            logger.exception("Reset onboarding timeout task failed: %s", exc)
             raise
 
     user_data["_onb_reset_confirm"] = True
@@ -112,7 +116,9 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         try:
             await context.bot.send_message(
                 chat_id=message.chat_id,
-                text=("Не удалось отправить предупреждение о сбросе. Попробуйте снова."),
+                text=(
+                    "Не удалось отправить предупреждение о сбросе. Попробуйте снова."
+                ),
             )
         except telegram.error.TelegramError as exc2:
             logger.exception(
