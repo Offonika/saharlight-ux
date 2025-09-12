@@ -110,12 +110,8 @@ _ORDER: list[
             [
                 [
                     InlineKeyboardButton("Новичок", callback_data=f"{CB_PREFIX}novice"),
-                    InlineKeyboardButton(
-                        "Средний", callback_data=f"{CB_PREFIX}intermediate"
-                    ),
-                    InlineKeyboardButton(
-                        "Продвинутый", callback_data=f"{CB_PREFIX}expert"
-                    ),
+                    InlineKeyboardButton("Средний", callback_data=f"{CB_PREFIX}intermediate"),
+                    InlineKeyboardButton("Продвинутый", callback_data=f"{CB_PREFIX}expert"),
                 ]
             ]
         ),
@@ -133,9 +129,7 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     """
 
     user_data = cast(dict[str, object], context.user_data)
-    overrides = cast(
-        dict[str, str], user_data.setdefault("learn_profile_overrides", {})
-    )
+    overrides = cast(dict[str, str], user_data.setdefault("learn_profile_overrides", {}))
     message: Message | None = update.message
     if message is None and update.callback_query is not None:
         message = cast("Message | None", update.callback_query.message)
@@ -154,13 +148,19 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             profile = {}
     has_age = "age_group" in overrides or not needs_age(profile)
     has_level = "learning_level" in overrides or not needs_level(profile)
+    has_dtype = "diabetes_type" in overrides or isinstance(profile.get("diabetes_type"), str)
     asked = "age" if not has_age else "level" if has_age and not has_level else "none"
+    branch = asked
+    reason = "needs_age" if asked == "age" else "needs_level" if asked == "level" else "ok"
     logger.info(
         "ensure_overrides",
         extra={
             "user_id": getattr(user, "id", None),
             "has_age": has_age,
             "has_level": has_level,
+            "has_dtype": has_dtype,
+            "branch": branch,
+            "reason": reason,
             "asked": asked,
         },
     )
@@ -188,9 +188,29 @@ async def ensure_overrides(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             overrides.pop(key, None)
         if message is not None:
             if key == "age_group":
-                logger.info("onboarding_question", extra={"reason": "needs_age"})
+                logger.info(
+                    "onboarding_question",
+                    extra={
+                        "user_id": getattr(user, "id", None),
+                        "has_age": has_age,
+                        "has_level": has_level,
+                        "has_dtype": has_dtype,
+                        "branch": "age",
+                        "reason": "needs_age",
+                    },
+                )
             elif key == "learning_level":
-                logger.info("onboarding_question", extra={"reason": "needs_level"})
+                logger.info(
+                    "onboarding_question",
+                    extra={
+                        "user_id": getattr(user, "id", None),
+                        "has_age": has_age,
+                        "has_level": has_level,
+                        "has_dtype": has_dtype,
+                        "branch": "level",
+                        "reason": "needs_level",
+                    },
+                )
             await message.reply_text(prompt, reply_markup=keyboard)
         user_data["learn_onboarding_stage"] = key
         return False
