@@ -49,7 +49,7 @@ async def test_get_openai_client_uses_proxy(
 
     client = openai_utils.get_openai_client()
 
-    http_client_mock.assert_called_once_with(proxies="http://proxy")
+    http_client_mock.assert_called_once_with(proxy="http://proxy")
     fake_http_client.close.assert_not_called()
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_http_client)
     assert client is openai_mock.return_value
@@ -163,7 +163,7 @@ async def test_get_async_openai_client_uses_proxy(
 
     client = openai_utils.get_async_openai_client()
 
-    async_client_mock.assert_called_once_with(proxies="http://proxy")
+    async_client_mock.assert_called_once_with(proxy="http://proxy")
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_async_client)
     assert client is openai_mock.return_value
 
@@ -187,6 +187,44 @@ async def test_dispose_http_client_resets_all(
 
     fake_http_client.close.assert_called_once()
     fake_async_client.aclose.assert_awaited_once()
+    assert openai_utils._http_client == {}
+    assert openai_utils._async_http_client == {}
+
+
+@pytest.mark.asyncio
+async def test_dispose_http_client_logs_errors_and_continues(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    bad_sync_client = Mock()
+    bad_sync_client.close = Mock(side_effect=RuntimeError("boom"))
+    good_sync_client = Mock()
+
+    bad_async_client = Mock()
+    bad_async_client.aclose = AsyncMock(side_effect=RuntimeError("boom"))
+    good_async_client = Mock()
+    good_async_client.aclose = AsyncMock()
+
+    monkeypatch.setattr(
+        openai_utils,
+        "_http_client",
+        {"bad": bad_sync_client, "good": good_sync_client},
+    )
+    monkeypatch.setattr(
+        openai_utils,
+        "_async_http_client",
+        {"bad": bad_async_client, "good": good_async_client},
+    )
+
+    with caplog.at_level(logging.ERROR):
+        await openai_utils.dispose_http_client()
+
+    bad_sync_client.close.assert_called_once()
+    good_sync_client.close.assert_called_once()
+    bad_async_client.aclose.assert_awaited_once()
+    good_async_client.aclose.assert_awaited_once()
+
+    errors = [r for r in caplog.records if "Failed to close HTTP client" in r.message]
+    assert len(errors) == 2
     assert openai_utils._http_client == {}
     assert openai_utils._async_http_client == {}
 
@@ -300,7 +338,7 @@ def test_dispose_http_client_sync(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_dispose_http_client_sync_uses_runner(monkeypatch: pytest.MonkeyPatch) -> None:
     class DummyRunner:
         def __init__(self) -> None:
-            self.run = Mock()
+            self.run_mock = Mock()
             self.close = Mock()
 
         def __enter__(self) -> "DummyRunner":
@@ -308,6 +346,14 @@ def test_dispose_http_client_sync_uses_runner(monkeypatch: pytest.MonkeyPatch) -
 
         def __exit__(self, exc_type, exc, tb) -> None:  # type: ignore[override]
             self.close()
+
+        def run(self, coro: object) -> None:
+            self.run_mock(coro)
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(coro)  # type: ignore[arg-type]
+            finally:
+                loop.close()
 
     dummy_runner = DummyRunner()
     runner_factory = Mock(return_value=dummy_runner)
@@ -322,10 +368,8 @@ def test_dispose_http_client_sync_uses_runner(monkeypatch: pytest.MonkeyPatch) -
     openai_utils._dispose_http_client_sync()
 
     runner_factory.assert_called_once_with()
-    dispose_mock.assert_called_once_with()
-    dummy_runner.run.assert_called_once()
-    args, _ = dummy_runner.run.call_args
-    assert asyncio.iscoroutine(args[0])
+    dispose_mock.assert_awaited_once()
+    dummy_runner.run_mock.assert_called_once()
     dummy_runner.close.assert_called_once()
 
 
@@ -339,12 +383,12 @@ async def test_build_http_client_returns_separate_clients_for_each_proxy(
     monkeypatch.setattr(httpx, "Client", client_mock)
     monkeypatch.setattr(openai_utils, "_http_client", {})
 
-    client_a = openai_utils._build_http_client("http://proxy1", False)
-    client_b = openai_utils._build_http_client("http://proxy2", False)
+    client_a = openai_utils.build_http_client("http://proxy1")
+    client_b = openai_utils.build_http_client("http://proxy2")
 
     assert client_a is fake_client1
     assert client_b is fake_client2
-    assert openai_utils._build_http_client("http://proxy1", False) is client_a
+    assert openai_utils.build_http_client("http://proxy1") is client_a
 
     await openai_utils.dispose_http_client()
     fake_client1.close.assert_called_once()
@@ -365,12 +409,12 @@ async def test_build_async_http_client_returns_separate_clients_for_each_proxy(
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
     monkeypatch.setattr(openai_utils, "_http_client", {})
 
-    client_a = openai_utils._build_http_client("http://proxy1", True)
-    client_b = openai_utils._build_http_client("http://proxy2", True)
+    client_a = openai_utils.build_async_http_client("http://proxy1")
+    client_b = openai_utils.build_async_http_client("http://proxy2")
 
     assert client_a is fake_async_client1
     assert client_b is fake_async_client2
-    assert openai_utils._build_http_client("http://proxy1", True) is client_a
+    assert openai_utils.build_async_http_client("http://proxy1") is client_a
 
     await openai_utils.dispose_http_client()
     fake_async_client1.aclose.assert_awaited_once()

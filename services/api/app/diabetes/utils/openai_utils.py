@@ -4,7 +4,6 @@ import logging
 import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Literal, overload
 
 import httpx
 from openai import AsyncOpenAI, OpenAI
@@ -20,42 +19,34 @@ _async_http_client: dict[str, httpx.AsyncClient] = {}
 _async_http_client_lock = threading.Lock()
 
 
-@overload
-def _build_http_client(
-    proxy: str | None, async_: Literal[False]
-) -> httpx.Client | None: ...
-
-
-@overload
-def _build_http_client(
-    proxy: str | None, async_: Literal[True]
-) -> httpx.AsyncClient | None: ...
-
-
-def _build_http_client(
-    proxy: str | None, async_: bool
-) -> httpx.Client | httpx.AsyncClient | None:
-    """Return an httpx client configured with optional proxy."""
+def build_http_client(proxy: str | None) -> httpx.Client | None:
+    """Return a synchronous httpx client configured with optional proxy."""
 
     if proxy is None:
         return None
 
-    if async_:
-        global _async_http_client
-        with _async_http_client_lock:
-            async_client = _async_http_client.get(proxy)
-            if async_client is None:
-                async_client = httpx.AsyncClient(proxies=proxy)
-                _async_http_client[proxy] = async_client
-            return async_client
-
     global _http_client
     with _http_client_lock:
-        sync_client = _http_client.get(proxy)
-        if sync_client is None:
-            sync_client = httpx.Client(proxies=proxy)
-            _http_client[proxy] = sync_client
-        return sync_client
+        client = _http_client.get(proxy)
+        if client is None:
+            client = httpx.Client(proxy=proxy)
+            _http_client[proxy] = client
+        return client
+
+
+def build_async_http_client(proxy: str | None) -> httpx.AsyncClient | None:
+    """Return an asynchronous httpx client configured with optional proxy."""
+
+    if proxy is None:
+        return None
+
+    global _async_http_client
+    with _async_http_client_lock:
+        client = _async_http_client.get(proxy)
+        if client is None:
+            client = httpx.AsyncClient(proxy=proxy)
+            _async_http_client[proxy] = client
+        return client
 
 
 def get_openai_client() -> OpenAI:
@@ -72,7 +63,7 @@ def get_openai_client() -> OpenAI:
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    http_client = _build_http_client(settings.openai_proxy, False)
+    http_client = build_http_client(settings.openai_proxy)
     client = OpenAI(api_key=settings.openai_api_key, http_client=http_client)
 
     if settings.openai_assistant_id:
@@ -89,7 +80,7 @@ def get_async_openai_client() -> AsyncOpenAI:
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
-    http_client = _build_http_client(settings.openai_proxy, True)
+    http_client = build_async_http_client(settings.openai_proxy)
     client = AsyncOpenAI(api_key=settings.openai_api_key, http_client=http_client)
 
     if settings.openai_assistant_id:
@@ -100,14 +91,26 @@ def get_async_openai_client() -> AsyncOpenAI:
 async def dispose_http_client() -> None:
     """Close and reset the HTTP client used by OpenAI."""
     global _http_client, _async_http_client
+
+    # Gather and clear synchronous clients under lock, then close outside the lock
     with _http_client_lock:
-        for sync_client in _http_client.values():
-            sync_client.close()
+        sync_clients = list(_http_client.values())
         _http_client.clear()
+    for sync_client in sync_clients:
+        try:
+            sync_client.close()
+        except Exception:  # pragma: no cover - best effort
+            logger.exception("[OpenAI] Failed to close HTTP client")
+
+    # Gather and clear asynchronous clients under lock, then close outside the lock
     with _async_http_client_lock:
-        for async_client in _async_http_client.values():
-            await async_client.aclose()
+        async_clients = list(_async_http_client.values())
         _async_http_client.clear()
+    for async_client in async_clients:
+        try:
+            await async_client.aclose()
+        except Exception:  # pragma: no cover - best effort
+            logger.exception("[OpenAI] Failed to close HTTP client")
 
 
 @asynccontextmanager

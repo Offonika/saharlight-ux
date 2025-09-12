@@ -22,9 +22,16 @@ from typing import Any, TYPE_CHECKING, TypeAlias, cast
 try:
     from apscheduler.exceptions import APSchedulerError  # type: ignore[import-untyped]
 except ModuleNotFoundError:  # pragma: no cover - fallback for older APScheduler
-    APSchedulerError = Exception
+    APSchedulerError = RuntimeError
+
+try:
+    from apscheduler.jobstores.base import JobLookupError  # type: ignore[import-untyped]
+except ModuleNotFoundError:  # pragma: no cover - fallback for older APScheduler
+    JobLookupError = RuntimeError
 
 from telegram.ext import ContextTypes, Job, JobQueue
+
+APS_RUNTIME_ERRORS = (RuntimeError, APSchedulerError, JobLookupError)
 
 
 logger = logging.getLogger(__name__)
@@ -201,7 +208,14 @@ def _safe_remove(job: object) -> bool:
         try:
             remover()
             return True
-        except (AttributeError, RuntimeError, APSchedulerError) as exc:  # pragma: no cover - defensive
+        except AttributeError as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "remove() failed for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - defensive
+        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
             logger.warning(
                 "remove() failed for job id=%s name=%s: %s",
                 job_id,
@@ -229,11 +243,13 @@ def _safe_remove(job: object) -> bool:
             try:
                 remove_job(job_id)
                 return True
-            except (
-                AttributeError,
-                RuntimeError,
-                APSchedulerError,
-            ) as exc:  # pragma: no cover - defensive
+            except AttributeError as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "remove_job(%s) failed: %s",
+                    job_id,
+                    exc,
+                )  # pragma: no cover - defensive
+            except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
                 logger.warning(
                     "remove_job(%s) failed: %s",
                     job_id,
@@ -245,11 +261,13 @@ def _safe_remove(job: object) -> bool:
                     job_id,
                 )
                 raise
-        except (
-            AttributeError,
-            RuntimeError,
-            APSchedulerError,
-        ) as exc:  # pragma: no cover - defensive
+        except AttributeError as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "remove_job(job_id=%s) failed: %s",
+                job_id,
+                exc,
+            )  # pragma: no cover - defensive
+        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
             logger.warning(
                 "remove_job(job_id=%s) failed: %s",
                 job_id,
@@ -269,11 +287,14 @@ def _safe_remove(job: object) -> bool:
         try:
             schedule_removal()
             return True
-        except (
-            AttributeError,
-            RuntimeError,
-            APSchedulerError,
-        ) as exc:  # pragma: no cover - defensive
+        except AttributeError as exc:  # pragma: no cover - defensive
+            logger.warning(
+                "schedule_removal() failed for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - defensive
+        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
             logger.warning(
                 "schedule_removal() failed for job id=%s name=%s: %s",
                 job_id,
@@ -318,11 +339,13 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
             except TypeError:  # pragma: no cover - APScheduler compatibility
                 try:
                     remove_job_direct(name)
-                except (
-                    AttributeError,
-                    RuntimeError,
-                    APSchedulerError,
-                ) as exc:  # pragma: no cover - defensive
+                except AttributeError as exc:  # pragma: no cover - defensive
+                    logger.warning(
+                        "remove_job_direct(%s) failed: %s",
+                        name,
+                        exc,
+                    )  # pragma: no cover - defensive
+                except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
                     logger.warning(
                         "remove_job_direct(%s) failed: %s",
                         name,
@@ -334,11 +357,13 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
                         name,
                     )
                     raise
-            except (
-                AttributeError,
-                RuntimeError,
-                APSchedulerError,
-            ) as exc:  # pragma: no cover - defensive
+            except AttributeError as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "remove_job_direct(job_id=%s) failed: %s",
+                    name,
+                    exc,
+                )  # pragma: no cover - defensive
+            except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
                 logger.warning(
                     "remove_job_direct(job_id=%s) failed: %s",
                     name,

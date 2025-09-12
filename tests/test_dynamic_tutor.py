@@ -77,6 +77,11 @@ def test_sanitize_feedback() -> None:
     assert dynamic_tutor.sanitize_feedback(text) == "привет ✅ мир"
 
 
+def test_sanitize_feedback_keeps_quotes() -> None:
+    text = '<b>цитата</b> "привет" и \'пока\''
+    assert dynamic_tutor.sanitize_feedback(text) == 'цитата "привет" и \'пока\''
+
+
 @pytest.mark.asyncio
 async def test_check_user_answer_api_error(monkeypatch: pytest.MonkeyPatch) -> None:
     async def raise_error(**kwargs: object) -> str:
