@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, TypeAlias
 
 from .common_handlers import help_command, smart_input_help
 from .router import callback_router
+from . import assistant_router
 from .. import learning_handlers
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
@@ -82,7 +83,9 @@ async def start_gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             name=job_name,
             data=user.id,
         )
-    await message.reply_text("💬 GPT режим активирован. Напишите сообщение или /cancel для выхода.")
+    await message.reply_text(
+        "💬 GPT режим активирован. Напишите сообщение или /cancel для выхода."
+    )
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -103,7 +106,9 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 if TYPE_CHECKING:
     CommandHandlerT: TypeAlias = CommandHandler[ContextTypes.DEFAULT_TYPE, object]
     MessageHandlerT: TypeAlias = MessageHandler[ContextTypes.DEFAULT_TYPE, object]
-    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[ContextTypes.DEFAULT_TYPE, object]
+    CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[
+        ContextTypes.DEFAULT_TYPE, object
+    ]
 else:
     CommandHandlerT = CommandHandler
     MessageHandlerT = MessageHandler
@@ -126,9 +131,17 @@ def register_profile_handlers(
 
     app.add_handler(profile.profile_conv)
     app.add_handler(profile.profile_webapp_handler)
-    app.add_handler(MessageHandlerT(filters.Regex(re.escape(PROFILE_BUTTON_TEXT)), profile.profile_view))
-    app.add_handler(CallbackQueryHandlerT(profile.profile_security, pattern="^profile_security"))
-    app.add_handler(CallbackQueryHandlerT(profile.profile_back, pattern="^profile_back$"))
+    app.add_handler(
+        MessageHandlerT(
+            filters.Regex(re.escape(PROFILE_BUTTON_TEXT)), profile.profile_view
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandlerT(profile.profile_security, pattern="^profile_security")
+    )
+    app.add_handler(
+        CallbackQueryHandlerT(profile.profile_back, pattern="^profile_back$")
+    )
 
 
 def register_reminder_handlers(
@@ -156,7 +169,9 @@ def register_reminder_handlers(
             reminder_handlers.reminders_list,
         )
     )
-    app.add_handler(CallbackQueryHandlerT(reminder_handlers.reminder_callback, pattern="^remind_"))
+    app.add_handler(
+        CallbackQueryHandlerT(reminder_handlers.reminder_callback, pattern="^remind_")
+    )
 
     # --- DEBUG HANDLERS ---
     try:
@@ -242,7 +257,9 @@ def register_handlers(
     app.add_handler(CommandHandlerT("reset", bot_commands.reset_command))
     app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
     app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
-    app.add_handler(CallbackQueryHandlerT(billing_handlers.trial_command, pattern="^trial$"))
+    app.add_handler(
+        CallbackQueryHandlerT(billing_handlers.trial_command, pattern="^trial$")
+    )
     register_reminder_handlers(app)
     app.add_handler(CommandHandlerT("alertstats", alert_handlers.alert_stats))
     app.add_handler(CommandHandlerT("hypoalert", security_handlers.hypo_alert_faq))
@@ -258,9 +275,19 @@ def register_handlers(
             reporting_handlers.history_view,
         )
     )
-    app.add_handler(MessageHandlerT(filters.Regex(PHOTO_BUTTON_PATTERN), photo_handlers.photo_prompt))
-    app.add_handler(MessageHandlerT(filters.Regex(re.escape(QUICK_INPUT_BUTTON_TEXT)), smart_input_help))
-    app.add_handler(MessageHandlerT(filters.Regex(re.escape(HELP_BUTTON_TEXT)), help_command))
+    app.add_handler(
+        MessageHandlerT(
+            filters.Regex(PHOTO_BUTTON_PATTERN), photo_handlers.photo_prompt
+        )
+    )
+    app.add_handler(
+        MessageHandlerT(
+            filters.Regex(re.escape(QUICK_INPUT_BUTTON_TEXT)), smart_input_help
+        )
+    )
+    app.add_handler(
+        MessageHandlerT(filters.Regex(re.escape(HELP_BUTTON_TEXT)), help_command)
+    )
     app.add_handler(
         MessageHandlerT(
             filters.Regex(re.escape(SUBSCRIPTION_BUTTON_TEXT)),
@@ -276,6 +303,14 @@ def register_handlers(
     app.add_handler(
         MessageHandlerT(
             filters.TEXT & ~filters.COMMAND,
+            assistant_router.on_any_text,
+            block=False,
+        ),
+        group=0,
+    )
+    app.add_handler(
+        MessageHandlerT(
+            filters.TEXT & ~filters.COMMAND,
             learning_handlers.on_any_text,
             block=False,
         ),
@@ -283,12 +318,24 @@ def register_handlers(
     )
     if learning_enabled:
         learning_handlers.register_handlers(app)
-    app.add_handler(MessageHandlerT(filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler))
+    app.add_handler(
+        MessageHandlerT(filters.TEXT & ~filters.COMMAND, gpt_handlers.freeform_handler)
+    )
     app.add_handler(MessageHandlerT(filters.PHOTO, photo_handlers.photo_handler))
     app.add_handler(MessageHandlerT(filters.Document.IMAGE, photo_handlers.doc_handler))
-    app.add_handler(CallbackQueryHandlerT(assistant_menu.assistant_callback, pattern="^asst:"))
-    app.add_handler(CallbackQueryHandlerT(reporting_handlers.report_period_callback, pattern="^report_back$"))
-    app.add_handler(CallbackQueryHandlerT(reporting_handlers.report_period_callback, pattern="^report_period:"))
+    app.add_handler(
+        CallbackQueryHandlerT(assistant_menu.assistant_callback, pattern="^asst:")
+    )
+    app.add_handler(
+        CallbackQueryHandlerT(
+            reporting_handlers.report_period_callback, pattern="^report_back$"
+        )
+    )
+    app.add_handler(
+        CallbackQueryHandlerT(
+            reporting_handlers.report_period_callback, pattern="^report_period:"
+        )
+    )
     app.add_handler(CallbackQueryHandlerT(callback_router))
 
     async def _clear_waiting_flags(context: ContextTypes.DEFAULT_TYPE) -> None:
