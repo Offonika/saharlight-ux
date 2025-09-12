@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from services.api.app.assistant.models import AssistantMemory
 from services.api.app.diabetes.services.repository import commit
 
-__all__ = ["get_memory", "upsert_memory"]
+__all__ = [
+    "get_memory",
+    "upsert_memory",
+    "set_last_mode",
+    "list_last_modes",
+]
 
 
 def get_memory(session: Session, user_id: int) -> AssistantMemory | None:
@@ -22,7 +28,8 @@ def upsert_memory(
     turn_count: int,
     last_turn_at: datetime,
     summary_text: str | None = None,
-) -> AssistantMemory:
+    last_mode: str | None = None,
+    ) -> AssistantMemory:
     """Insert or update conversation memory for a user."""
     memory = session.get(AssistantMemory, user_id)
     if memory is None:
@@ -31,6 +38,7 @@ def upsert_memory(
             turn_count=turn_count,
             last_turn_at=last_turn_at,
             summary_text=summary_text or "",
+            last_mode=last_mode,
         )
         session.add(memory)
     else:
@@ -38,5 +46,40 @@ def upsert_memory(
         memory.last_turn_at = last_turn_at
         if summary_text is not None:
             memory.summary_text = summary_text
+        if last_mode is not None:
+            memory.last_mode = last_mode
     commit(session)
     return memory
+
+
+def set_last_mode(
+    session: Session,
+    *,
+    user_id: int,
+    last_mode: str | None,
+) -> AssistantMemory:
+    """Persist ``last_mode`` for a user."""
+
+    memory = session.get(AssistantMemory, user_id)
+    if memory is None:
+        memory = AssistantMemory(
+            user_id=user_id,
+            turn_count=0,
+            last_turn_at=datetime.now(timezone.utc),
+            summary_text="",
+            last_mode=last_mode,
+        )
+        session.add(memory)
+    else:
+        memory.last_mode = last_mode
+    commit(session)
+    return memory
+
+
+def list_last_modes(session: Session) -> list[tuple[int, str]]:
+    """Return ``(user_id, last_mode)`` for all users with stored mode."""
+
+    stmt = sa.select(AssistantMemory.user_id, AssistantMemory.last_mode).where(
+        AssistantMemory.last_mode.isnot(None)
+    )
+    return [(row.user_id, row.last_mode) for row in session.execute(stmt)]

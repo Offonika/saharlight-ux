@@ -69,6 +69,9 @@ async def post_init(
 ) -> None:
     await app.bot.set_my_commands(commands)
     await menu_button_post_init(app)
+    from services.api.app.diabetes.handlers import assistant_menu
+
+    await assistant_menu.post_init(app)
     if app.job_queue:
         logger.info("✅ JobQueue initialized and ready")
     else:

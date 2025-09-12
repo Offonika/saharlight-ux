@@ -1,4 +1,5 @@
 import logging
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -97,7 +98,38 @@ async def test_assistant_callback_saves_mode() -> None:
 
 
 @pytest.mark.asyncio
-async def test_assistant_callback_labs_waiting() -> None:
+async def test_assistant_callback_persists_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user_data: dict[str, object] = {}
+    message = MagicMock()
+    message.edit_text = AsyncMock()
+    query = MagicMock()
+    query.data = "asst:chat"
+    query.message = message
+    query.answer = AsyncMock()
+    update = MagicMock()
+    update.callback_query = query
+    update.effective_user = MagicMock(id=7)
+    ctx = MagicMock()
+    ctx.user_data = user_data
+
+    calls: list[tuple[int, str | None]] = []
+
+    async def fake_set_last_mode(uid: int, mode: str | None) -> None:
+        calls.append((uid, mode))
+
+    monkeypatch.setattr(assistant_menu.memory_service, "set_last_mode", fake_set_last_mode)
+
+    await assistant_menu.assistant_callback(update, ctx)
+
+    assert calls == [(7, "chat")]
+
+
+@pytest.mark.asyncio
+async def test_assistant_callback_labs_waiting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     user_data: dict[str, object] = {}
     message = MagicMock()
     message.edit_text = AsyncMock()
@@ -107,14 +139,23 @@ async def test_assistant_callback_labs_waiting() -> None:
     query.answer = AsyncMock()
     update = MagicMock()
     update.callback_query = query
+    update.effective_user = MagicMock(id=8)
     ctx = MagicMock()
     ctx.user_data = user_data
+
+    calls: list[tuple[int, str | None]] = []
+
+    async def fake_set_last_mode(uid: int, mode: str | None) -> None:
+        calls.append((uid, mode))
+
+    monkeypatch.setattr(assistant_menu.memory_service, "set_last_mode", fake_set_last_mode)
 
     await assistant_menu.assistant_callback(update, ctx)
 
     assert user_data.get("waiting_labs") is True
     assert user_data.get("assistant_last_mode") is None
     assert user_data.get(assistant_state.AWAITING_KIND) == "labs"
+    assert calls == [(8, None)]
 
 
 @pytest.mark.asyncio
@@ -173,3 +214,22 @@ async def test_assistant_callback_unknown(
     assert ctx.user_data == {}
     record = next(r for r in caplog.records if r.message == "assistant_unknown_callback")
     assert record.data == "asst:unknown"
+
+
+@pytest.mark.asyncio
+async def test_post_init_restores_modes(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_get_last_modes() -> list[tuple[int, str]]:
+        return [(1, "chat"), (2, "learn")]
+
+    monkeypatch.setattr(
+        assistant_menu.memory_service, "get_last_modes", fake_get_last_modes
+    )
+    bot = MagicMock()
+    bot.send_message = AsyncMock()
+    app = SimpleNamespace(bot=bot, user_data={})
+
+    await assistant_menu.post_init(app)
+
+    assert app.user_data[1][assistant_state.LAST_MODE_KEY] == "chat"
+    assert app.user_data[2][assistant_state.LAST_MODE_KEY] == "learn"
+    assert bot.send_message.await_count == 2
