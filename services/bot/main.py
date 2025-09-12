@@ -13,7 +13,7 @@ import asyncio
 import logging
 import sys
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias, cast
 from zoneinfo import ZoneInfo
 
 import redis.asyncio as redis
@@ -74,7 +74,9 @@ async def post_init(
     redis_client: redis.Redis | None = None
     should_set = True
     try:
-        redis_client = redis.Redis.from_url(settings.redis_url)
+        redis_client = cast(
+            redis.Redis, redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
+        )
         raw_ts = await redis_client.get("bot:commands_set_at")
         if raw_ts:
             last_set = datetime.fromisoformat(raw_ts.decode())
