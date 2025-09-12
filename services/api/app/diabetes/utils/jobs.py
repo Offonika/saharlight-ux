@@ -80,8 +80,11 @@ def schedule_once(
     application or scheduler.
     """
     cb = inspect.unwrap(callback)
-    if not callable(cb) or not asyncio.iscoroutinefunction(cb):
-        msg = "Job callback must be async"
+    if not callable(cb) or not (
+        asyncio.iscoroutinefunction(cb)
+        or asyncio.iscoroutinefunction(getattr(cb, "__call__", None))
+    ):
+        msg = "Job callback must be an async function or object with async __call__"
         raise TypeError(msg)
     tz = _derive_timezone(job_queue, timezone)
 
@@ -137,8 +140,11 @@ def schedule_daily(
     application or scheduler.
     """
     cb = inspect.unwrap(callback)
-    if not callable(cb) or not asyncio.iscoroutinefunction(cb):
-        msg = "Job callback must be async"
+    if not callable(cb) or not (
+        asyncio.iscoroutinefunction(cb)
+        or asyncio.iscoroutinefunction(getattr(cb, "__call__", None))
+    ):
+        msg = "Job callback must be an async function or object with async __call__"
         raise TypeError(msg)
     tz = _derive_timezone(job_queue, timezone)
 
