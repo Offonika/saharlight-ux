@@ -46,11 +46,7 @@ async def get_coords_and_link(
 
     parsed = urlparse(url)
     host = parsed.hostname.lower() if parsed.hostname else None
-    if (
-        parsed.scheme not in {"http", "https"}
-        or host is None
-        or host not in ALLOWED_GEO_HOSTS
-    ):
+    if parsed.scheme not in {"http", "https"} or host is None or host not in ALLOWED_GEO_HOSTS:
         logger.warning("Invalid source URL: %s", url)
         return None, None
 
@@ -77,10 +73,9 @@ async def get_coords_and_link(
     if isinstance(loc, str):
         try:
             lat, lon = (part.strip() for part in loc.split(","))
+            float(lat)
+            float(lon)
         except ValueError:
-            logger.warning("Invalid location format: %s", loc)
-            return None, None
-        if not lat or not lon:
             logger.warning("Invalid location format: %s", loc)
             return None, None
         coords = f"{lat},{lon}"
