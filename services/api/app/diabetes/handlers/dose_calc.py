@@ -1,3 +1,5 @@
+"""Handlers and conversation flow for insulin dose calculations."""
+
 import asyncio
 import datetime
 import logging
@@ -214,12 +216,10 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Сахар не может быть отрицательным.")
         return DoseState.SUGAR
     if sugar > MAX_SUGAR_MMOL_L:
-        await message.reply_text(
-            f"Сахар не должен превышать {MAX_SUGAR_MMOL_L} ммоль/л."
-        )
+        await message.reply_text(f"Сахар не должен превышать {MAX_SUGAR_MMOL_L} ммоль/л.")
         return DoseState.SUGAR
 
-    entry = cast("EntryData | None", user_data.get("pending_entry"))
+    entry = user_data.get("pending_entry")
     if entry is None or ("xe" not in entry and "carbs_g" not in entry):
         await message.reply_text(
             "Сначала укажите углеводы или ХЕ.",
@@ -244,15 +244,19 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     user_id = user.id
     if run_db is None:
+
         def _get_profile() -> Profile | None:
             with SessionLocal() as session:
                 return session.get(Profile, user_id)
 
         profile = await asyncio.to_thread(_get_profile)
     else:
-        profile = await run_db(
-            lambda s: s.get(Profile, user_id),
-            sessionmaker=SessionLocal,
+        profile = cast(
+            Profile | None,
+            await run_db(
+                lambda s: s.get(Profile, user_id),
+                sessionmaker=SessionLocal,
+            ),
         )
 
     if profile is None or profile.icr is None or profile.cf is None or profile.target_bg is None:
@@ -268,6 +272,7 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         cf=profile.cf,
         target_bg=profile.target_bg,
     )
+    assert carbs_g is not None
     try:
         dose = calc_bolus(carbs_g, sugar, patient)
     except ValueError:
@@ -345,6 +350,7 @@ from . import gpt_handlers as _gpt_handlers  # noqa: E402
 
 
 async def freeform_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle freeform text commands within dose calculation context."""
     await _gpt_handlers.freeform_handler(
         update,
         context,
@@ -380,26 +386,26 @@ dose_conv = ConversationHandler(
     },
     fallbacks=[
         MessageHandler(filters.Regex(f"^{BACK_BUTTON_TEXT}$"), dose_cancel),
-        CommandHandler("menu", cast(object, _cancel_then(menu_command))),
+        CommandHandler("menu", _cancel_then(menu_command)),
         MessageHandler(
             filters.Regex(PHOTO_BUTTON_PATTERN),
-            cast(object, _cancel_then(photo_prompt)),
+            _cancel_then(photo_prompt),
         ),
         MessageHandler(
             filters.Regex(f"^{SUGAR_BUTTON_TEXT}$"),
-            cast(object, _cancel_then(sugar_start)),
+            _cancel_then(sugar_start),
         ),
         MessageHandler(
             filters.Regex(f"^{HISTORY_BUTTON_TEXT}$"),
-            cast(object, _cancel_then(history_view)),
+            _cancel_then(history_view),
         ),
         MessageHandler(
             filters.Regex(f"^{REPORT_BUTTON_TEXT}$"),
-            cast(object, _cancel_then(report_request)),
+            _cancel_then(report_request),
         ),
         MessageHandler(
             filters.Regex(f"^{PROFILE_BUTTON_TEXT}$"),
-            cast(object, _cancel_then(profile_view)),
+            _cancel_then(profile_view),
         ),
     ],
 )
