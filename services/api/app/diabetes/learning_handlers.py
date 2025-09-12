@@ -181,9 +181,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         logger.exception("profile hydrate failed: %s", exc)
         profile = None
     if profile is None:
-        overrides = cast(
-            Mapping[str, str | None], user_data.get("learn_profile_overrides", {})
-        )
+        overrides = cast(Mapping[str, str | None], user_data.get("learn_profile_overrides", {}))
         if not user_data.get("learning_profile_backfilled") and (
             overrides.get("age_group") or overrides.get("learning_level")
         ):
@@ -194,7 +192,21 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
                     learning_level=overrides.get("learning_level"),
                 )
                 user_data["learning_profile_backfilled"] = True
-                logger.info("learning_profile backfilled user_id=%s", user.id)
+                has_age = overrides.get("age_group") is not None
+                has_level = overrides.get("learning_level") is not None
+                has_dtype = overrides.get("diabetes_type") is not None
+                logger.info(
+                    "learning_profile backfilled user_id=%s",
+                    user.id,
+                    extra={
+                        "user_id": user.id,
+                        "has_age": has_age,
+                        "has_level": has_level,
+                        "has_dtype": has_dtype,
+                        "branch": "backfill",
+                        "reason": "no_profile",
+                    },
+                )
             except (
                 SQLAlchemyError,
                 RuntimeError,
@@ -219,9 +231,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         return True
     bot_data = cast(MutableMapping[str, Any], context.bot_data)
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
-    progress_map = cast(
-        dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {})
-    )
+    progress_map = cast(dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {}))
     data = progress_map.get(user.id)
     raw_plan = plans_map.get(user.id)
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
@@ -261,9 +271,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         if snapshot == BUSY_MESSAGE:
             message = update.effective_message
             if message is not None:
-                await message.reply_text(
-                    BUSY_MESSAGE, reply_markup=build_main_keyboard()
-                )
+                await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return False
         data["snapshot"] = snapshot
         progress_map[user.id] = data
@@ -286,9 +294,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     return True
 
 
-async def _static_learn_command(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def _static_learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Static learning command implementation."""
 
     message = update.message
@@ -302,9 +308,7 @@ async def _static_learn_command(
     model = settings.learning_command_model
 
     def _list(session: Session) -> list[tuple[str, str]]:
-        lessons = session.scalars(
-            sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)
-        ).all()
+        lessons = session.scalars(sa.select(Lesson).filter_by(is_active=True).order_by(Lesson.id)).all()
         return [(lesson.title, lesson.slug) for lesson in lessons]
 
     lessons = await run_db(_list, sessionmaker=SessionLocal)
@@ -338,10 +342,7 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not await ensure_overrides(update, context):
         return
     keyboard = InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton(title, callback_data=f"lesson:{slug}")]
-            for slug, title in TOPICS_RU.items()
-        ]
+        [[InlineKeyboardButton(title, callback_data=f"lesson:{slug}")] for slug, title in TOPICS_RU.items()]
     )
     await message.reply_text("Выберите тему:", reply_markup=build_main_keyboard())
     await message.reply_text("Доступные темы:", reply_markup=keyboard)
@@ -372,9 +373,7 @@ async def _dynamic_learn_command(update: Update, context: ContextTypes.DEFAULT_T
         return
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code == 401:
-            await message.reply_text(
-                AUTH_REQUIRED_MESSAGE, reply_markup=build_main_keyboard()
-            )
+            await message.reply_text(AUTH_REQUIRED_MESSAGE, reply_markup=build_main_keyboard())
             return
         logger.exception("Failed to get profile for user %s", user.id)
         profile_db = {}
@@ -396,9 +395,7 @@ async def _dynamic_learn_command(update: Update, context: ContextTypes.DEFAULT_T
     )
     state = get_state(user_data)
     if state is not None and state.last_step_text:
-        await message.reply_text(
-            state.last_step_text, reply_markup=build_main_keyboard()
-        )
+        await message.reply_text(state.last_step_text, reply_markup=build_main_keyboard())
         state.awaiting = True
         state.last_step_at = time.monotonic()
         set_state(user_data, state)
@@ -490,9 +487,7 @@ async def _start_lesson(
         progress = await curriculum_engine.start_lesson(from_user.id, topic_slug)
         lesson_id = progress.lesson_id
         user_data["lesson_id"] = lesson_id
-        text, _ = await curriculum_engine.next_step(
-            from_user.id, lesson_id, profile, None
-        )
+        text, _ = await curriculum_engine.next_step(from_user.id, lesson_id, profile, None)
     except LessonNotFoundError:
         logger.warning(
             "no_static_lessons; run dynamic",
@@ -548,9 +543,7 @@ async def _start_lesson(
     await _persist(from_user.id, user_data, bot_data)
 
 
-async def _static_lesson_command(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def _static_lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Static implementation of lesson command."""
 
     message = update.message
@@ -576,9 +569,7 @@ async def _static_lesson_command(
     lesson_id = cast(int | None, user_data.get("lesson_id"))
     if lesson_id is None:
         if lesson_slug is None:
-            await message.reply_text(
-                f"Сначала выберите урок — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn"
-            )
+            await message.reply_text(f"Сначала выберите урок — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn")
             return
         progress = await curriculum_engine.start_lesson(user.id, lesson_slug)
         lesson_id = progress.lesson_id
@@ -633,9 +624,7 @@ async def lesson_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     topic_slug = context.args[0] if context.args else None
     if topic_slug is None:
-        await message.reply_text(
-            f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn"
-        )
+        await message.reply_text(f"Сначала выберите тему — нажмите кнопку {LEARN_BUTTON_TEXT} или команду /learn")
         return
     if topic_slug not in TOPICS_RU:
         await message.reply_text("Неизвестная тема")
@@ -680,9 +669,7 @@ async def lesson_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _start_lesson(message, user_data, context.bot_data, profile, slug)
 
 
-async def lesson_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def lesson_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Process user's answer and move to the next step."""
 
     message = update.message
@@ -716,9 +703,7 @@ async def lesson_answer_handler(
     prev_step = state.step
     try:
         if user_text.lower() == "не знаю":
-            feedback = await assistant_chat(
-                profile, f"Объясни подробнее: {state.last_step_text}"
-            )
+            feedback = await assistant_chat(profile, f"Объясни подробнее: {state.last_step_text}")
         else:
             _correct, feedback = await check_user_answer(
                 profile,
@@ -780,9 +765,7 @@ async def lesson_answer_handler(
                     "snapshot": state.last_step_text,
                     "prev_summary": state.prev_summary,
                 }
-                progress_map = cast(
-                    dict[int, Any], context.bot_data.setdefault(PROGRESS_KEY, {})
-                )
+                progress_map = cast(dict[int, Any], context.bot_data.setdefault(PROGRESS_KEY, {}))
                 progress_map[telegram_id] = data
                 try:
                     await progress_repo.upsert_progress(telegram_id, plan_id, data)
@@ -877,14 +860,10 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         if state is not None:
             state.awaiting = False
             set_state(user_data, state)
-        _correct, feedback = await curriculum_engine.check_answer(
-            user.id, lesson_id, {}, answer
-        )
+        _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
         sanitized_feedback = sanitize_feedback(feedback)
         try:
-            question, completed = await curriculum_engine.next_step(
-                user.id, lesson_id, {}
-            )
+            question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
         except (LessonNotFoundError, ProgressNotFoundError):
             await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
             user_data.pop("lesson_id", None)
@@ -894,9 +873,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             await message.reply_text(BUSY_MESSAGE)
             return
         if question is None and completed:
-            await message.reply_text(
-                sanitized_feedback + "\n\n—\n\nОпрос завершён"
-            )
+            await message.reply_text(sanitized_feedback + "\n\n—\n\nОпрос завершён")
             clear_state(user_data)
         elif question is not None:
             question = ensure_single_question(question)
@@ -910,9 +887,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             set_state(user_data, state)
         return
     try:
-        question, completed = await curriculum_engine.next_step(
-            user.id, lesson_id, {}
-        )
+        question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     except (LessonNotFoundError, ProgressNotFoundError):
         await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
         user_data.pop("lesson_id", None)
@@ -935,9 +910,7 @@ async def quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         set_state(user_data, state)
 
 
-async def quiz_answer_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def quiz_answer_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Treat plain text as an answer when awaiting a quiz response."""
 
     if settings.learning_content_mode != "static":
@@ -961,14 +934,10 @@ async def quiz_answer_handler(
         raise ApplicationHandlerStop
     state.awaiting = False
     set_state(user_data, state)
-    _correct, feedback = await curriculum_engine.check_answer(
-        user.id, lesson_id, {}, answer
-    )
+    _correct, feedback = await curriculum_engine.check_answer(user.id, lesson_id, {}, answer)
     sanitized_feedback = sanitize_feedback(feedback)
     try:
-        question, completed = await curriculum_engine.next_step(
-            user.id, lesson_id, {}
-        )
+        question, completed = await curriculum_engine.next_step(user.id, lesson_id, {})
     except (LessonNotFoundError, ProgressNotFoundError):
         await message.reply_text(LESSON_NOT_FOUND_MESSAGE)
         user_data.pop("lesson_id", None)
@@ -978,9 +947,7 @@ async def quiz_answer_handler(
         await message.reply_text(BUSY_MESSAGE)
         return
     if question is None and completed:
-        await message.reply_text(
-            sanitized_feedback + "\n\n—\n\nОпрос завершён"
-        )
+        await message.reply_text(sanitized_feedback + "\n\n—\n\nОпрос завершён")
         clear_state(user_data)
     elif question is not None:
         question = ensure_single_question(question)
@@ -1003,9 +970,7 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     user_id = user.id
 
-    def _load_progress(
-        session: Session, user_id: int
-    ) -> tuple[str, int, bool, int | None] | None:
+    def _load_progress(session: Session, user_id: int) -> tuple[str, int, bool, int | None] | None:
         progress = session.scalars(
             sa.select(LessonProgress)
             .join(Lesson)
@@ -1071,11 +1036,7 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     user_data = cast(MutableMapping[str, Any], context.user_data)
     state = get_state(user_data)
     now = time.monotonic()
-    if (
-        state is not None
-        and state.last_step_text
-        and (state.awaiting or now - state.last_step_at <= STEP_GRACE_PERIOD)
-    ):
+    if state is not None and state.last_step_text and (state.awaiting or now - state.last_step_at <= STEP_GRACE_PERIOD):
         await lesson_answer_handler(update, context)
         raise ApplicationHandlerStop
     profile = _get_profile(user_data)
@@ -1103,9 +1064,7 @@ async def _static_exit_command(update: Update, context: ContextTypes.DEFAULT_TYP
 
         def _complete(session: Session, user_id: int, lesson_id: int) -> None:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(
-                    user_id=user_id, lesson_id=lesson_id
-                )
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
             ).scalar_one_or_none()
             if progress is not None and not progress.completed:
                 progress.completed = True
@@ -1142,9 +1101,7 @@ async def exit_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = update.effective_user
     if user is not None:
         await _persist(user.id, user_data, context.bot_data)
-    await message.reply_text(
-        f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard()
-    )
+    await message.reply_text(f"Сессия {LEARN_BUTTON_TEXT} завершена.", reply_markup=build_main_keyboard())
 
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1209,13 +1166,9 @@ def register_handlers(app: App) -> None:
     app.add_handler(CommandHandler("skip", skip_command))
     app.add_handler(CommandHandler("exit", exit_command))
     onboarding.register_handlers(app)
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False)
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, quiz_answer_handler, block=False))
     app.add_handler(CallbackQueryHandler(lesson_callback, pattern="^lesson:"))
-    app.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False)
-    )
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, lesson_answer_handler, block=False))
 
 
 __all__ = [
