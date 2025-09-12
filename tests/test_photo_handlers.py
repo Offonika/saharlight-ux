@@ -185,7 +185,7 @@ async def test_photo_handler_mapping_proxy_mutable_user_data(
     result = await photo_handlers.photo_handler(update, context, file_bytes=b"img")
 
     assert result == photo_handlers.END
-    user_data = context._user_data
+    user_data = photo_handlers._get_mutable_user_data(context)
     assert isinstance(user_data, dict)
     assert photo_handlers.WAITING_GPT_FLAG not in user_data
     assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
@@ -258,7 +258,7 @@ async def test_photo_handler_pending_entry_mapping_proxy(
     result = await photo_handlers.photo_handler(update, context, file_bytes=b"img")
 
     assert result == photo_handlers.PHOTO_SUGAR
-    user_data = context._user_data
+    user_data = photo_handlers._get_mutable_user_data(context)
     assert isinstance(user_data, dict)
     pending = user_data.get("pending_entry")
     assert pending is not None

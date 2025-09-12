@@ -129,10 +129,10 @@ async def test_photo_handler_recognition_success_db_save(
     calls = 0
     orig = photo_handlers._clear_waiting_gpt
 
-    def wrapped(user_data: dict[str, Any]) -> None:
+    def wrapped(context: CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]]) -> None:
         nonlocal calls
         calls += 1
-        orig(user_data)
+        orig(context)
 
     monkeypatch.setattr(photo_handlers, "_clear_waiting_gpt", wrapped)
 
@@ -144,12 +144,11 @@ async def test_photo_handler_recognition_success_db_save(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.PHOTO_SUGAR
-    user_data = context._user_data
+    user_data = photo_handlers._get_mutable_user_data(context)
     assert user_data is not None
     pending = user_data.get("pending_entry")
     assert pending is not None
@@ -192,13 +191,12 @@ async def test_photo_handler_openai_error(monkeypatch: pytest.MonkeyPatch) -> No
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType(user_data)),
     )
-    context._user_data = user_data
 
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
     assert message.texts == ["⚠️ Vision не смог обработать фото. Попробуйте ещё раз."]
-    user_data_err = context._user_data
+    user_data_err = photo_handlers._get_mutable_user_data(context)
     assert user_data_err is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_err
 
@@ -269,13 +267,12 @@ async def test_photo_handler_fallback_parse_fail(
             user_data=MappingProxyType({"thread_id": "tid"}),
         ),
     )
-    context._user_data = {"thread_id": "tid"}
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
     assert any("Не смог" in t for t in message.texts)
-    user_data_fp = context._user_data
+    user_data_fp = photo_handlers._get_mutable_user_data(context)
     assert user_data_fp is not None
     assert "pending_entry" not in user_data_fp
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_fp
@@ -299,7 +296,6 @@ async def test_photo_handler_missing_photo() -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=MappingProxyType({})),
     )
-    context._user_data = {}
 
     result = await photo_handlers.photo_handler(update, context)
 
@@ -324,7 +320,6 @@ async def test_doc_handler_invalid_file_type() -> None:
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
 
     result = await photo_handlers.doc_handler(update, context)
 
@@ -395,14 +390,13 @@ async def test_photo_handler_run_timeout(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType(user_data_timeout)),
     )
-    context._user_data = user_data_timeout
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.photo_handler(update, context)
 
     assert result == photo_handlers.END
     assert message.status is not None and message.status.deleted
     assert any("Время ожидания Vision истекло" in t for t in message.texts)
-    user_data_timeout = context._user_data
+    user_data_timeout = photo_handlers._get_mutable_user_data(context)
     assert user_data_timeout is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_timeout
 
@@ -433,12 +427,12 @@ async def test_doc_handler_valid_image(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
     )
-    context._user_data = {}
+    photo_handlers._get_mutable_user_data(context)
     monkeypatch.chdir(tmp_path)
     result = await photo_handlers.doc_handler(update, context)
 
     assert result == photo_handlers.PHOTO_SUGAR
-    assert context._user_data == {}
+    assert photo_handlers._get_mutable_user_data(context) == {}
     assert message.photo is None
     photo_mock.assert_awaited_once_with(update, context, file_bytes=b"img")
 
@@ -504,14 +498,13 @@ async def test_photo_handler_typing_action_error(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(bot=bot, user_data=MappingProxyType(user_data)),
     )
-    context._user_data = user_data
     result = await photo_handlers.photo_handler(
         update, context, file_bytes=path.read_bytes()
     )
 
     assert result == photo_handlers.PHOTO_SUGAR
     assert any("На фото" in t for t in message.texts)
-    user_data_typing = context._user_data
+    user_data_typing = photo_handlers._get_mutable_user_data(context)
     assert user_data_typing is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_typing
 
@@ -569,7 +562,6 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(user_data=MappingProxyType(user_data)),
     )
-    context._user_data = user_data
 
     result = await photo_handlers.photo_handler(
         update, context, file_bytes=path.read_bytes()
@@ -577,7 +569,7 @@ async def test_photo_handler_value_error(monkeypatch: pytest.MonkeyPatch) -> Non
 
     assert result == photo_handlers.END
     assert message.texts[-1] == "⚠️ Не удалось распознать фото. Попробуйте ещё раз."
-    user_data_val = context._user_data
+    user_data_val = photo_handlers._get_mutable_user_data(context)
     assert user_data_val is not None
     assert photo_handlers.WAITING_GPT_FLAG not in user_data_val
 

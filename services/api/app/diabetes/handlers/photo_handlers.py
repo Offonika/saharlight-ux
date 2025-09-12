@@ -5,6 +5,7 @@ import datetime
 import html
 import io
 import logging
+from collections.abc import MutableMapping
 from types import MappingProxyType
 from typing import cast
 
@@ -40,7 +41,8 @@ RUN_RETRIEVE_TIMEOUT = 10  # seconds
 END = ConversationHandler.END
 
 
-def _clear_waiting_gpt(user_data: UserData) -> None:
+def _clear_waiting_gpt(context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_data = _get_mutable_user_data(context)
     user_data.pop(WAITING_GPT_FLAG, None)
     user_data.pop(WAITING_GPT_TIMESTAMP, None)
 
@@ -52,10 +54,10 @@ def _get_mutable_user_data(context: ContextTypes.DEFAULT_TYPE) -> UserData:
     raw = context.user_data
     if raw is None:
         data: UserData = {}
-    elif isinstance(raw, MappingProxyType):
-        data = dict(raw)
-    else:
+    elif isinstance(raw, MutableMapping):
         data = cast(UserData, raw)
+    else:
+        data = dict(raw)
     context._user_data = data
     return data
 
@@ -112,7 +114,7 @@ async def photo_handler(
             isinstance(flag_ts, datetime.datetime)
             and now - flag_ts > WAITING_GPT_TIMEOUT
         ):
-            _clear_waiting_gpt(user_data)
+            _clear_waiting_gpt(context)
         else:
             await message.reply_text("⏳ Уже обрабатываю фото, подождите…")
             return END
@@ -387,7 +389,7 @@ async def photo_handler(
         await message.reply_text("⚠️ Произошла ошибка Telegram. Попробуйте ещё раз.")
         return END
     finally:
-        _clear_waiting_gpt(user_data)
+        _clear_waiting_gpt(context)
 
 
 async def doc_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
