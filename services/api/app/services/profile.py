@@ -9,7 +9,6 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from ..diabetes.services.db import Profile, User
 from ..diabetes.services import db
 from ..diabetes.services.repository import CommitError, commit
 from ..schemas.profile import ProfileUpdateSchema, ProfileSchema
@@ -65,14 +64,14 @@ async def patch_user_settings(
             ) from exc
 
     def _patch(session: SessionProtocol) -> ProfileSchema:
-        user = cast(User | None, session.get(User, telegram_id))
+        user = cast(db.User | None, session.get(db.User, telegram_id))
         if user is None:
-            user = User(telegram_id=telegram_id, thread_id="api")
+            user = db.User(telegram_id=telegram_id, thread_id="api")
             cast(Session, session).add(user)
 
-        profile = cast(Profile | None, session.get(Profile, telegram_id))
+        profile = cast(db.Profile | None, session.get(db.Profile, telegram_id))
         if profile is None:
-            profile = Profile(telegram_id=telegram_id)
+            profile = db.Profile(telegram_id=telegram_id)
             cast(Session, session).add(profile)
 
         if data.timezone is not None:
@@ -167,20 +166,20 @@ async def patch_user_settings(
     return await db.run_db(_patch, sessionmaker=db.SessionLocal)
 
 
-async def _get_or_create_profile(telegram_id: int) -> Profile:
+async def _get_or_create_profile(telegram_id: int) -> db.Profile:
     """Return existing profile or create a default one for ``telegram_id``."""
 
     if telegram_id <= 0:
         raise HTTPException(status_code=422, detail="telegramId must be positive")
 
-    def _get(session: SessionProtocol) -> Profile:
-        profile = cast(Profile | None, session.get(Profile, telegram_id))
+    def _get(session: SessionProtocol) -> db.Profile:
+        profile = cast(db.Profile | None, session.get(db.Profile, telegram_id))
         if profile is None:
-            user = cast(User | None, session.get(User, telegram_id))
+            user = cast(db.User | None, session.get(db.User, telegram_id))
             if user is None:
-                user = User(telegram_id=telegram_id, thread_id="api")
+                user = db.User(telegram_id=telegram_id, thread_id="api")
                 cast(Session, session).add(user)
-            profile = Profile(telegram_id=telegram_id)
+            profile = db.Profile(telegram_id=telegram_id)
             cast(Session, session).add(profile)
             try:
                 commit(cast(Session, session))
@@ -281,14 +280,14 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
     _validate_profile(data)
 
     def _save(session: SessionProtocol) -> None:
-        user = cast(User | None, session.get(User, data.telegramId))
+        user = cast(db.User | None, session.get(db.User, data.telegramId))
         if user is None:
-            user = User(telegram_id=data.telegramId, thread_id="api")
+            user = db.User(telegram_id=data.telegramId, thread_id="api")
             cast(Session, session).add(user)
         if not user.onboarding_complete:
             user.onboarding_complete = True
 
-        profile = cast(Profile | None, session.get(Profile, data.telegramId))
+        profile = cast(db.Profile | None, session.get(db.Profile, data.telegramId))
 
         field_map = {
             "orgId": "org_id",
@@ -323,7 +322,7 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
                 else:
                     profile_data[column] = value
 
-        stmt = insert(Profile).values(**profile_data)
+        stmt = insert(db.Profile).values(**profile_data)
         update_values = {
             key: getattr(stmt.excluded, key)
             for key in profile_data.keys()
@@ -331,7 +330,7 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
         }
         session.execute(
             stmt.on_conflict_do_update(
-                index_elements=[Profile.telegram_id],
+                index_elements=[db.Profile.telegram_id],
                 set_=update_values,
             )
         )
@@ -359,12 +358,12 @@ async def save_profile(data: ProfileUpdateSchema | ProfileSchema) -> None:
         raise
 
 
-async def get_profile(telegram_id: int) -> Profile:
+async def get_profile(telegram_id: int) -> db.Profile:
     if telegram_id <= 0:
         raise HTTPException(status_code=422, detail="telegramId must be positive")
 
-    def _get(session: SessionProtocol) -> Profile | None:
-        return cast(Profile | None, session.get(Profile, telegram_id))
+    def _get(session: SessionProtocol) -> db.Profile | None:
+        return cast(db.Profile | None, session.get(db.Profile, telegram_id))
 
     try:
         profile = await db.run_db(_get, sessionmaker=db.SessionLocal)
