@@ -116,3 +116,15 @@ async def test_save_note(setup_db: sessionmaker[Session]) -> None:
         stored = session.get(memory_service.AssistantNote, note.id)
         assert stored is not None
         assert stored.text == "hello"
+
+
+@pytest.mark.asyncio
+async def test_set_last_mode_and_get_all(
+    setup_db: sessionmaker[Session],
+) -> None:
+    await memory_service.set_last_mode(1, "chat")
+    modes = await memory_service.get_all_last_modes()
+    assert modes == [(1, "chat")]
+    await memory_service.set_last_mode(1, None)
+    modes = await memory_service.get_all_last_modes()
+    assert modes == []

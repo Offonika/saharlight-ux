@@ -21,6 +21,8 @@ __all__ = [
     "save_memory",
     "clear_memory",
     "record_turn",
+    "set_last_mode",
+    "get_all_last_modes",
     "cleanup_old_memory",
     "save_note",
 ]
@@ -41,6 +43,7 @@ async def save_memory(
     turn_count: int,
     last_turn_at: datetime,
     summary_text: str = "",
+    last_mode: str | None = None,
 ) -> AssistantMemory:
     """Persist conversation metadata for ``user_id``."""
 
@@ -53,6 +56,7 @@ async def save_memory(
             turn_count=turn_count,
             last_turn_at=last_turn_at,
             summary_text=summary_text,
+            last_mode=last_mode,
         )
 
     return await run_db(_save, sessionmaker=SessionLocal)
@@ -123,6 +127,47 @@ async def record_turn(
             commit(session)
 
     await run_db(_save, sessionmaker=SessionLocal)
+
+
+async def set_last_mode(user_id: int, last_mode: str | None) -> None:
+    """Persist ``last_mode`` for ``user_id``."""
+
+    mode = last_mode or ""
+    now = datetime.now(timezone.utc)
+
+    def _save(session: Session) -> None:
+        stmt = (
+            sa.update(AssistantMemory)
+            .where(AssistantMemory.user_id == user_id)
+            .values(last_mode=mode)
+        )
+        result = session.execute(stmt)
+        if result.rowcount == 0:
+            repo_upsert_memory(
+                session,
+                user_id=user_id,
+                turn_count=0,
+                last_turn_at=now,
+                summary_text="",
+                last_mode=mode,
+            )
+        else:
+            commit(session)
+
+    await run_db(_save, sessionmaker=SessionLocal)
+
+
+async def get_all_last_modes() -> list[tuple[int, str]]:
+    """Return list of (user_id, last_mode) for stored modes."""
+
+    def _get(session: Session) -> list[tuple[int, str]]:
+        stmt = sa.select(AssistantMemory.user_id, AssistantMemory.last_mode).where(
+            AssistantMemory.last_mode != ""
+        )
+        rows = session.execute(stmt).all()
+        return [(user_id, mode) for user_id, mode in rows]
+
+    return await run_db(_get, sessionmaker=SessionLocal)
 
 
 async def cleanup_old_memory(ttl: timedelta | None = None) -> None:

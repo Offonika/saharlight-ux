@@ -23,6 +23,9 @@ class AssistantMemory(Base):
     turn_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_turn_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False)
     summary_text: Mapped[str] = mapped_column(String(1024), nullable=False, default="")
+    last_mode: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="", server_default=""
+    )
 
 
 class LessonLog(Base):

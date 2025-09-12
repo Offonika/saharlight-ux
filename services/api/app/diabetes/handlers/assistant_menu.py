@@ -3,21 +3,29 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, TypeAlias, cast
+from typing import TYPE_CHECKING, TypeAlias, cast, MutableMapping
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
-from telegram.ext import CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    ContextTypes,
+    ExtBot,
+    JobQueue,
+)
 
 from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
 from services.api.app.diabetes.assistant_state import AWAITING_KIND, set_last_mode
 from services.api.app.diabetes.labs_handlers import AWAITING_KIND as LABS_AWAITING_KIND
 from services.api.app.diabetes import visit_handlers
+from services.api.app.assistant.services import memory_service
 
 __all__ = [
     "assistant_keyboard",
     "show_menu",
     "assistant_callback",
     "ASSISTANT_HANDLER",
+    "post_init",
 ]
 
 MENU_LAYOUT: tuple[tuple[InlineKeyboardButton, ...], ...] = (
@@ -90,9 +98,13 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         user_data.pop(LABS_AWAITING_KIND, None)
         user_data[AWAITING_KIND] = "labs"
         set_last_mode(user_data, None)
+        if user is not None:
+            await memory_service.set_last_mode(user.id, None)
     else:
         user_data[AWAITING_KIND] = mode
         set_last_mode(user_data, mode)
+        if user is not None:
+            await memory_service.set_last_mode(user.id, mode)
         if mode == "visit":
             await visit_handlers.send_checklist(update, ctx)
             return
@@ -102,7 +114,39 @@ if TYPE_CHECKING:
     CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[
         ContextTypes.DEFAULT_TYPE, object
     ]
+    DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
 else:
     CallbackQueryHandlerT = CallbackQueryHandler
+    DefaultJobQueue = JobQueue
 
 ASSISTANT_HANDLER = CallbackQueryHandlerT(assistant_callback, pattern="^asst:")
+
+
+async def post_init(
+    app: Application[
+        ExtBot[None],
+        ContextTypes.DEFAULT_TYPE,
+        dict[str, object],
+        dict[str, object],
+        dict[str, object],
+        DefaultJobQueue,
+    ],
+) -> None:
+    """Restore last assistant mode for users and show corresponding state."""
+
+    from services.api.app.diabetes.assistant_state import LAST_MODE_KEY
+
+    user_map = cast(MutableMapping[int, dict[str, object]], app.user_data)
+    modes = await memory_service.get_all_last_modes()
+    for user_id, mode in modes:
+        data = user_map.setdefault(user_id, {})
+        data[LAST_MODE_KEY] = mode
+        data[AWAITING_KIND] = mode
+        text = MODE_TEXTS.get(mode, "Ассистент:")
+        markup = _back_keyboard() if mode in MODE_TEXTS else assistant_keyboard()
+        try:
+            await app.bot.send_message(
+                chat_id=user_id, text=text, reply_markup=markup
+            )
+        except Exception:  # pragma: no cover - logging
+            logging.exception("Failed to restore assistant mode", extra={"user_id": user_id})

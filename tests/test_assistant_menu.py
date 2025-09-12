@@ -1,10 +1,12 @@
 import logging
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from services.api.app.diabetes.handlers import assistant_menu
 from services.api.app.diabetes import assistant_state, visit_handlers
+from services.api.app.assistant.services import memory_service
 
 
 def test_assistant_keyboard_layout() -> None:
@@ -34,7 +36,10 @@ async def test_assistant_callback_back_to_menu() -> None:
 
 
 @pytest.mark.asyncio
-async def test_assistant_callback_mode_has_back_button() -> None:
+async def test_assistant_callback_mode_has_back_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
     message = MagicMock()
     message.edit_text = AsyncMock()
     query = MagicMock()
@@ -77,7 +82,10 @@ async def test_assistant_callback_logs_selection(
 
 
 @pytest.mark.asyncio
-async def test_assistant_callback_saves_mode() -> None:
+async def test_assistant_callback_saves_mode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
     user_data: dict[str, object] = {}
     message = MagicMock()
     message.edit_text = AsyncMock()
@@ -97,7 +105,10 @@ async def test_assistant_callback_saves_mode() -> None:
 
 
 @pytest.mark.asyncio
-async def test_assistant_callback_labs_waiting() -> None:
+async def test_assistant_callback_labs_waiting(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
     user_data: dict[str, object] = {}
     message = MagicMock()
     message.edit_text = AsyncMock()
@@ -119,6 +130,7 @@ async def test_assistant_callback_labs_waiting() -> None:
 
 @pytest.mark.asyncio
 async def test_assistant_callback_visit_calls_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
     handler = AsyncMock()
     monkeypatch.setattr(visit_handlers, "send_checklist", handler)
     message = MagicMock()
@@ -150,3 +162,21 @@ async def test_assistant_callback_save_note_routes(monkeypatch: pytest.MonkeyPat
     await assistant_menu.assistant_callback(update, MagicMock())
 
     handler.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_post_init_restores_last_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_modes() -> list[tuple[int, str]]:
+        return [(1, "chat")]
+
+    monkeypatch.setattr(memory_service, "get_all_last_modes", fake_modes)
+    bot = SimpleNamespace(send_message=AsyncMock())
+    app = SimpleNamespace(bot=bot, user_data={})
+
+    await assistant_menu.post_init(app)  # type: ignore[arg-type]
+
+    bot.send_message.assert_awaited_once()
+    assert app.user_data[1][assistant_state.LAST_MODE_KEY] == "chat"
+    assert app.user_data[1][assistant_state.AWAITING_KIND] == "chat"
+    text = bot.send_message.call_args.kwargs["text"]
+    assert "Свободный диалог" in text

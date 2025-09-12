@@ -27,6 +27,7 @@ from services.api.app.diabetes.utils.ui import (
 )
 from services.api.app.ui.keyboard import LEARN_BUTTON_TEXT
 from services.api.app.diabetes.metrics import assistant_mode_total
+from services.api.app.assistant.services import memory_service
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +55,11 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     for pattern in BOTTOM_BUTTON_PATTERNS:
         if pattern.match(text):
             return
+    user = getattr(update, "effective_user", None)
     user_data = cast(MutableMapping[str, object], context.user_data or {})
     mode = get_last_mode(user_data)
     logger.debug("assistant_router mode=%s text=%s", mode, text)
     if mode in {"learn", "chat", "labs", "visit"}:
-        user = getattr(update, "effective_user", None)
         logging.info(
             "assistant_mode_request",
             extra={"mode": mode, "user_id": getattr(user, "id", None)},
@@ -77,6 +78,8 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         user_data[AWAITING_KIND] = "labs"
         await message.reply_text("Отправьте анализы в виде файла или текста.")
         set_last_mode(user_data, None)
+        if user is not None:
+            await memory_service.set_last_mode(user.id, None)
         raise ApplicationHandlerStop
     if mode == "visit":
         user_data[AWAITING_KIND] = "visit"
@@ -84,6 +87,8 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             "Чек-лист визита: измерения, вопросы врачу, назначения."
         )
         set_last_mode(user_data, None)
+        if user is not None:
+            await memory_service.set_last_mode(user.id, None)
         raise ApplicationHandlerStop
 
 

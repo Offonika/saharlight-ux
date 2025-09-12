@@ -137,6 +137,7 @@ async def test_menu_visit_save_note(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(profile_service, "get_profile", fake_profile)
     monkeypatch.setattr(memory_service, "get_memory", fake_memory)
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
 
     message = MagicMock()
     message.edit_text = AsyncMock()

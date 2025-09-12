@@ -10,6 +10,7 @@ from services.api.app.diabetes import assistant_state, learning_handlers
 from services.api.app.diabetes.handlers import gpt_handlers
 from services.api.app.diabetes.utils.ui import SUGAR_BUTTON_TEXT
 from services.api.app.diabetes.metrics import assistant_mode_total
+from services.api.app.assistant.services import memory_service
 
 
 @pytest.mark.asyncio
@@ -67,6 +68,7 @@ async def test_router_chat_routes(
 
 @pytest.mark.asyncio
 async def test_router_labs_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
     update = MagicMock()
     message = MagicMock()
     message.text = "result"
@@ -85,7 +87,8 @@ async def test_router_labs_waiting(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
-async def test_router_visit_checklist() -> None:
+async def test_router_visit_checklist(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(memory_service, "set_last_mode", AsyncMock())
     update = MagicMock()
     message = MagicMock()
     message.text = "visit"
