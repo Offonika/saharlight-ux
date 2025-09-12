@@ -5,7 +5,7 @@ from typing import Any, cast
 
 import pytest
 from telegram import Chat, Message, Update
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, ContextTypes
 import services.api.app.ui.keyboard as kb
 
 
@@ -142,12 +142,20 @@ async def test_callback_router_unknown_data(
 
 
 @pytest.mark.asyncio
-async def test_callback_router_ignores_reminder_action(
+async def test_callback_router_delegates_reminder_action(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test")
     monkeypatch.setenv("OPENAI_ASSISTANT_ID", "asst_test")
+    import services.api.app.diabetes.handlers.reminder_handlers as reminder_handlers
     import services.api.app.diabetes.handlers.router as router
+
+    called: list[tuple[Update, ContextTypes.DEFAULT_TYPE]] = []
+
+    async def fake_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        called.append((update, context))
+
+    monkeypatch.setattr(reminder_handlers, "callback_router", fake_router, raising=False)
 
     query = DummyQuery(DummyMessage(), "rem_toggle:1")
     update = cast(Update, SimpleNamespace(callback_query=query))
@@ -158,6 +166,7 @@ async def test_callback_router_ignores_reminder_action(
 
     await router.callback_router(update, context)
 
+    assert called == [(update, context)]
     assert query.edited == []
     assert context.user_data is not None
     user_data = context.user_data

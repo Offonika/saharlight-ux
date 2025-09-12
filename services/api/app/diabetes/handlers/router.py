@@ -10,7 +10,7 @@ from telegram import (
     CallbackQuery,
 )
 from telegram.ext import ContextTypes
-from typing import Awaitable, Callable, cast
+from typing import Awaitable, Callable, Protocol, cast
 
 from services.api.app.diabetes.services.db import Entry, SessionLocal
 from services.api.app.ui.keyboard import build_main_keyboard
@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 Handler = Callable[
     [Update, ContextTypes.DEFAULT_TYPE, CallbackQuery, str], Awaitable[None]
 ]
+
+
+class ReminderHandlers(Protocol):
+    callback_router: Callable[[Update, ContextTypes.DEFAULT_TYPE], Awaitable[None]]
 
 
 async def handle_confirm_entry(
@@ -233,6 +237,10 @@ async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     data = query.data or ""
 
     if data.startswith("rem_"):
+        from . import reminder_handlers
+
+        reminder_module = cast(ReminderHandlers, reminder_handlers)
+        await reminder_module.callback_router(update, context)
         return
 
     handler = callback_handlers.get(data)
