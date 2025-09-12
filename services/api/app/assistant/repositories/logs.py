@@ -30,6 +30,7 @@ __all__ = [
     "get_lesson_logs",
     "flush_pending_logs",
     "start_flush_task",
+    "start_flush_task_async",
     "stop_flush_task",
     "cleanup_old_logs",
     "safe_add_lesson_log",
@@ -195,12 +196,25 @@ async def _flush_periodically(interval: float) -> None:
         except Exception as exc:  # pragma: no cover - logging only
             logger.exception("Failed to flush pending logs", exc_info=exc)
 
+
 def start_flush_task(interval: float = _FLUSH_INTERVAL) -> None:
     """Start background task that periodically flushes logs."""
 
     global _flush_task
-    if _flush_task is None or _flush_task.done():
-        _flush_task = asyncio.create_task(_flush_periodically(interval))
+    if _flush_task is not None and not _flush_task.done():
+        return
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        logger.info("No running event loop, skipping flush task start")
+        return
+    _flush_task = loop.create_task(_flush_periodically(interval))
+
+
+async def start_flush_task_async(interval: float = _FLUSH_INTERVAL) -> None:
+    """Explicit API to start flush task from an async context."""
+
+    start_flush_task(interval)
 
         def _on_done(task: asyncio.Task[None]) -> None:
             global _flush_task
