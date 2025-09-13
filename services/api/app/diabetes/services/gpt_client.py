@@ -301,9 +301,12 @@ async def create_thread() -> str:
 def create_thread_sync() -> str:
     """Synchronously create an empty thread.
 
-    This is a convenience wrapper around :func:`create_thread` for code that
-    runs in a synchronous context.  It simply executes the asynchronous helper
-    via :func:`asyncio.run`.
+    The function bridges synchronous and asynchronous code.  If no event loop
+    is currently running in the calling thread, the helper coroutine is
+    executed using :func:`asyncio.run`.  When invoked from a thread with an
+    active loop (for example, inside ``pytest.mark.asyncio`` tests), the
+    coroutine is scheduled via :func:`asyncio.create_task` and the loop waits
+    for its completion.
 
     Returns
     -------
@@ -311,7 +314,12 @@ def create_thread_sync() -> str:
         Identifier of the created thread.
     """
 
-    return asyncio.run(create_thread())
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(create_thread())
+    task = asyncio.create_task(create_thread())
+    return loop.run_until_complete(task)
 
 
 def _validate_image_path(image_path: str) -> str:
