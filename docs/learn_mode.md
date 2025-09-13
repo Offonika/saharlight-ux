@@ -48,6 +48,14 @@ python services/api/app/bot.py
 python scripts/probe_learn.py --user 123 --lesson xe_basics
 ```
 
+Для просмотра состояния обучения конкретного пользователя воспользуйтесь
+скриптом `scripts/check_learning_progress.sh`. Он требует переменные
+`DATABASE_URL` и `UID`:
+
+```bash
+DATABASE_URL=postgresql://… UID=<user_id> scripts/check_learning_progress.sh
+```
+
 В Telegram отправьте команду `/learn` и убедитесь, что бот показывает кнопки с уроками.
 
 ## Схема базы данных
