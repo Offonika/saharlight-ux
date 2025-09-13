@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import logging
+import os
 import time
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, TypeAlias, cast
 
@@ -49,8 +51,9 @@ from .learning_utils import choose_initial_topic
 # Including it in ``__all__`` below marks the import as used for the linter.
 from . import curriculum_engine as curriculum_engine
 from .curriculum_engine import LessonNotFoundError, ProgressNotFoundError
-from .prompts import build_system_prompt, disclaimer
+from .prompts import build_system_prompt, build_user_prompt_step, disclaimer
 from .llm_router import LLMTask
+from .services import gpt_client
 from .services.gpt_client import create_learning_chat_completion, format_reply
 from services.api.app.assistant.repositories.logs import (
     _PendingLog,
@@ -91,6 +94,15 @@ AUTH_REQUIRED_MESSAGE = AuthRequiredError.MESSAGE
 LESSON_NOT_FOUND_MESSAGE = "Учебные материалы недоступны, обратитесь в поддержку."
 
 
+debug = os.getenv("LEARNING_DEBUG", "0") == "1"
+
+
+def _sha1(s: str) -> str:
+    """Return SHA1 hex digest for ``s``."""
+
+    return hashlib.sha1(s.encode("utf-8")).hexdigest()
+
+
 def _rate_limited(user_data: MutableMapping[str, Any], key: str) -> bool:
     """Return ``True`` if action identified by ``key`` is too frequent."""
 
@@ -121,6 +133,61 @@ def _get_profile(user_data: MutableMapping[str, Any]) -> Mapping[str, str | None
     if isinstance(raw, Mapping):
         return raw
     return {}
+
+
+async def _generate_step_text_logged(
+    profile: Mapping[str, str | None],
+    topic_slug: str,
+    step_idx: int,
+    prev_summary: str | None,
+    *,
+    user_id: int | None,
+    plan_id: int | None,
+    last_sent_step_id: int | None,
+) -> str:
+    """Generate step text with optional debug logging."""
+
+    system = build_system_prompt(profile, task=LLMTask.EXPLAIN_STEP)
+    user_prompt = build_user_prompt_step(topic_slug, step_idx, prev_summary)
+    if debug and logger:
+        model = gpt_client._learning_router.choose_model(LLMTask.EXPLAIN_STEP)
+        old_key = gpt_client._make_cache_key(
+            model, system, user_prompt, "", "", "", None, ""
+        )
+        new_key = gpt_client._make_cache_key(
+            model,
+            system,
+            user_prompt,
+            str(user_id) if user_id is not None else "",
+            str(plan_id) if plan_id is not None else "",
+            topic_slug,
+            step_idx,
+            "",
+        )
+        logger.info(
+            "learning_debug_before_llm",
+            extra={
+                "user_id": user_id,
+                "plan_id": plan_id,
+                "topic_slug": topic_slug,
+                "step_idx": step_idx,
+                "last_sent_step_id": last_sent_step_id,
+                "sys_h": _sha1(system)[:12],
+                "usr_h": _sha1(user_prompt)[:12],
+                "cache_key_old_preview": _sha1("|".join(old_key))[:12],
+                "cache_key_new_preview": _sha1("|".join(new_key))[:12],
+            },
+        )
+    text = await generate_step_text(profile, topic_slug, step_idx, prev_summary)
+    if debug and logger:
+        logger.info(
+            "learning_debug_after_llm",
+            extra={
+                "pending_step_id": step_idx,
+                "reply_preview": text[:120],
+            },
+        )
+    return text
 
 
 async def _persist(
@@ -280,7 +347,15 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
     if snapshot is None:
         profile_map = _get_profile(user_data)
-        snapshot = await generate_step_text(profile_map, topic, step_idx, prev_summary)
+        snapshot = await _generate_step_text_logged(
+            profile_map,
+            topic,
+            step_idx,
+            prev_summary,
+            user_id=user.id,
+            plan_id=plan_id,
+            last_sent_step_id=last_sent_step_id,
+        )
         if snapshot == BUSY_MESSAGE:
             message = update.effective_message
             if message is not None:
@@ -465,7 +540,15 @@ async def _dynamic_learn_command(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
-        text = await generate_step_text(profile, slug, 1, None)
+        text = await _generate_step_text_logged(
+            profile,
+            slug,
+            1,
+            None,
+            user_id=user.id,
+            plan_id=None,
+            last_sent_step_id=None,
+        )
     except (
         SQLAlchemyError,
         OpenAIError,
@@ -545,7 +628,15 @@ async def _start_lesson(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
-        text = await generate_step_text(profile, topic_slug, 1, None)
+        text = await _generate_step_text_logged(
+            profile,
+            topic_slug,
+            1,
+            None,
+            user_id=from_user.id,
+            plan_id=None,
+            last_sent_step_id=None,
+        )
         if text == BUSY_MESSAGE or not text:
             user_data.pop("lesson_id", None)
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
@@ -789,11 +880,16 @@ async def lesson_answer_handler(
                     sanitized_feedback,
                 )
             else:
-                next_text = await generate_step_text(
+                raw_plan_id = user_data.get("learning_plan_id")
+                plan_id_val = raw_plan_id if isinstance(raw_plan_id, int) else None
+                next_text = await _generate_step_text_logged(
                     profile,
                     state.topic,
                     prev_step + 1,
                     sanitized_feedback,
+                    user_id=telegram_id,
+                    plan_id=plan_id_val,
+                    last_sent_step_id=state.last_sent_step_id,
                 )
         except (
             LessonNotFoundError,

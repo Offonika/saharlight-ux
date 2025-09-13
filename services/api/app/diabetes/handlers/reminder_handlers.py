@@ -57,6 +57,12 @@ from .alert_handlers import check_alert as _check_alert
 
 check_alert = _check_alert
 
+try:  # pragma: no cover - fallback if PTB lacks PersistenceError
+    from telegram.ext import PersistenceError
+except Exception:  # noqa: BLE001
+    class PersistenceError(Exception):
+        """Generic persistence error."""
+
 P = ParamSpec("P")
 T = TypeVar("T")
 S = TypeVar("S", bound=Session)
@@ -89,6 +95,19 @@ logger = logging.getLogger(__name__)
 
 SessionLocal: sessionmaker[Session] = _SessionLocal
 commit: Callable[[Session], None] = _commit
+
+
+async def _run_db_or_sync(
+    fn: Callable[Concatenate[Session, P], T],
+    *args: P.args,
+    **kwargs: P.kwargs,
+) -> T:
+    if run_db is None:
+        if not config.settings.allow_sync_db_fallback:
+            raise RuntimeError("run_db is required")
+        with SessionLocal() as session:
+            return fn(session, *args, **kwargs)
+    return await run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
 
 class DbActionStatus(Enum):
@@ -411,11 +430,7 @@ async def create_reminder_from_preset(user_id: int, code: str, job_queue: Defaul
             reminder.user = user
         return reminder, user
 
-    if run_db is None:
-        with SessionLocal() as session:
-            saved, db_user = db_save(session)
-    else:
-        saved, db_user = await run_db(db_save, sessionmaker=SessionLocal)
+    saved, db_user = await _run_db_or_sync(db_save)
 
     if saved is None:
         logger.info("Preset reminder %s not created for user %s", code, user_id)
@@ -458,14 +473,7 @@ async def reminders_list(
         _render_reminders,
     )
     try:
-        if run_db is None:
-            with SessionLocal() as session:
-                text, keyboard = render_fn(session, user_id)
-        else:
-            text, keyboard = cast(
-                tuple[str, InlineKeyboardMarkup | None],
-                await run_db(render_fn, user_id, sessionmaker=SessionLocal),
-            )
+        text, keyboard = await _run_db_or_sync(render_fn, user_id)
     except SQLAlchemyError:
         logger.exception("Failed to render reminders")
         await message.reply_text("Не удалось получить напоминания, попробуйте позже.")
@@ -503,11 +511,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             settings = session.get(Profile, user_id)
             return getattr(settings, "postmeal_check_min", None)
 
-        if run_db is None:
-            with SessionLocal() as session:
-                default_minutes = load_default(session)
-        else:
-            default_minutes = await run_db(load_default, sessionmaker=SessionLocal)
+        default_minutes = await _run_db_or_sync(load_default)
         if default_minutes is None:
             await message.reply_text(
                 "Использование: /addreminder <type> <value>"  # noqa: RUF001
@@ -600,11 +604,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             return "error", db_user, limit, count
         return "ok", db_user, limit, reminder.id
 
-    if run_db is None:
-        with SessionLocal() as session:
-            status, db_user, limit, rid_or_count = db_add(session)
-    else:
-        status, db_user, limit, rid_or_count = await run_db(db_add, sessionmaker=SessionLocal)
+    status, db_user, limit, rid_or_count = await _run_db_or_sync(db_add)
 
     if status == "limit":
         count = rid_or_count
@@ -657,7 +657,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
             try:
                 await persistence.update_user_data(user.id, context.user_data)
                 await persistence.flush()
-            except Exception as exc:  # pragma: no cover - log only
+            except (PersistenceError, OSError) as exc:  # pragma: no cover - log only
                 logger.warning("Failed to persist tg_init_data: %s", exc)
 
     sugar_raw = data.get("sugar")
@@ -694,14 +694,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                 return "error"
             return "ok"
 
-        if run_db is None:
-            with SessionLocal() as session:
-                status = save_sugar(session)
-        else:
-            status = cast(
-                Literal["ok"] | Literal["error"],
-                await run_db(save_sugar, sessionmaker=SessionLocal),
-            )
+        status = await _run_db_or_sync(save_sugar)
         if status == "ok":
             await msg.reply_text(f"Записано {sugar_val} ммоль/л")
             await check_alert(update, context, sugar_val)
@@ -728,14 +721,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
                 return "error"
             return "ok"
 
-        if run_db is None:
-            with SessionLocal() as session:
-                status = log_snooze(session)
-        else:
-            status = cast(
-                Literal["ok"] | Literal["error"],
-                await run_db(log_snooze, sessionmaker=SessionLocal),
-            )
+        status = await _run_db_or_sync(log_snooze)
         if status == "ok":
             job_queue: DefaultJobQueue | None = cast(DefaultJobQueue | None, context.job_queue)
             if job_queue is not None:
@@ -775,11 +761,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
             settings = session.get(Profile, user_id)
             return getattr(settings, "postmeal_check_min", None)
 
-        if run_db is None:
-            with SessionLocal() as session:
-                default_minutes = load_default(session)
-        else:
-            default_minutes = await run_db(load_default, sessionmaker=SessionLocal)
+        default_minutes = await _run_db_or_sync(load_default)
         if default_minutes is not None:
             minutes_after_raw = default_minutes
 
@@ -958,11 +940,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         session.refresh(rem)
         return "ok", rem, None, None
 
-    if run_db is None:
-        with SessionLocal() as session:
-            status, rem, plan, limit = db_save(session)
-    else:
-        status, rem, plan, limit = await run_db(db_save, sessionmaker=SessionLocal)
+    status, rem, plan, limit = await _run_db_or_sync(db_save)
     if status == "not_found":
         await msg.reply_text("Не найдено")
         return
@@ -995,11 +973,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
-    if run_db is None:
-        with SessionLocal() as session:
-            text, keyboard = render_fn(session, user_id)
-    else:
-        text, keyboard = await run_db(render_fn, user_id, sessionmaker=SessionLocal)
+    text, keyboard = await _run_db_or_sync(render_fn, user_id)
     if keyboard is not None:
         await msg.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
@@ -1238,14 +1212,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
             return DbActionResult(DbActionStatus.TOGGLE, rem)
         return DbActionResult(DbActionStatus.DELETE)
 
-    if run_db is None:
-        with SessionLocal() as session:
-            result = db_action(session)
-    else:
-        result = cast(
-            DbActionResult,
-            await run_db(db_action, sessionmaker=SessionLocal),
-        )
+    result = await _run_db_or_sync(db_action)
     if result.status is DbActionStatus.NOT_FOUND:
         await query.answer("Не найдено", show_alert=True)
         return
@@ -1305,14 +1272,7 @@ async def reminder_action_cb(update: Update, context: ContextTypes.DEFAULT_TYPE)
         Callable[[Session, int], tuple[str, InlineKeyboardMarkup | None]],
         _render_reminders,
     )
-    if run_db is None:
-        with SessionLocal() as session:
-            text, keyboard = render_fn(session, user_id)
-    else:
-        text, keyboard = cast(
-            tuple[str, InlineKeyboardMarkup | None],
-            await run_db(render_fn, user_id, sessionmaker=SessionLocal),
-        )
+    text, keyboard = await _run_db_or_sync(render_fn, user_id)
     try:
         if keyboard is not None:
             await query.edit_message_text(text, parse_mode="HTML", reply_markup=keyboard)

@@ -173,6 +173,33 @@ async def test_reminder_webapp_init_data(monkeypatch: pytest.MonkeyPatch) -> Non
 
 
 @pytest.mark.asyncio
+async def test_reminder_webapp_init_data_unexpected_error() -> None:
+    msg = DummyMessage(json.dumps({"init_data": "secret"}))
+    update = cast(
+        Update,
+        SimpleNamespace(
+            effective_message=msg, effective_user=SimpleNamespace(id=1)
+        ),
+    )
+
+    class FaultyPersistence(DummyPersistence):
+        async def update_user_data(
+            self, user_id: int, data: dict[str, Any]
+        ) -> None:
+            raise RuntimeError("boom")
+
+    ctx = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={}, application=SimpleNamespace(persistence=FaultyPersistence())
+        ),
+    )
+
+    with pytest.raises(RuntimeError):
+        await reminder.reminder_webapp_save(update, ctx)
+
+
+@pytest.mark.asyncio
 async def test_existing_init_data_authorizes_request(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:

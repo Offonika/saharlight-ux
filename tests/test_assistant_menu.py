@@ -59,7 +59,7 @@ async def test_assistant_callback_mode_has_back_button() -> None:
 
 @pytest.mark.asyncio
 async def test_assistant_callback_logs_selection(
-    caplog: pytest.LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     user_data: dict[str, object] = {}
     message = MagicMock()
@@ -73,6 +73,12 @@ async def test_assistant_callback_logs_selection(
     update.effective_user = MagicMock(id=42)
     ctx = MagicMock()
     ctx.user_data = user_data
+    from services.api.app.assistant.services import memory_service
+
+    async def _noop(*args: object, **kwargs: object) -> None:  # pragma: no cover - trivial
+        return None
+
+    monkeypatch.setattr(memory_service, "run_db", _noop)
     with caplog.at_level(logging.INFO):
         await assistant_menu.assistant_callback(update, ctx)
     record = next(r for r in caplog.records if r.message == "assistant_mode_selected")

@@ -82,8 +82,10 @@ class LocalProfileAPI:
     calls used by the bot are provided.
     """
 
-    def __init__(self, sessionmaker: Callable[[], Session] = SessionLocal) -> None:
-        self._sessionmaker = sessionmaker
+    def __init__(
+        self, sessionmaker: Callable[[], Session] | None = None
+    ) -> None:
+        self._sessionmaker = sessionmaker or SessionLocal
 
     def profiles_post(self, profile: LocalProfile) -> None:
         """Persist ``profile`` to the database."""
