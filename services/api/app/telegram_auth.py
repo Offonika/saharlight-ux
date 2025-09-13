@@ -8,8 +8,11 @@ from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException
 
-from .config import settings
+from . import config
 from .schemas.user import UserContext
+
+# Preserve the initial settings instance to accommodate tests that patch it.
+_INITIAL_SETTINGS = config.settings
 
 
 logger = logging.getLogger(__name__)
@@ -78,12 +81,13 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
 
 def get_tg_user(init_data: str) -> UserContext:
     """Validate ``init_data`` and return Telegram ``user`` info."""
-    token: str | None = settings.telegram_token
+    settings_obj = config.get_settings()
+    token: str | None = getattr(settings_obj, "telegram_token", None)
+    if not token:
+        token = getattr(_INITIAL_SETTINGS, "telegram_token", None)
     if not token:
         logger.error("telegram token not configured")
-        raise HTTPException(
-            status_code=503, detail="telegram token not configured"
-        )
+        raise HTTPException(status_code=503, detail="telegram token not configured")
     data: dict[str, object] = parse_and_verify_init_data(init_data, token)
     user_raw = data.get("user")
     user = user_raw if isinstance(user_raw, dict) else None
