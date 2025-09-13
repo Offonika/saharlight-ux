@@ -62,6 +62,7 @@ async def test_restart_restores_step(
             "step_idx": 2,
             "snapshot": "Шаг 2",
             "prev_summary": None,
+            "last_sent_step_id": None,
         },
     )
 

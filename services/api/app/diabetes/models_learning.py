@@ -19,6 +19,7 @@ class ProgressData(TypedDict):
     step_idx: int
     snapshot: str | None
     prev_summary: str | None
+    last_sent_step_id: int | None
 
 
 class LearningPlan(Base):

@@ -161,6 +161,7 @@ async def _persist(
             "step_idx": state.step,
             "snapshot": state.last_step_text,
             "prev_summary": state.prev_summary,
+            "last_sent_step_id": state.last_sent_step_id,
         }
         progress[user_id] = data
         try:
@@ -240,6 +241,8 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
     progress_map = cast(dict[int, ProgressData], bot_data.setdefault(PROGRESS_KEY, {}))
     data = progress_map.get(user.id)
+    if data is not None and "last_sent_step_id" not in data:
+        data["last_sent_step_id"] = None
     raw_plan = plans_map.get(user.id)
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
     raw_plan_id = user_data.get("learning_plan_id")
@@ -255,6 +258,8 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
             if db_progress is None:
                 return True
             data = db_progress.progress_json
+            if "last_sent_step_id" not in data:
+                data["last_sent_step_id"] = None
             plans_map[user.id] = plan
             progress_map[user.id] = data
             user_data["learning_plan_id"] = plan_id
@@ -269,6 +274,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     step_idx = data["step_idx"]
     snapshot = data["snapshot"]
     prev_summary = data["prev_summary"]
+    last_sent_step_id = data["last_sent_step_id"]
     user_data["learning_module_idx"] = module_idx
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
@@ -296,6 +302,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         step=step_idx,
         last_step_text=snapshot,
         prev_summary=prev_summary,
+        last_sent_step_id=last_sent_step_id,
         awaiting=True,
         last_step_at=time.monotonic(),
     )
@@ -415,12 +422,32 @@ async def _dynamic_learn_command(
     )
     state = get_state(user_data)
     if state is not None and state.last_step_text:
-        await message.reply_text(
+        sent = await message.reply_text(
             state.last_step_text, reply_markup=build_main_keyboard()
         )
         state.awaiting = True
         state.last_step_at = time.monotonic()
+        state.last_sent_step_id = getattr(sent, "message_id", None)
         set_state(user_data, state)
+        raw_plan_id = user_data.get("learning_plan_id")
+        plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+        if plan_id is not None:
+            progress_map = cast(
+                dict[int, ProgressData], context.bot_data.setdefault(PROGRESS_KEY, {})
+            )
+            data: ProgressData = {
+                "topic": state.topic,
+                "module_idx": cast(int, user_data.get("learning_module_idx", 0)),
+                "step_idx": state.step,
+                "snapshot": state.last_step_text,
+                "prev_summary": state.prev_summary,
+                "last_sent_step_id": state.last_sent_step_id,
+            }
+            progress_map[user.id] = data
+            try:
+                await progress_repo.upsert_progress(user.id, plan_id, data)
+            except (SQLAlchemyError, RuntimeError) as exc:
+                logger.exception("persist progress failed: %s", exc)
         return
     if not await ensure_overrides(update, context):
         return
@@ -461,7 +488,7 @@ async def _dynamic_learn_command(
         reply_markup=build_main_keyboard(),
     )
     text = ensure_single_question(format_reply(plan[0]))
-    await message.reply_text(text, reply_markup=build_main_keyboard())
+    sent = await message.reply_text(text, reply_markup=build_main_keyboard())
     await safe_add_lesson_log(
         user.id,
         0,
@@ -475,6 +502,7 @@ async def _dynamic_learn_command(
         step=1,
         last_step_text=text,
         prev_summary=None,
+        last_sent_step_id=getattr(sent, "message_id", None),
         awaiting=True,
         last_step_at=time.monotonic(),
     )
@@ -546,7 +574,7 @@ async def _start_lesson(
         reply_markup=build_main_keyboard(),
     )
     text = ensure_single_question(format_reply(plan[0]))
-    await message.reply_text(text, reply_markup=build_main_keyboard())
+    sent = await message.reply_text(text, reply_markup=build_main_keyboard())
     await safe_add_lesson_log(
         from_user.id,
         0,
@@ -560,6 +588,7 @@ async def _start_lesson(
         step=1,
         last_step_text=text,
         prev_summary=None,
+        last_sent_step_id=getattr(sent, "message_id", None),
         awaiting=True,
         last_step_at=time.monotonic(),
     )
@@ -783,10 +812,11 @@ async def lesson_answer_handler(
         next_text = ensure_single_question(format_reply(next_text))
         sanitized_feedback = sanitize_feedback(feedback)
         combined = sanitized_feedback + "\n\n—\n\n" + next_text
-        await message.reply_text(combined, reply_markup=build_main_keyboard())
+        sent = await message.reply_text(combined, reply_markup=build_main_keyboard())
         state.step = prev_step + 1
         state.last_step_text = next_text
         state.prev_summary = sanitized_feedback
+        state.last_sent_step_id = getattr(sent, "message_id", None)
         set_state(user_data, state)
         if telegram_id is not None:
             raw_plan_id = user_data.get("learning_plan_id")
@@ -798,6 +828,7 @@ async def lesson_answer_handler(
                     "step_idx": state.step,
                     "snapshot": state.last_step_text,
                     "prev_summary": state.prev_summary,
+                    "last_sent_step_id": state.last_sent_step_id,
                 }
                 progress_map = cast(
                     dict[int, ProgressData],

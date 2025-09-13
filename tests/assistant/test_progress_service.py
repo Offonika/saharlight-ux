@@ -61,6 +61,7 @@ async def test_upsert_updates_timestamp(session_local: sessionmaker[Session]) ->
         "step_idx": 1,
         "snapshot": None,
         "prev_summary": None,
+        "last_sent_step_id": None,
     }
     await progress_service.upsert_progress(1, plan_id, data1)
     progress = await progress_service.get_progress(1, plan_id)
@@ -79,6 +80,7 @@ async def test_upsert_updates_timestamp(session_local: sessionmaker[Session]) ->
         "step_idx": 2,
         "snapshot": None,
         "prev_summary": None,
+        "last_sent_step_id": None,
     }
     await progress_service.upsert_progress(1, plan_id, data2)
     progress2 = await progress_service.get_progress(1, plan_id)
@@ -105,6 +107,7 @@ async def test_upsert_progress_concurrent(session_local: sessionmaker[Session]) 
             "step_idx": step,
             "snapshot": None,
             "prev_summary": None,
+            "last_sent_step_id": None,
         }
         await progress_service.upsert_progress(1, plan_id, data)
 
@@ -117,5 +120,6 @@ async def test_upsert_progress_concurrent(session_local: sessionmaker[Session]) 
         "step_idx": 2,
         "snapshot": None,
         "prev_summary": None,
+        "last_sent_step_id": None,
     }
     assert progress.progress_json == expected

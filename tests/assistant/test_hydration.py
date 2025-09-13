@@ -75,6 +75,7 @@ async def test_hydration_restores_state(monkeypatch: pytest.MonkeyPatch) -> None
             "step_idx": 3,
             "snapshot": None,
             "prev_summary": None,
+            "last_sent_step_id": None,
         },
     )
 
@@ -156,6 +157,7 @@ async def test_hydration_busy_message(monkeypatch: pytest.MonkeyPatch) -> None:
             "step_idx": 3,
             "snapshot": None,
             "prev_summary": None,
+            "last_sent_step_id": None,
         },
     )
 
