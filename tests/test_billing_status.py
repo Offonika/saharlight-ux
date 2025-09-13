@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 
 import pytest
@@ -31,7 +32,12 @@ def setup_db() -> sessionmaker[Session]:
 def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn: Callable[..., object],
+        *args: object,
+        sessionmaker: sessionmaker[Session] = session_local,
+        **kwargs: object,
+    ) -> object:
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 

@@ -130,6 +130,7 @@ class DummyProfile:
     icr: float | None
     cf: float | None
     target_bg: float | None
+    diabetes_type: str | None = None
 
 
 class DummySession:
@@ -225,6 +226,31 @@ async def test_dose_sugar_converts_xe(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("dtype", ["unknown", "t2_no"])
+async def test_dose_sugar_skips_for_unsupported_types(dtype: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    update, context = make_update_context("5")
+    context.user_data["pending_entry"] = {"carbs_g": 10}
+
+    profile = DummyProfile(icr=10.0, cf=2.0, target_bg=5.5, diabetes_type=dtype)
+
+    monkeypatch.setattr(dose_calc, "SessionLocal", lambda: DummySession(profile))
+    monkeypatch.setattr(dose_calc, "build_main_keyboard", lambda: "menu")
+
+    result = await dose_calc.dose_sugar(
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
+    )
+
+    assert result == dose_calc.END
+    assert any("расчёт дозы недоступен" in r.lower() for r in update.message.replies)
+    assert not any("ваша доза" in r.lower() for r in update.message.replies)
+    assert context.user_data == {}
+
+
+@pytest.mark.asyncio
 async def test_dose_sugar_invalid_profile(monkeypatch: pytest.MonkeyPatch) -> None:
     update, context = make_update_context("5")
     context.user_data["pending_entry"] = {"carbs_g": 10}
@@ -250,11 +276,7 @@ async def test_dose_sugar_invalid_profile(monkeypatch: pytest.MonkeyPatch) -> No
 def _get_regex(state: object) -> str:
     handlers = dose_calc.dose_conv.states.get(state)
     assert handlers, "state is missing"
-    regex_handlers = [
-        h
-        for h in handlers
-        if isinstance(h, MessageHandler) and isinstance(h.filters, filters.Regex)
-    ]
+    regex_handlers = [h for h in handlers if isinstance(h, MessageHandler) and isinstance(h.filters, filters.Regex)]
     assert regex_handlers, "no regex handler"
     regex = regex_handlers[0].filters.pattern
     if isinstance(regex, str):

@@ -4,6 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from typing import Callable
+
 import services.api.app.main as server
 from services.api.app.diabetes.services import db
 from services.api.app.telegram_auth import check_token
@@ -20,7 +22,9 @@ def test_patch_profile_returns_status_ok(monkeypatch: pytest.MonkeyPatch) -> Non
         session.add(db.User(telegram_id=1, thread_id="t"))
         session.commit()
 
-    async def run_db_wrapper(fn, *args, **kwargs):
+    async def run_db_wrapper(
+        fn: Callable[..., object], *args: object, **kwargs: object
+    ) -> object:
         return await db.run_db(fn, *args, sessionmaker=SessionLocal, **kwargs)
 
     monkeypatch.setattr(server, "run_db", run_db_wrapper)

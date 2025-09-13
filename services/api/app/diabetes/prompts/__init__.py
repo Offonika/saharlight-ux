@@ -22,6 +22,7 @@ def _trim(text: str, limit: int = MAX_PROMPT_LEN) -> str:
 
 # --- Common helpers / disclaimers ---------------------------------------------
 
+
 def disclaimer() -> str:
     """Standard medical warning used across prompts."""
     # Коротко, единообразно: выводим в системном промпте, не дублируем в каждом шаге.
@@ -79,6 +80,7 @@ def _canon_slug(slug: str | None) -> str:
 
 # --- Dynamic prompts -----------------------------------------------------------
 
+
 def build_system_prompt(p: Mapping[str, str | None], task: object | None = None) -> str:
     """Build a system prompt tailored to the user *p* profile."""
     age = (p.get("age_group") or "").strip()
@@ -100,8 +102,11 @@ def build_system_prompt(p: Mapping[str, str | None], task: object | None = None)
         """
     ).strip()
 
-    if diabetes_type == "unknown":
-        prompt += " Тип диабета не определён — избегай тип-специфичных рекомендаций."
+    if diabetes_type in {"unknown", "t2_no"}:
+        prompt += (
+            " Тип диабета не определён или СД2 без инсулина — "
+            "не рассчитывай дозы и избегай тип-специфичных рекомендаций."
+        )
 
     # Единый дисклеймер в системном сообщении
     prompt += f" Предупреждение: {disclaimer()}"

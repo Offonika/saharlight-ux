@@ -80,11 +80,13 @@ def test_build_user_prompt_step_trims_and_ends_with_instruction() -> None:
     assert prompt.endswith("Ответ не показывай.")
 
 
-def test_build_system_prompt_warns_on_unknown_type() -> None:
-    """Include warning when diabetes type is unknown."""
+@pytest.mark.parametrize("dtype", ["unknown", "t2_no"])
+def test_build_system_prompt_warns_on_unknown_or_t2(dtype: str) -> None:
+    """Include warning when diabetes type is unknown or T2 without insulin."""
 
-    prompt = build_system_prompt({"diabetes_type": "unknown"})
-    assert "Тип диабета не определён — избегай тип-специфичных рекомендаций." in prompt
+    prompt = build_system_prompt({"diabetes_type": dtype})
+    assert "не рассчитывай дозы" in prompt
+
 
 def test_system_prompt_avoids_type_specific_mentions_when_unknown() -> None:
     """When diabetes type is unknown no T1/T2 hints appear."""
