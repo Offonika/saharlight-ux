@@ -9,7 +9,8 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from datetime import time, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Literal, cast
+from typing import Callable, Literal, TypeVar, cast
+from typing_extensions import Concatenate, ParamSpec, Protocol
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from urllib.parse import parse_qsl
 
@@ -50,22 +51,39 @@ from services.api.app.diabetes.utils.helpers import (
 from services.api.app.diabetes.utils.jobs import _remove_jobs, schedule_once
 from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.app.diabetes.schemas.reminders import ScheduleKind
+from . import UserData
 from .reminder_jobs import DefaultJobQueue, schedule_reminder
 from .alert_handlers import check_alert as _check_alert
 
 check_alert = _check_alert
 
-if TYPE_CHECKING:
-    from . import UserData
+P = ParamSpec("P")
+T = TypeVar("T")
+S = TypeVar("S", bound=Session)
 
-run_db: Callable[..., Awaitable[Any]] | None
+
+class ReminderUserData(UserData, total=False):
+    tg_init_data: str
+
+
+class RunDb(Protocol):
+    async def __call__(
+        self,
+        fn: Callable[Concatenate[S, P], T],
+        *args: P.args,
+        sessionmaker: sessionmaker[S] | None = ...,
+        **kwargs: P.kwargs,
+    ) -> T: ...
+
+
+run_db: RunDb | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
     logging.getLogger(__name__).info("run_db is unavailable; proceeding without async DB runner")
     run_db = None
 else:
-    run_db = cast(Callable[..., Awaitable[Any]], _run_db)
+    run_db = _run_db
 
 logger = logging.getLogger(__name__)
 
@@ -631,7 +649,8 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
 
     init_data = data.get("init_data")
     if isinstance(init_data, str):
-        cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+        user_data = cast(ReminderUserData, context.user_data)
+        user_data["tg_init_data"] = init_data
         app = getattr(context, "application", None)
         persistence = getattr(app, "persistence", None) if app else None
         if persistence is not None:
