@@ -94,7 +94,6 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
     start = -1
     braces = 0
     brackets = 0
-    saw_closing = False
 
     def search_dict(obj: object) -> dict[str, object] | None:
         queue: deque[object] = deque([obj])
@@ -127,18 +126,17 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
             quote = ch
             i += 1
             continue
-        if ch == '{' or ch == '[':
+        if ch == "{" or ch == "[":
             if braces == 0 and brackets == 0:
                 start = i
-            if ch == '{':
+            if ch == "{":
                 braces += 1
             else:
                 brackets += 1
-        elif ch == '}' or ch == ']':
-            saw_closing = True
-            if ch == '}' and braces > 0:
+        elif ch == "}" or ch == "]":
+            if ch == "}" and braces > 0:
                 braces -= 1
-            elif ch == ']' and brackets > 0:
+            elif ch == "]" and brackets > 0:
                 brackets -= 1
             else:
                 start = -1
@@ -151,7 +149,6 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
                 try:
                     obj = json.loads(segment)
                 except json.JSONDecodeError:
-                    saw_closing = True
                     start += 1
                     i = start
                     braces = 0
@@ -164,7 +161,7 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
         i += 1
 
     if start != -1:
-        return {} if saw_closing else None
+        return None
     return None
 
 

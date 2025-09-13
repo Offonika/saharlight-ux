@@ -602,7 +602,7 @@ def test_extract_first_json_multiple_objects_no_space() -> None:
 
 def test_extract_first_json_malformed_input() -> None:
     text = '{"action":"add_entry","fields":{}'
-    assert gpt_command_parser._extract_first_json(text) == {}
+    assert gpt_command_parser._extract_first_json(text) is None
 
 
 def test_extract_first_json_simple_object() -> None:
@@ -758,6 +758,11 @@ def test_extract_first_json_returns_none_when_json_beyond_limit() -> None:
     assert time.perf_counter() - start < 0.1
 
 
+def test_extract_first_json_truncated_fragment_returns_none() -> None:
+    text = '{"action":"add_entry","fields":{'
+    assert gpt_command_parser._extract_first_json(text) is None
+
+
 @pytest.mark.asyncio
 async def test_parse_command_with_multiple_jsons(
     monkeypatch: pytest.MonkeyPatch,
@@ -820,4 +825,4 @@ async def test_parse_command_with_malformed_json(
         result = await gpt_command_parser.parse_command("test")
 
     assert result is None
-    assert "Command validation failed" in caplog.text
+    assert "No JSON object found in response" in caplog.text
