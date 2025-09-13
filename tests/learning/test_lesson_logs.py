@@ -8,16 +8,13 @@ from sqlalchemy.pool import StaticPool
 
 from services.api.app.diabetes.services import db
 
-from services.api.app.assistant.repositories.logs import (
-    add_lesson_log,
-    cleanup_old_logs,
-    get_lesson_logs,
-)
+from services.api.app.assistant.repositories import logs
+from services.api.app.assistant.repositories.logs import add_lesson_log, cleanup_old_logs, get_lesson_logs
 from services.api.app.assistant.models import LessonLog
 
 
 @pytest.fixture()
-def setup_db() -> None:
+def setup_db(monkeypatch: pytest.MonkeyPatch) -> None:
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -25,6 +22,8 @@ def setup_db() -> None:
     )
     db.SessionLocal.configure(bind=engine)
     db.Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(logs, "SessionLocal", db.SessionLocal, raising=False)
+    logs.pending_logs.clear()
     with db.SessionLocal() as session:
         session.add(db.User(telegram_id=1, thread_id="t"))
         session.commit()

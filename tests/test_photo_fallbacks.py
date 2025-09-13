@@ -92,10 +92,17 @@ async def test_sugar_conv_photo_fallback() -> None:
 
 
 @pytest.mark.asyncio
-async def test_onboarding_conv_photo_fallback() -> None:
+async def test_onboarding_conv_photo_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     handler = _find_handler(
         onboarding_handlers.onboarding_conv.fallbacks, PHOTO_BUTTON_PATTERN.pattern
     )
+
+    async def _run_db(*args: object, **kwargs: object) -> None:  # pragma: no cover
+        return None
+
+    monkeypatch.setattr(onboarding_handlers, "run_db", _run_db, raising=False)
     await _exercise(handler)
 
 

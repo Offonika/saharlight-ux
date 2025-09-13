@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     app_name: str = "diabetes-bot"
     debug: bool = False
 
+    allow_sync_db_fallback: bool = Field(
+        default=True,
+        alias="ALLOW_SYNC_DB_FALLBACK",
+        description="Allow synchronous DB operations when async runner is missing",
+    )
+
     photos_dir: str = Field(default="/var/lib/diabetes-bot/photos", alias="PHOTOS_DIR")
 
     # Database configuration

@@ -4,8 +4,10 @@ from unittest.mock import patch
 
 import logging
 import pytest
+from typing import Callable
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from services.api.app.diabetes import learning_fixtures
 from services.api.app.diabetes.models_learning import Lesson, QuizQuestion
@@ -44,7 +46,7 @@ async def test_load_lessons_v0() -> None:
 
 @pytest.mark.asyncio()
 async def test_main_loads_lessons(
-    caplog: pytest.LogCaptureFixture,
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     engine = create_engine(
         "sqlite:///:memory:",
@@ -56,7 +58,16 @@ async def test_main_loads_lessons(
         db.SessionLocal.configure(bind=engine)
         db.Base.metadata.create_all(bind=engine)
 
+    async def fake_run_db(
+        fn: Callable[[Session, object], object], *args: object, sessionmaker=None, **kwargs: object
+    ) -> object:
+        sm = sessionmaker or db.SessionLocal
+        with engine.begin() as connection:
+            with sm(bind=connection) as session:
+                return fn(session, *args, **kwargs)
+
     path = LESSONS_V0_PATH
+    monkeypatch.setattr(learning_fixtures, "run_db", fake_run_db)
     with patch(
         "services.api.app.diabetes.learning_fixtures.init_db", side_effect=fake_init_db
     ) as init_db_mock, caplog.at_level(logging.INFO):

@@ -271,8 +271,12 @@ def session_local(monkeypatch: pytest.MonkeyPatch) -> Iterator[sessionmaker[Sess
     # Import models with additional tables to register them in Base metadata.
     import services.api.app.diabetes.models_learning as ml_models
     import services.api.app.assistant.models as as_models
+    import services.api.app.services.onboarding_state as onboarding_state_module
+    import services.api.app.models.onboarding_metrics as onboarding_metrics_module
     importlib.reload(ml_models)
     importlib.reload(as_models)
+    importlib.reload(onboarding_state_module)
+    importlib.reload(onboarding_metrics_module)
 
     # Ensure the database URL points to an in-memory SQLite instance. Use a
     # ``StaticPool`` so that the in-memory database persists across multiple
