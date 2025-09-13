@@ -92,9 +92,16 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert question_text.startswith(disclaimer())
 
     with db.SessionLocal() as session:
-        questions = session.query(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id).all()
+        questions = (
+            session.query(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
+            .all()
+        )
 
-    first_opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(questions[0].options, start=1))
+    first_opts = "\n".join(
+        f"{idx}. {opt}" for idx, opt in enumerate(questions[0].options, start=1)
+    )
     assert question_text.endswith(first_opts)
 
     for idx, q in enumerate(questions):
@@ -111,7 +118,11 @@ async def test_curriculum_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     assert completed is True
 
     with db.SessionLocal() as session:
-        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
         assert progress.completed is True
         assert progress.quiz_score == 100
     assert get_metric_value(lessons_completed) == base_completed + 1
@@ -156,7 +167,11 @@ async def test_lesson_without_quiz(monkeypatch: pytest.MonkeyPatch) -> None:
     assert completed is True
 
     with db.SessionLocal() as session:
-        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
         assert progress.completed is True
         assert progress.quiz_score is None
 
@@ -180,13 +195,27 @@ async def test_dynamic_mode_flow(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_generate(profile: object, slug: str, step_idx: int, prev: object) -> str:
+    async def fake_generate(
+        profile: object,
+        slug: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
+    ) -> str:
         fake_generate.calls.append(profile)
         return f"step {step_idx}"
 
     fake_generate.calls = []  # type: ignore[attr-defined]
 
-    async def fake_check(profile: object, slug: str, answer: str, last: str) -> tuple[bool, str]:
+    async def fake_check(
+        profile: object,
+        slug: str,
+        answer: str,
+        last: str,
+        *,
+        user_id: int | None = None,
+    ) -> tuple[bool, str]:
         return True, f"fb {answer}"
 
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
@@ -322,7 +351,14 @@ async def test_next_step_dynamic_busy_does_not_increment(
 
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fake_generate(profile: object, slug: str, step_idx: int, prev: object) -> str:
+    async def fake_generate(
+        profile: object,
+        slug: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
+    ) -> str:
         return BUSY_MESSAGE
 
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fake_generate)
@@ -333,7 +369,11 @@ async def test_next_step_dynamic_busy_does_not_increment(
     assert completed is False
 
     with db.SessionLocal() as session:
-        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
         assert progress.current_step == 0
 
 
@@ -358,7 +398,14 @@ async def test_next_step_dynamic_db_error_propagates(
 
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fail_generate(profile: object, slug: str, step_idx: int, prev: object) -> str:
+    async def fail_generate(
+        profile: object,
+        slug: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
+    ) -> str:
         raise SQLAlchemyError("db fail")
 
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fail_generate)
@@ -368,7 +415,11 @@ async def test_next_step_dynamic_db_error_propagates(
         await next_step(1, lesson_id, {})
 
     with db.SessionLocal() as session:
-        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
         assert progress.current_step == 0
 
 
@@ -378,7 +429,9 @@ async def test_next_step_progress_not_found(monkeypatch: pytest.MonkeyPatch) -> 
 
     async def fake_run_db(fn, *args: object, **kwargs: object) -> object:
         class DummySession:
-            def execute(self, *args: object, **kwargs: object) -> object:  # pragma: no cover - helper
+            def execute(
+                self, *args: object, **kwargs: object
+            ) -> object:  # pragma: no cover - helper
                 class DummyResult:
                     def scalar_one_or_none(self) -> None:
                         return None
@@ -404,7 +457,9 @@ async def test_next_step_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -> No
             def __init__(self) -> None:
                 self.calls = 0
 
-            def execute(self, *args: object, **kwargs: object) -> object:  # pragma: no cover - helper
+            def execute(
+                self, *args: object, **kwargs: object
+            ) -> object:  # pragma: no cover - helper
                 self.calls += 1
                 call = self.calls
 
@@ -445,7 +500,14 @@ async def test_next_step_dynamic_exception_does_not_increment(
 
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
-    async def fail_generate(profile: object, slug: str, step_idx: int, prev: object) -> str:
+    async def fail_generate(
+        profile: object,
+        slug: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
+    ) -> str:
         raise OpenAIError("boom")
 
     monkeypatch.setattr(curriculum_engine, "generate_step_text", fail_generate)
@@ -456,5 +518,9 @@ async def test_next_step_dynamic_exception_does_not_increment(
     assert completed is False
 
     with db.SessionLocal() as session:
-        progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
+        progress = (
+            session.query(LessonProgress)
+            .filter_by(user_id=1, lesson_id=lesson_id)
+            .one()
+        )
         assert progress.current_step == 0

@@ -56,20 +56,26 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
     ) -> tuple[str, bool]:
         return next(steps_iter), False
 
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson)
-    monkeypatch.setattr(learning_handlers.curriculum_engine, "next_step", fake_next_step)
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "start_lesson", fake_start_lesson
+    )
+    monkeypatch.setattr(
+        learning_handlers.curriculum_engine, "next_step", fake_next_step
+    )
 
     async def fake_check_user_answer(
         profile: Mapping[str, str | None],
         topic: str,
         answer: str,
         last: str,
+        *,
+        user_id: int | None = None,
     ) -> tuple[bool, str]:
         return True, "fb"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
 
-    async def fake_assistant_chat(*_: object) -> str:
+    async def fake_assistant_chat(*_: object, **__: object) -> str:
         return "fb"
 
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)
@@ -83,13 +89,15 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
     context = SimpleNamespace(user_data={}, bot_data={}, args=["slug"])
 
     msg_start = DummyMessage()
-    update_start = SimpleNamespace(message=msg_start, effective_user=SimpleNamespace(id=1))
+    update_start = SimpleNamespace(
+        message=msg_start, effective_user=SimpleNamespace(id=1)
+    )
     await learning_handlers.lesson_command(update_start, context)
     state = get_state(context.user_data)
     assert state is not None and state.step == 1 and state.awaiting
     plan = learning_handlers.generate_learning_plan("step1?")
     assert msg_start.replies == [
-        f"\U0001F5FA План обучения\n{learning_handlers.pretty_plan(plan)}",
+        f"\U0001f5fa План обучения\n{learning_handlers.pretty_plan(plan)}",
         "step1?",
     ]
 

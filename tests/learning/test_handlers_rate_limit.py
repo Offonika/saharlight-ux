@@ -38,7 +38,12 @@ async def test_lesson_callback_rate_limit(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setattr(settings, "learning_content_mode", "dynamic")
 
     async def fake_generate_step_text(
-        profile: object, topic: str, step_idx: int, prev: object
+        profile: object,
+        topic: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
     ) -> str:
         return "step1"
 

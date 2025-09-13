@@ -70,7 +70,12 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
     monkeypatch.setattr(dynamic_handlers, "build_main_keyboard", lambda: None)
 
     async def fake_step_text(
-        profile: Mapping[str, str | None], slug: str, step: int, prev: str | None
+        profile: Mapping[str, str | None],
+        slug: str,
+        step: int,
+        prev: str | None,
+        *,
+        user_id: int | None = None,
     ) -> str:
         return "intro"
 
@@ -152,7 +157,12 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(dynamic_handlers, "disclaimer", lambda: "")
 
     async def fake_step_text(
-        profile: Mapping[str, str | None], slug: str, step: int, prev: str | None
+        profile: Mapping[str, str | None],
+        slug: str,
+        step: int,
+        prev: str | None,
+        *,
+        user_id: int | None = None,
     ) -> str:
         return "intro"
 

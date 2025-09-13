@@ -46,7 +46,14 @@ def ensure_single_question(text: str) -> str:
     return text[: idx + 1] + text[idx + 1 :].replace("?", "")
 
 
-async def _chat(task: LLMTask, system: str, user: str, *, max_tokens: int = 350) -> str:
+async def _chat(
+    task: LLMTask,
+    system: str,
+    user: str,
+    *,
+    max_tokens: int = 350,
+    user_id: int | None = None,
+) -> str:
     """Call OpenAI chat completion and return the formatted reply."""
     messages: list[ChatCompletionMessageParam] = [
         {"role": "system", "content": system},
@@ -57,6 +64,7 @@ async def _chat(task: LLMTask, system: str, user: str, *, max_tokens: int = 350)
         messages=messages,
         temperature=0.4,
         max_tokens=max_tokens,
+        user_id=user_id,
     )
 
 
@@ -65,12 +73,14 @@ async def generate_step_text(
     topic_slug: str,
     step_idx: int,
     prev_summary: str | None,
+    *,
+    user_id: int | None = None,
 ) -> str:
     """Generate explanation text for a learning step."""
     try:
         system = build_system_prompt(profile, task=LLMTask.EXPLAIN_STEP)
         user = build_user_prompt_step(topic_slug, step_idx, prev_summary)
-        return await _chat(LLMTask.EXPLAIN_STEP, system, user)
+        return await _chat(LLMTask.EXPLAIN_STEP, system, user, user_id=user_id)
     except (OpenAIError, httpx.HTTPError, RuntimeError):
         logger.exception(
             "failed to generate step", extra={"topic": topic_slug, "step": step_idx}
@@ -83,6 +93,8 @@ async def check_user_answer(
     topic_slug: str,
     user_answer: str,
     last_step_text: str,
+    *,
+    user_id: int | None = None,
 ) -> tuple[bool, str]:
     """Evaluate user's quiz answer and provide feedback.
 
@@ -97,7 +109,9 @@ async def check_user_answer(
         "объясни в 1–2 предложениях и дай мягкий совет, что повторить."
     )
     try:
-        raw_feedback = await _chat(LLMTask.QUIZ_CHECK, system, user, max_tokens=250)
+        raw_feedback = await _chat(
+            LLMTask.QUIZ_CHECK, system, user, max_tokens=250, user_id=user_id
+        )
     except (OpenAIError, httpx.HTTPError, RuntimeError):
         logger.exception(
             "failed to check answer",
