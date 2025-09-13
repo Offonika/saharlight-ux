@@ -39,10 +39,13 @@ def test_extract_first_json_deeply_nested_arrays() -> None:
     assert gpt_command_parser._extract_first_json(text) == {"action": "get_stats"}
 
 
+def test_extract_first_json_at_line_end() -> None:
+    text = 'prefix {"action":"get_stats"}'
+    assert gpt_command_parser._extract_first_json(text) == {"action": "get_stats"}
+
+
 def test_extract_first_json_with_escaped_braces() -> None:
-    text = (
-        '{"action":"add_entry","note":"escaped {\\"inner\\": [1,2]} text"}'
-    )
+    text = '{"action":"add_entry","note":"escaped {\\"inner\\": [1,2]} text"}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "note": 'escaped {"inner": [1,2]} text',

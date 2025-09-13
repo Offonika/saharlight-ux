@@ -172,7 +172,12 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
         i += 1
 
     if start != -1:
-        return None
+        segment = text[start:length]
+        try:
+            obj = json.loads(segment)
+        except json.JSONDecodeError:
+            return None
+        return search_dict(obj)
     return None
 
 
@@ -205,7 +210,9 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
             timeout=timeout,
         )
         try:
-            response: ChatCompletion = await asyncio.wait_for(cast(Awaitable[ChatCompletion], resp), timeout)
+            response: ChatCompletion = await asyncio.wait_for(
+                cast(Awaitable[ChatCompletion], resp), timeout
+            )
         except TypeError:
             if isinstance(resp, Awaitable):
                 raise
