@@ -129,30 +129,59 @@ async def test_learning_cache_key_components(monkeypatch: pytest.MonkeyPatch) ->
     monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     msg_base = [
-        {"role": "system", "content": "sys1"},
+        {
+            "role": "system",
+            "content": "sys1",
+            "user_id": "u1",
+            "plan_id": "p1",
+            "topic_slug": "t1",
+            "step_idx": 1,
+        },
         {"role": "user", "content": "u1"},
     ]
 
     # initial call populates cache
-    await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=msg_base)
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_base
+    )
     # same prompts => hit
-    await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=msg_base)
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_base
+    )
     assert call_count == 1
 
     # different system prompt => miss
     msg_system = [
-        {"role": "system", "content": "sys2"},
+        {
+            "role": "system",
+            "content": "sys2",
+            "user_id": "u1",
+            "plan_id": "p1",
+            "topic_slug": "t1",
+            "step_idx": 1,
+        },
         {"role": "user", "content": "u1"},
     ]
-    await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=msg_system)
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_system
+    )
     assert call_count == 2
 
     # different user prompt => miss
     msg_user = [
-        {"role": "system", "content": "sys1"},
+        {
+            "role": "system",
+            "content": "sys1",
+            "user_id": "u1",
+            "plan_id": "p1",
+            "topic_slug": "t1",
+            "step_idx": 1,
+        },
         {"role": "user", "content": "u2"},
     ]
-    await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=msg_user)
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_user
+    )
     assert call_count == 3
 
     # different model => miss
@@ -162,9 +191,75 @@ async def test_learning_cache_key_components(monkeypatch: pytest.MonkeyPatch) ->
         gpt_client.LLMRouter("m2"),
         raising=False,
     )
-    await gpt_client.create_learning_chat_completion(task=LLMTask.EXPLAIN_STEP, messages=msg_base)
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_base
+    )
 
-    assert call_count == 4
+    # different user_id => miss
+    msg_uid = [
+        {
+            "role": "system",
+            "content": "sys1",
+            "user_id": "u2",
+            "plan_id": "p1",
+            "topic_slug": "t1",
+            "step_idx": 1,
+        },
+        {"role": "user", "content": "u1"},
+    ]
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_uid
+    )
+
+    # different plan_id => miss
+    msg_plan = [
+        {
+            "role": "system",
+            "content": "sys1",
+            "user_id": "u1",
+            "plan_id": "p2",
+            "topic_slug": "t1",
+            "step_idx": 1,
+        },
+        {"role": "user", "content": "u1"},
+    ]
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_plan
+    )
+
+    # different topic_slug => miss
+    msg_topic = [
+        {
+            "role": "system",
+            "content": "sys1",
+            "user_id": "u1",
+            "plan_id": "p1",
+            "topic_slug": "t2",
+            "step_idx": 1,
+        },
+        {"role": "user", "content": "u1"},
+    ]
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_topic
+    )
+
+    # different step_idx => miss
+    msg_step = [
+        {
+            "role": "system",
+            "content": "sys1",
+            "user_id": "u1",
+            "plan_id": "p1",
+            "topic_slug": "t1",
+            "step_idx": 2,
+        },
+        {"role": "user", "content": "u1"},
+    ]
+    await gpt_client.create_learning_chat_completion(
+        task=LLMTask.EXPLAIN_STEP, messages=msg_step
+    )
+
+    assert call_count == 8
 
 
 @pytest.mark.asyncio
