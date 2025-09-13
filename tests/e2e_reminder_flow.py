@@ -1,12 +1,16 @@
 import asyncio
+from pathlib import Path
+
 from playwright.async_api import async_playwright
 
+
 async def run() -> None:
+    html_path = Path(__file__).with_name("e2e_reminder_flow.html").as_uri()
     async with async_playwright() as p:
         browser = await p.chromium.launch()
         context = await browser.new_context()
         page = await context.new_page()
-        await page.goto("https://demo.playwright.dev/todomvc")
+        await page.goto(html_path)
         # add reminder
         await page.fill("input.new-todo", "Check insulin levels")
         await page.press("input.new-todo", "Enter")
@@ -18,6 +22,7 @@ async def run() -> None:
         await page.hover("css=.todo-list li")
         await page.click("css=.todo-list li .destroy")
         await browser.close()
+
 
 if __name__ == "__main__":
     asyncio.run(run())

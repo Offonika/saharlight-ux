@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reminders</title>
+  <style>
+    .todo-list li.editing .view { display: none; }
+    .todo-list li .edit { display: none; }
+    .todo-list li.editing .edit { display: block; }
+  </style>
+</head>
+<body>
+  <input class="new-todo" />
+  <ul class="todo-list"></ul>
+  <script>
+    const input = document.querySelector('input.new-todo');
+    const list = document.querySelector('ul.todo-list');
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        const li = document.createElement('li');
+        const view = document.createElement('div');
+        view.className = 'view';
+        const label = document.createElement('label');
+        label.textContent = input.value;
+        view.appendChild(label);
+        const destroy = document.createElement('button');
+        destroy.className = 'destroy';
+        destroy.addEventListener('click', () => li.remove());
+        view.appendChild(destroy);
+        const edit = document.createElement('input');
+        edit.className = 'edit';
+        li.appendChild(view);
+        li.appendChild(edit);
+        label.addEventListener('dblclick', () => {
+          li.classList.add('editing');
+          edit.value = label.textContent;
+          edit.focus();
+        });
+        edit.addEventListener('keydown', (e2) => {
+          if (e2.key === 'Enter') {
+            label.textContent = edit.value;
+            li.classList.remove('editing');
+          }
+        });
+        list.appendChild(li);
+        input.value = '';
+      }
+    });
+  </script>
+</body>
+</html>
