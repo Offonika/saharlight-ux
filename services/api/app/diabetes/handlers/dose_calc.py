@@ -54,7 +54,9 @@ run_db: Callable[..., Awaitable[object]] | None
 try:
     from services.api.app.diabetes.services.db import run_db as _run_db
 except ImportError:  # pragma: no cover - optional db runner
-    logging.getLogger(__name__).info("run_db is unavailable; proceeding without async DB runner")
+    logging.getLogger(__name__).info(
+        "run_db is unavailable; proceeding without async DB runner"
+    )
     run_db = None
 else:
     run_db = cast(Callable[..., Awaitable[object]], _run_db)
@@ -216,7 +218,9 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await message.reply_text("Сахар не может быть отрицательным.")
         return DoseState.SUGAR
     if sugar > MAX_SUGAR_MMOL_L:
-        await message.reply_text(f"Сахар не должен превышать {MAX_SUGAR_MMOL_L} ммоль/л.")
+        await message.reply_text(
+            f"Сахар не должен превышать {MAX_SUGAR_MMOL_L} ммоль/л."
+        )
         return DoseState.SUGAR
 
     entry = user_data.get("pending_entry")
@@ -259,7 +263,12 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             ),
         )
 
-    if profile is None or profile.icr is None or profile.cf is None or profile.target_bg is None:
+    if (
+        profile is None
+        or profile.icr is None
+        or profile.cf is None
+        or profile.target_bg is None
+    ):
         await message.reply_text(
             "Профиль не настроен. Установите коэффициенты через /profile.",
             reply_markup=build_main_keyboard(),
@@ -281,7 +290,13 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         cf=profile.cf,
         target_bg=profile.target_bg,
     )
-    assert carbs_g is not None
+    if carbs_g is None:
+        await message.reply_text(
+            "Не указаны углеводы или ХЕ. Расчёт невозможен.",
+            reply_markup=build_main_keyboard(),
+        )
+        user_data.pop("pending_entry", None)
+        return END
     try:
         dose = calc_bolus(carbs_g, sugar, patient)
     except ValueError:
@@ -328,7 +343,9 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 
 def _cancel_then(
-    handler: Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]],
+    handler: Callable[
+        [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]
+    ],
 ) -> Callable[[Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, T]]:
     """Return a wrapper calling ``dose_cancel`` before ``handler``."""
 
@@ -382,10 +399,16 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{DOSE_BUTTON_TEXT}$"), dose_start),
     ],
     states={
-        DoseState.METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)],
+        DoseState.METHOD: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
+        ],
         DoseState.XE: [MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_xe)],
-        DoseState.CARBS: [MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_carbs)],
-        DoseState.SUGAR: [MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_sugar)],
+        DoseState.CARBS: [
+            MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_carbs)
+        ],
+        DoseState.SUGAR: [
+            MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_sugar)
+        ],
         PHOTO_SUGAR: [
             MessageHandler(
                 filters.Regex(r"^\d+(?:[.,]\d+)?$"),
