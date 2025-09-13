@@ -778,6 +778,7 @@ async def lesson_answer_handler(
         if feedback == BUSY_MESSAGE:
             await message.reply_text(feedback, reply_markup=build_main_keyboard())
             return
+        sanitized_feedback = sanitize_feedback(feedback)
         lesson_id = user_data.get("lesson_id")
         try:
             if isinstance(lesson_id, int):
@@ -785,14 +786,14 @@ async def lesson_answer_handler(
                     telegram_id or 0,
                     lesson_id,
                     profile,
-                    feedback,
+                    sanitized_feedback,
                 )
             else:
                 next_text = await generate_step_text(
                     profile,
                     state.topic,
                     prev_step + 1,
-                    feedback,
+                    sanitized_feedback,
                 )
         except (
             LessonNotFoundError,
@@ -810,7 +811,6 @@ async def lesson_answer_handler(
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
             return
         next_text = ensure_single_question(format_reply(next_text))
-        sanitized_feedback = sanitize_feedback(feedback)
         combined = sanitized_feedback + "\n\n—\n\n" + next_text
         sent = await message.reply_text(combined, reply_markup=build_main_keyboard())
         state.step = prev_step + 1
