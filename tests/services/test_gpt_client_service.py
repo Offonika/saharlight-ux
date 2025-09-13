@@ -1,7 +1,8 @@
+import asyncio
 import logging
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Coroutine
 
 import pytest
 from openai import OpenAIError
@@ -196,3 +197,57 @@ async def test_send_message_path_and_bytes_conflict(
         await gpt_client.send_message(
             thread_id="t", image_path=str(img), image_bytes=b"data"
         )
+
+
+def test_create_thread_sync_no_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_create_thread() -> str:
+        return "tid"
+
+    called: dict[str, bool] = {"run": False}
+
+    def fake_run(coro: Coroutine[Any, Any, str]) -> str:
+        called["run"] = True
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
+
+    monkeypatch.setattr(asyncio, "run", fake_run)
+    monkeypatch.setattr(
+        asyncio,
+        "get_running_loop",
+        lambda: (_ for _ in ()).throw(RuntimeError("no loop")),
+    )
+    monkeypatch.setattr(gpt_client, "create_thread", fake_create_thread)
+
+    assert gpt_client.create_thread_sync() == "tid"
+    assert called["run"]
+
+
+def test_create_thread_sync_running_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_create_thread() -> str:
+        return "tid"
+
+    called: dict[str, bool] = {"create_task": False, "run_until_complete": False}
+
+    def fake_create_task(coro: Coroutine[Any, Any, str]) -> Coroutine[Any, Any, str]:
+        called["create_task"] = True
+        return coro
+
+    class DummyLoop:
+        def run_until_complete(self, coro: Coroutine[Any, Any, str]) -> str:
+            called["run_until_complete"] = True
+            loop = asyncio.new_event_loop()
+            try:
+                return loop.run_until_complete(coro)
+            finally:
+                loop.close()
+
+    monkeypatch.setattr(asyncio, "create_task", fake_create_task)
+    monkeypatch.setattr(asyncio, "get_running_loop", lambda: DummyLoop())
+    monkeypatch.setattr(gpt_client, "create_thread", fake_create_thread)
+
+    assert gpt_client.create_thread_sync() == "tid"
+    assert called["create_task"]
+    assert called["run_until_complete"]

@@ -8,8 +8,11 @@ from urllib.parse import parse_qsl
 
 from fastapi import Header, HTTPException
 
-from .config import settings
+from . import config
 from .schemas.user import UserContext
+
+# Preserve the initial settings instance to accommodate tests that patch it.
+_INITIAL_SETTINGS = config.settings
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +34,7 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
     token:
         Bot token used to compute the validation hash.
     """
+    now = time.time()
     if len(init_data) > 1024:
         raise HTTPException(status_code=413, detail="init data too long")
     try:
@@ -59,9 +63,9 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
         auth_date = int(auth_date_raw)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="invalid auth date") from exc
-    if auth_date > time.time() + 60:
+    if auth_date > now + 60:
         raise HTTPException(status_code=401, detail="invalid auth date")
-    if time.time() - auth_date > AUTH_DATE_MAX_AGE:
+    if now - auth_date > AUTH_DATE_MAX_AGE:
         raise HTTPException(status_code=401, detail="expired auth data")
     params["auth_date"] = auth_date
 
@@ -78,12 +82,13 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
 
 def get_tg_user(init_data: str) -> UserContext:
     """Validate ``init_data`` and return Telegram ``user`` info."""
-    token: str | None = settings.telegram_token
+    settings_obj = config.get_settings()
+    token: str | None = getattr(settings_obj, "telegram_token", None)
+    if not token:
+        token = getattr(_INITIAL_SETTINGS, "telegram_token", None)
     if not token:
         logger.error("telegram token not configured")
-        raise HTTPException(
-            status_code=503, detail="telegram token not configured"
-        )
+        raise HTTPException(status_code=503, detail="telegram token not configured")
     data: dict[str, object] = parse_and_verify_init_data(init_data, token)
     user_raw = data.get("user")
     user = user_raw if isinstance(user_raw, dict) else None
@@ -106,8 +111,7 @@ def require_tg_user(
             init_data = authorization[3:]
         else:
             raise HTTPException(status_code=401, detail="missing init data")
-    if init_data is None:
-        raise HTTPException(status_code=401, detail="missing init data")
+    assert init_data is not None
     return get_tg_user(init_data)
 
 

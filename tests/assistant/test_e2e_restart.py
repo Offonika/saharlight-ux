@@ -13,7 +13,7 @@ from services.api.app.assistant.services import progress_service as progress_rep
 from services.api.app.diabetes.services import db
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.planner import generate_learning_plan, pretty_plan
-from services.api.app.diabetes.models_learning import LearningProgress
+from services.api.app.diabetes.models_learning import LearningProgress, ProgressData
 
 
 class DummyMessage:
@@ -56,7 +56,14 @@ async def test_restart_restores_step(
     await progress_repo.upsert_progress(
         1,
         plan_id,
-        {"topic": "intro", "module_idx": 0, "step_idx": 2, "snapshot": "Шаг 2"},
+        {
+            "topic": "intro",
+            "module_idx": 0,
+            "step_idx": 2,
+            "snapshot": "Шаг 2",
+            "prev_summary": None,
+            "last_sent_step_id": None,
+        },
     )
 
     update = SimpleNamespace(
@@ -66,6 +73,11 @@ async def test_restart_restores_step(
     monkeypatch.setattr(learning_handlers, "build_main_keyboard", lambda: None)
     monkeypatch.setattr(learning_handlers.settings, "learning_mode_enabled", True)
     monkeypatch.setattr(learning_handlers.settings, "learning_content_mode", "dynamic")
+
+    async def fake_get_profile(_uid: int) -> None:
+        return None
+
+    monkeypatch.setattr(learning_handlers, "get_learning_profile", fake_get_profile)
 
     await learning_handlers.plan_command(update, context)
     state = learning_handlers.get_state(context.user_data)
@@ -150,7 +162,7 @@ async def test_hydrate_generates_snapshot_and_persists(
     orig_upsert = progress_repo.upsert_progress
 
     async def spy_upsert(
-        user_id: int, plan_id: int, progress_json: dict[str, Any]
+        user_id: int, plan_id: int, progress_json: ProgressData
     ) -> Any:
         calls.append(progress_json.copy())
         return await orig_upsert(user_id, plan_id, progress_json)

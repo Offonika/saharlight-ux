@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Mapping
 
 import httpx
-import re
 from openai import OpenAIError
 from openai.types.chat import ChatCompletionMessageParam
 
@@ -22,6 +22,29 @@ _SAFE_RE = re.compile(r"[^0-9A-Za-zА-Яа-яёЁ.,!?;:()\-\s✅⚠️❌'\"]")
 
 _MAX_FEEDBACK_CHARS = 400
 _MAX_FEEDBACK_SENTENCES = 2
+
+_AFFIRMATIVE_WORDS: set[str] = {
+    "да",
+    "ага",
+    "угу",
+    "есть",
+    "ок",
+    "окей",
+    "okay",
+    "ok",
+    "yes",
+    "yep",
+    "yeah",
+    "sure",
+    "конечно",
+}
+
+
+def is_affirmative(text: str) -> bool:
+    """Return ``True`` if ``text`` looks like an affirmative reply."""
+
+    cleaned = re.sub(r"[^a-zа-яё\s]+", " ", text.lower())
+    return any(word in _AFFIRMATIVE_WORDS for word in cleaned.split())
 
 
 def sanitize_feedback(text: str) -> str:
@@ -86,10 +109,14 @@ async def check_user_answer(
 ) -> tuple[bool, str]:
     """Evaluate user's quiz answer and provide feedback.
 
-    Returns a tuple ``(correct, feedback)`` where ``correct`` is ``True`` if the
-    LLM judged the answer as correct. The feedback message is returned as-is
-    from the model.
+    The function returns a tuple ``(correct, feedback)``. If ``user_answer`` is
+    an explicit confirmation like "да" or "yes", the result is immediately
+    ``(True, "✅ отлично!")`` without calling the LLM. Otherwise, the LLM is
+    asked to judge the answer and provide feedback.
     """
+    if is_affirmative(user_answer):
+        return True, "✅ отлично!"
+
     system = build_system_prompt(profile, task=LLMTask.QUIZ_CHECK)
     user = (
         f"Тема: {topic_slug}. Текст предыдущего шага:\n{last_step_text}\n\n"
@@ -121,6 +148,7 @@ async def check_user_answer(
 __all__ = [
     "generate_step_text",
     "check_user_answer",
+    "is_affirmative",
     "sanitize_feedback",
     "ensure_single_question",
     "BUSY_MESSAGE",

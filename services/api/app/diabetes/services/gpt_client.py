@@ -1,6 +1,7 @@
 # gpt_client.py
 
 import asyncio
+import hashlib
 import io
 import logging
 import os
@@ -53,15 +54,33 @@ _async_client_locks: WeakKeyDictionary[AbstractEventLoop, asyncio.Lock] = WeakKe
 
 _learning_router = LLMRouter()
 
-CacheKey = tuple[str, str, str]
+CacheKey = tuple[str, str, str, str, str, str, str, str]
 
 _learning_cache: OrderedDict[CacheKey, tuple[str, float]] = OrderedDict()
 _learning_cache_lock = threading.Lock()
 
 
-def _make_cache_key(model: str, system: str, user: str) -> CacheKey:
-    """Create a hashable cache key from model and prompts."""
-    return model, system, user
+def _make_cache_key(
+    model: str,
+    system: str,
+    user: str,
+    user_id: str | None,
+    plan_id: str | None,
+    topic_slug: str | None,
+    step_idx: int | None,
+    last_reply_hash: str,
+) -> CacheKey:
+    """Create a hashable cache key from model, prompts and context."""
+    return (
+        model,
+        system,
+        user,
+        user_id or "",
+        plan_id or "",
+        topic_slug or "",
+        str(step_idx) if step_idx is not None else "",
+        last_reply_hash,
+    )
 
 
 def _get_client() -> OpenAI:
@@ -215,12 +234,18 @@ async def create_learning_chat_completion(
     temperature: float | None = None,
     max_tokens: int | None = None,
     timeout: float | httpx.Timeout | None = None,
+    user_id: str | None = None,
+    plan_id: str | None = None,
+    topic_slug: str | None = None,
+    step_idx: int | None = None,
+    last_reply: str | None = None,
 ) -> str:
     """Create and format a chat completion for learning tasks."""
     model = _learning_router.choose_model(task)
     msg_list = list(messages)
     system = ""
     user = ""
+    assistant_text = last_reply or ""
     for msg in msg_list:
         mapping = cast(Mapping[str, object], msg)
         role = mapping.get("role")
@@ -228,11 +253,42 @@ async def create_learning_chat_completion(
             system = str(mapping.get("content", ""))
         elif role == "user" and not user:
             user = str(mapping.get("content", ""))
+        elif role == "assistant":
+            assistant_text = str(mapping.get("content", ""))
+        if user_id is None:
+            uid = mapping.get("user_id")
+            if isinstance(uid, str):
+                user_id = uid
+        if plan_id is None:
+            pid = mapping.get("plan_id")
+            if isinstance(pid, str):
+                plan_id = pid
+        if topic_slug is None:
+            ts = mapping.get("topic_slug")
+            if isinstance(ts, str):
+                topic_slug = ts
+        if step_idx is None:
+            si = mapping.get("step_idx")
+            if isinstance(si, int):
+                step_idx = si
+            elif isinstance(si, str) and si.isdigit():
+                step_idx = int(si)
+    last_hash = (
+        hashlib.sha256(assistant_text.encode("utf-8")).hexdigest()
+        if assistant_text
+        else ""
+    )
     settings = config.get_settings()
-    cache_key = _make_cache_key(model, system, user)
+    cache_key = _make_cache_key(
+        model, system, user, user_id, plan_id, topic_slug, step_idx, last_hash
+    )
     if settings.learning_prompt_cache:
         now = time.time()
         with _learning_cache_lock:
+            if _learning_cache:
+                first_key = next(iter(_learning_cache))
+                if len(first_key) < len(cache_key):
+                    _learning_cache.clear()
             cached = _learning_cache.get(cache_key)
             if cached is not None:
                 reply, ts = cached
@@ -301,9 +357,12 @@ async def create_thread() -> str:
 def create_thread_sync() -> str:
     """Synchronously create an empty thread.
 
-    This is a convenience wrapper around :func:`create_thread` for code that
-    runs in a synchronous context.  It simply executes the asynchronous helper
-    via :func:`asyncio.run`.
+    The function bridges synchronous and asynchronous code.  If no event loop
+    is currently running in the calling thread, the helper coroutine is
+    executed using :func:`asyncio.run`.  When invoked from a thread with an
+    active loop (for example, inside ``pytest.mark.asyncio`` tests), the
+    coroutine is scheduled via :func:`asyncio.create_task` and the loop waits
+    for its completion.
 
     Returns
     -------
@@ -311,7 +370,12 @@ def create_thread_sync() -> str:
         Identifier of the created thread.
     """
 
-    return asyncio.run(create_thread())
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(create_thread())
+    task = asyncio.create_task(create_thread())
+    return loop.run_until_complete(task)
 
 
 def _validate_image_path(image_path: str) -> str:

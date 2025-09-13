@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import cast
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from ...diabetes.models_learning import LearningProgress
+from ...diabetes.models_learning import LearningProgress, ProgressData
 from ...diabetes.services.db import SessionLocal, run_db
 from ...diabetes.services.repository import commit
 from ...types import SessionProtocol
@@ -30,7 +30,7 @@ async def get_progress(user_id: int, plan_id: int) -> LearningProgress | None:
 
 
 async def upsert_progress(
-    user_id: int, plan_id: int, progress_json: dict[str, Any]
+    user_id: int, plan_id: int, progress_json: ProgressData
 ) -> LearningProgress:
     """Insert or update learning progress for a user and plan."""
 
@@ -53,4 +53,3 @@ async def upsert_progress(
         return progress
 
     return await run_db(_upsert, sessionmaker=SessionLocal)
-

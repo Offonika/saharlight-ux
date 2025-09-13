@@ -14,6 +14,7 @@ from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.services import progress_service as progress_repo
 from services.api.app.diabetes import learning_handlers
 from services.api.app.diabetes.services import db
+from services.api.app.diabetes.models_learning import ProgressData
 
 
 class DummyBot(Bot):
@@ -66,7 +67,16 @@ async def test_hydration_restores_state(monkeypatch: pytest.MonkeyPatch) -> None
         session.commit()
     plan_id = await plans_repo.create_plan(1, version=1, plan_json=["p1"])
     await progress_repo.upsert_progress(
-        1, plan_id, {"topic": "t1", "module_idx": 2, "step_idx": 3}
+        1,
+        plan_id,
+        {
+            "topic": "t1",
+            "module_idx": 2,
+            "step_idx": 3,
+            "snapshot": None,
+            "prev_summary": None,
+            "last_sent_step_id": None,
+        },
     )
 
     bot = DummyBot()
@@ -139,7 +149,16 @@ async def test_hydration_busy_message(monkeypatch: pytest.MonkeyPatch) -> None:
         session.commit()
     plan_id = await plans_repo.create_plan(1, version=1, plan_json=["p1"])
     await progress_repo.upsert_progress(
-        1, plan_id, {"topic": "t1", "module_idx": 2, "step_idx": 3}
+        1,
+        plan_id,
+        {
+            "topic": "t1",
+            "module_idx": 2,
+            "step_idx": 3,
+            "snapshot": None,
+            "prev_summary": None,
+            "last_sent_step_id": None,
+        },
     )
 
     bot = DummyBot()
@@ -187,7 +206,9 @@ async def test_hydration_busy_message(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "upsert" not in called
     assert "lesson" not in called
     assert learning_handlers.get_state(app.user_data[1]) is None
-    progress_map = cast(dict[int, Any], app.bot_data[learning_handlers.PROGRESS_KEY])
-    assert "snapshot" not in progress_map[1]
+    progress_map = cast(
+        dict[int, ProgressData], app.bot_data[learning_handlers.PROGRESS_KEY]
+    )
+    assert progress_map[1]["snapshot"] is None
 
     await app.shutdown()

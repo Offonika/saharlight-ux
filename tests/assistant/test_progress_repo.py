@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.assistant.services import progress_service as progress
-from services.api.app.diabetes.models_learning import LearningPlan
+from services.api.app.diabetes.models_learning import LearningPlan, ProgressData
 from services.api.app.diabetes.services import db
 
 
@@ -41,15 +41,31 @@ async def test_get_and_upsert(session_local: sessionmaker[Session]) -> None:
 
     assert await progress.get_progress(1, plan_id) is None
 
-    prog = await progress.upsert_progress(1, plan_id, {"step": 1})
-    assert prog.progress_json == {"step": 1}
+    data1: ProgressData = {
+        "topic": "t",
+        "module_idx": 0,
+        "step_idx": 1,
+        "snapshot": None,
+        "prev_summary": None,
+        "last_sent_step_id": None,
+    }
+    prog = await progress.upsert_progress(1, plan_id, data1)
+    assert prog.progress_json == data1
 
     fetched = await progress.get_progress(1, plan_id)
     assert fetched is not None
-    assert fetched.progress_json == {"step": 1}
+    assert fetched.progress_json == data1
 
-    prog2 = await progress.upsert_progress(1, plan_id, {"step": 2})
-    assert prog2.progress_json == {"step": 2}
+    data2: ProgressData = {
+        "topic": "t",
+        "module_idx": 0,
+        "step_idx": 2,
+        "snapshot": None,
+        "prev_summary": None,
+        "last_sent_step_id": None,
+    }
+    prog2 = await progress.upsert_progress(1, plan_id, data2)
+    assert prog2.progress_json == data2
     fetched2 = await progress.get_progress(1, plan_id)
     assert fetched2 is not None
-    assert fetched2.progress_json == {"step": 2}
+    assert fetched2.progress_json == data2
