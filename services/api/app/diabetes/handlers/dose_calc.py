@@ -267,6 +267,15 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         user_data.pop("pending_entry", None)
         return END
 
+    diabetes_type = getattr(profile, "diabetes_type", "")
+    if diabetes_type in {"unknown", "t2_no"}:
+        await message.reply_text(
+            "Для указанного типа диабета расчёт дозы недоступен.",
+            reply_markup=build_main_keyboard(),
+        )
+        user_data.pop("pending_entry", None)
+        return END
+
     patient = PatientProfile(
         icr=profile.icr,
         cf=profile.cf,
