@@ -526,6 +526,25 @@ def test_sanitize_leaves_short_api_like_token() -> None:
     assert gpt_command_parser._sanitize_sensitive_data(text) == text
 
 
+def test_sanitize_respects_api_key_min_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    token = "sk-" + "A1b2_" * 3 + "Z9"
+    text = f"before {token} after"
+
+    # With default api_key_min_length (32), the token is too short to be masked.
+    assert gpt_command_parser._sanitize_sensitive_data(text) == text
+
+    # Changing the setting should rebuild the regex and mask the token.
+    monkeypatch.setattr(
+        config, "get_settings", lambda: SimpleNamespace(api_key_min_length=10)
+    )
+    assert (
+        gpt_command_parser._sanitize_sensitive_data(text)
+        == "before [REDACTED] after"
+    )
+
+
 def test_extract_first_json_array_single_object() -> None:
     text = '[{"action":"add_entry","fields":{}}]'
     assert gpt_command_parser._extract_first_json(text) == {
