@@ -106,12 +106,14 @@ def require_tg_user(
     Accepts Telegram init data from ``X-Telegram-Init-Data`` or
     ``Authorization: tg <init_data>`` header.
     """
+    if (
+        not init_data
+        and isinstance(authorization, str)
+        and authorization.startswith("tg ")
+    ):
+        init_data = authorization[3:]
     if not init_data:
-        if isinstance(authorization, str) and authorization.startswith("tg "):
-            init_data = authorization[3:]
-        else:
-            raise HTTPException(status_code=401, detail="missing init data")
-    assert init_data is not None
+        raise HTTPException(status_code=401, detail="missing init data")
     return get_tg_user(init_data)
 
 
