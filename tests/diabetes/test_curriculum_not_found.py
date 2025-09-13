@@ -14,6 +14,7 @@ from services.api.app.diabetes.curriculum_engine import (
 import services.api.app.diabetes.learning_handlers as handlers
 from services.api.app.diabetes.learning_state import get_state
 from tests.utils.telegram import make_context, make_update
+from services.api.app.diabetes.models_learning import ProgressData
 
 dynamic_handlers = handlers
 
@@ -112,7 +113,7 @@ async def test_learn_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) -
         return None
 
     async def fake_upsert_progress(
-        user_id: int, plan_id: int, data: Mapping[str, Any]
+        user_id: int, plan_id: int, data: ProgressData
     ) -> None:
         return None
 
@@ -194,7 +195,7 @@ async def test_lesson_command_lesson_not_found(monkeypatch: pytest.MonkeyPatch) 
         return None
 
     async def fake_upsert_progress(
-        user_id: int, plan_id: int, data: Mapping[str, Any]
+        user_id: int, plan_id: int, data: ProgressData
     ) -> None:
         return None
 
