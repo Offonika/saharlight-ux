@@ -26,7 +26,11 @@ from services.api.app import profiles
 from services.api.app.config import TOPICS_RU, settings
 from services.api.app.ui.keyboard import build_main_keyboard
 from services.api.rest_client import AuthRequiredError
-from services.api.app.diabetes.models_learning import Lesson, LessonProgress
+from services.api.app.diabetes.models_learning import (
+    Lesson,
+    LessonProgress,
+    ProgressData,
+)
 from services.api.app.diabetes.services.db import SessionLocal, run_db
 from services.api.app.diabetes.services.repository import commit
 from .dynamic_tutor import (
@@ -125,7 +129,7 @@ async def _persist(
     bot_data: MutableMapping[str, object],
 ) -> None:
     plans = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
-    progress = cast(dict[int, Any], bot_data.setdefault(PROGRESS_KEY, {}))
+    progress = cast(dict[int, ProgressData], bot_data.setdefault(PROGRESS_KEY, {}))
     raw_plan = user_data.get("learning_plan")
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
     raw_plan_id = user_data.get("learning_plan_id")
@@ -151,7 +155,7 @@ async def _persist(
             user_data.pop("learning_plan_id", None)
     state = get_state(user_data)
     if state is not None and plan_id is not None:
-        data = {
+        data: ProgressData = {
             "topic": state.topic,
             "module_idx": cast(int, user_data.get("learning_module_idx", 0)),
             "step_idx": state.step,
@@ -234,9 +238,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         return True
     bot_data = cast(MutableMapping[str, Any], context.bot_data)
     plans_map = cast(dict[int, Any], bot_data.setdefault(PLANS_KEY, {}))
-    progress_map = cast(
-        dict[int, dict[str, Any]], bot_data.setdefault(PROGRESS_KEY, {})
-    )
+    progress_map = cast(dict[int, ProgressData], bot_data.setdefault(PROGRESS_KEY, {}))
     data = progress_map.get(user.id)
     raw_plan = plans_map.get(user.id)
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
@@ -262,11 +264,11 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
         ) as exc:  # pragma: no cover - logging only
             logger.exception("hydrate failed: %s", exc)
             return True
-    topic = cast(str, data.get("topic", ""))
-    module_idx = cast(int, data.get("module_idx", 0))
-    step_idx = cast(int, data.get("step_idx", 0))
-    snapshot = cast(str | None, data.get("snapshot"))
-    prev_summary = cast(str | None, data.get("prev_summary"))
+    topic = data["topic"]
+    module_idx = data["module_idx"]
+    step_idx = data["step_idx"]
+    snapshot = data["snapshot"]
+    prev_summary = data["prev_summary"]
     user_data["learning_module_idx"] = module_idx
     user_data["learning_plan"] = plan
     user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
@@ -790,7 +792,7 @@ async def lesson_answer_handler(
             raw_plan_id = user_data.get("learning_plan_id")
             plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
             if plan_id is not None:
-                data = {
+                data: ProgressData = {
                     "topic": state.topic,
                     "module_idx": cast(int, user_data.get("learning_module_idx", 0)),
                     "step_idx": state.step,
@@ -798,7 +800,8 @@ async def lesson_answer_handler(
                     "prev_summary": state.prev_summary,
                 }
                 progress_map = cast(
-                    dict[int, Any], context.bot_data.setdefault(PROGRESS_KEY, {})
+                    dict[int, ProgressData],
+                    context.bot_data.setdefault(PROGRESS_KEY, {}),
                 )
                 progress_map[telegram_id] = data
                 try:

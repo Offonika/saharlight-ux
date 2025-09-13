@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from services.api.app.assistant.services import progress_service
-from services.api.app.diabetes.models_learning import LearningPlan
+from services.api.app.diabetes.models_learning import LearningPlan, ProgressData
 from services.api.app.diabetes.services import db
 
 
@@ -55,7 +55,14 @@ async def test_upsert_updates_timestamp(session_local: sessionmaker[Session]) ->
         session.commit()
         plan_id = plan.id
 
-    await progress_service.upsert_progress(1, plan_id, {"step": 1})
+    data1: ProgressData = {
+        "topic": "t",
+        "module_idx": 0,
+        "step_idx": 1,
+        "snapshot": None,
+        "prev_summary": None,
+    }
+    await progress_service.upsert_progress(1, plan_id, data1)
     progress = await progress_service.get_progress(1, plan_id)
     assert progress is not None
 
@@ -66,10 +73,17 @@ async def test_upsert_updates_timestamp(session_local: sessionmaker[Session]) ->
         stored.updated_at = old_ts
         session.commit()
 
-    await progress_service.upsert_progress(1, plan_id, {"step": 2})
+    data2: ProgressData = {
+        "topic": "t",
+        "module_idx": 0,
+        "step_idx": 2,
+        "snapshot": None,
+        "prev_summary": None,
+    }
+    await progress_service.upsert_progress(1, plan_id, data2)
     progress2 = await progress_service.get_progress(1, plan_id)
     assert progress2 is not None
-    assert progress2.progress_json == {"step": 2}
+    assert progress2.progress_json == data2
     assert progress2.updated_at > old_ts
 
 
@@ -85,10 +99,23 @@ async def test_upsert_progress_concurrent(session_local: sessionmaker[Session]) 
     async def upsert(step: int) -> None:
         if step == 2:
             await asyncio.sleep(0)
-        await progress_service.upsert_progress(1, plan_id, {"step": step})
+        data: ProgressData = {
+            "topic": "t",
+            "module_idx": 0,
+            "step_idx": step,
+            "snapshot": None,
+            "prev_summary": None,
+        }
+        await progress_service.upsert_progress(1, plan_id, data)
 
     await asyncio.gather(upsert(1), upsert(2))
     progress = await progress_service.get_progress(1, plan_id)
     assert progress is not None
-    assert progress.progress_json == {"step": 2}
-
+    expected: ProgressData = {
+        "topic": "t",
+        "module_idx": 0,
+        "step_idx": 2,
+        "snapshot": None,
+        "prev_summary": None,
+    }
+    assert progress.progress_json == expected
