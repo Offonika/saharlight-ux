@@ -31,6 +31,7 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
     token:
         Bot token used to compute the validation hash.
     """
+    now = time.time()
     if len(init_data) > 1024:
         raise HTTPException(status_code=413, detail="init data too long")
     try:
@@ -59,9 +60,9 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
         auth_date = int(auth_date_raw)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail="invalid auth date") from exc
-    if auth_date > time.time() + 60:
+    if auth_date > now + 60:
         raise HTTPException(status_code=401, detail="invalid auth date")
-    if time.time() - auth_date > AUTH_DATE_MAX_AGE:
+    if now - auth_date > AUTH_DATE_MAX_AGE:
         raise HTTPException(status_code=401, detail="expired auth data")
     params["auth_date"] = auth_date
 
@@ -81,9 +82,7 @@ def get_tg_user(init_data: str) -> UserContext:
     token: str | None = settings.telegram_token
     if not token:
         logger.error("telegram token not configured")
-        raise HTTPException(
-            status_code=503, detail="telegram token not configured"
-        )
+        raise HTTPException(status_code=503, detail="telegram token not configured")
     data: dict[str, object] = parse_and_verify_init_data(init_data, token)
     user_raw = data.get("user")
     user = user_raw if isinstance(user_raw, dict) else None
