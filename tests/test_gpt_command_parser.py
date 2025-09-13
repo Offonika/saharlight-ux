@@ -30,9 +30,7 @@ async def test_parse_command_timeout_non_blocking(
             raise
 
         class FakeResponse:
-            choices = [
-                type("Choice", (), {"message": type("Msg", (), {"content": "{}"})()})
-            ]
+            choices = [type("Choice", (), {"message": type("Msg", (), {"content": "{}"})()})]
 
         return FakeResponse()
 
@@ -68,9 +66,7 @@ async def test_parse_command_with_explanatory_text(
                         (),
                         {
                             "content": (
-                                'Вот ответ: {"action":"add_entry",'
-                                '"time":"09:00","fields":{}}'
-                                " Дополнительный текст"
+                                'Вот ответ: {"action":"add_entry","time":"09:00","fields":{}} Дополнительный текст'
                             )
                         },
                     )()
@@ -131,11 +127,7 @@ async def test_parse_command_uses_config_model(
             type(
                 "Choice",
                 (),
-                {
-                    "message": type(
-                        "Msg", (), {"content": '{"action":"get_day_summary"}'}
-                    )()
-                },
+                {"message": type("Msg", (), {"content": '{"action":"get_day_summary"}'})()},
             )
         ]
 
@@ -170,12 +162,7 @@ async def test_parse_command_with_array_multiple_objects(
                     "message": type(
                         "Msg",
                         (),
-                        {
-                            "content": (
-                                '[{"action":"add_entry","fields":{}},'
-                                '{"action":"delete_entry","fields":{}}]'
-                            )
-                        },
+                        {"content": ('[{"action":"add_entry","fields":{}},{"action":"delete_entry","fields":{}}]')},
                     )()
                 },
             )
@@ -202,11 +189,7 @@ async def test_parse_command_without_fields(
             type(
                 "Choice",
                 (),
-                {
-                    "message": type(
-                        "Msg", (), {"content": '{"action":"get_day_summary"}'}
-                    )()
-                },
+                {"message": type("Msg", (), {"content": '{"action":"get_day_summary"}'})()},
             )
         ]
 
@@ -252,11 +235,7 @@ async def test_parse_command_delete_entry_without_fields(
             type(
                 "Choice",
                 (),
-                {
-                    "message": type(
-                        "Msg", (), {"content": '{"action":"delete_entry"}'}
-                    )()
-                },
+                {"message": type("Msg", (), {"content": '{"action":"delete_entry"}'})()},
             )
         ]
 
@@ -356,13 +335,7 @@ async def test_parse_command_with_braces_in_explanatory_text(
                     "message": type(
                         "Msg",
                         (),
-                        {
-                            "content": (
-                                '"пример {текста}" '
-                                '{"action":"add_entry","fields":{}}'
-                                " trailing"
-                            )
-                        },
+                        {"content": ('"пример {текста}" {"action":"add_entry","fields":{}} trailing')},
                     )()
                 },
             )
@@ -499,9 +472,7 @@ async def test_parse_command_propagates_unexpected_exception(
 )
 def test_sanitize_masks_api_like_tokens(token: Any) -> None:
     text = f"before {token} after"
-    assert (
-        gpt_command_parser._sanitize_sensitive_data(text) == "before [REDACTED] after"
-    )
+    assert gpt_command_parser._sanitize_sensitive_data(text) == "before [REDACTED] after"
 
 
 def test_sanitize_leaves_numeric_strings() -> None:
@@ -514,16 +485,32 @@ def test_sanitize_masks_multiple_tokens() -> None:
     token1 = "sk-" + "A1b2_" * 8 + "Z9"
     token2 = "ghp_" + "A1b2" * 9 + "Cd"
     text = f"{token1} middle {token2}"
-    assert (
-        gpt_command_parser._sanitize_sensitive_data(text)
-        == "[REDACTED] middle [REDACTED]"
-    )
+    assert gpt_command_parser._sanitize_sensitive_data(text) == "[REDACTED] middle [REDACTED]"
 
 
 def test_sanitize_leaves_short_api_like_token() -> None:
     token = "sk-" + "A1b2" * 7
     text = f"before {token} after"
     assert gpt_command_parser._sanitize_sensitive_data(text) == text
+
+
+def test_sanitize_respects_api_key_min_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    token = "sk-" + "A1b2_" * 3 + "Z9"
+    text = f"before {token} after"
+
+    # With default api_key_min_length (32), the token is too short to be masked.
+    assert gpt_command_parser._sanitize_sensitive_data(text) == text
+
+    # Changing the setting should rebuild the regex and mask the token.
+    monkeypatch.setattr(
+        config, "get_settings", lambda: SimpleNamespace(api_key_min_length=10)
+    )
+    assert (
+        gpt_command_parser._sanitize_sensitive_data(text)
+        == "before [REDACTED] after"
+    )
 
 
 def test_extract_first_json_array_single_object() -> None:
@@ -535,9 +522,7 @@ def test_extract_first_json_array_single_object() -> None:
 
 
 def test_extract_first_json_multi_object_array() -> None:
-    text = (
-        '[{"action":"add_entry","fields":{}},' '{"action":"delete_entry","fields":{}}]'
-    )
+    text = '[{"action":"add_entry","fields":{}},{"action":"delete_entry","fields":{}}]'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -561,7 +546,7 @@ def test_extract_first_json_nested_array_wrapper() -> None:
 
 
 def test_extract_first_json_multiple_objects() -> None:
-    text = '{"action":"add_entry","fields":{}} ' '{"action":"delete_entry","fields":{}}'
+    text = '{"action":"add_entry","fields":{}} {"action":"delete_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -577,7 +562,7 @@ def test_extract_first_json_braces_in_string_before_object() -> None:
 
 
 def test_extract_first_json_braces_in_single_quotes_before_object() -> None:
-    text = "prefix 'not json { [ ] }' " '{"action":"add_entry","fields":{}}'
+    text = 'prefix \'not json { [ ] }\' {"action":"add_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -585,7 +570,7 @@ def test_extract_first_json_braces_in_single_quotes_before_object() -> None:
 
 
 def test_extract_first_json_explanatory_braces_before_object() -> None:
-    text = "text with {not valid json} " '{"action":"add_entry","fields":{}}'
+    text = 'text with {not valid json} {"action":"add_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -593,7 +578,7 @@ def test_extract_first_json_explanatory_braces_before_object() -> None:
 
 
 def test_extract_first_json_multiple_objects_no_space() -> None:
-    text = '{"action":"add_entry","fields":{}}' '{"action":"delete_entry","fields":{}}'
+    text = '{"action":"add_entry","fields":{}}{"action":"delete_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -602,7 +587,12 @@ def test_extract_first_json_multiple_objects_no_space() -> None:
 
 def test_extract_first_json_malformed_input() -> None:
     text = '{"action":"add_entry","fields":{}'
-    assert gpt_command_parser._extract_first_json(text) == {}
+    assert gpt_command_parser._extract_first_json(text) is None
+
+
+def test_extract_first_json_truncated_array() -> None:
+    text = '[{"action":"add_entry"}'
+    assert gpt_command_parser._extract_first_json(text) is None
 
 
 def test_extract_first_json_simple_object() -> None:
@@ -618,10 +608,7 @@ def test_extract_first_json_no_object() -> None:
 
 
 def test_extract_first_json_with_escaped_quotes() -> None:
-    text = (
-        'prefix "escaped \\"quote\\"" '
-        '{"action":"add_entry","fields":{"note":"He said \\"hi\\""}}'
-    )
+    text = 'prefix "escaped \\"quote\\"" {"action":"add_entry","fields":{"note":"He said \\"hi\\""}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {"note": 'He said "hi"'},
@@ -629,9 +616,7 @@ def test_extract_first_json_with_escaped_quotes() -> None:
 
 
 def test_extract_first_json_array_with_many_objects() -> None:
-    text = (
-        '[{"action":"add_entry","fields":{}},' ' {"action":"delete_entry","fields":{}}]'
-    )
+    text = '[{"action":"add_entry","fields":{}}, {"action":"delete_entry","fields":{}}]'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -649,16 +634,12 @@ def test_extract_first_json_malformed_then_valid() -> None:
 def test_extract_first_json_non_dict_reset(monkeypatch: pytest.MonkeyPatch) -> None:
     orig_raw_decode = gpt_command_parser.json.JSONDecoder.raw_decode
 
-    def fake_raw_decode(
-        self: gpt_command_parser.json.JSONDecoder, s: str, idx: int = 0
-    ) -> tuple[object, int]:
+    def fake_raw_decode(self: gpt_command_parser.json.JSONDecoder, s: str, idx: int = 0) -> tuple[object, int]:
         if s[idx:].startswith('{"skip":1}'):
             return 1, idx + len('{"skip":1}')
         return orig_raw_decode(self, s, idx)
 
-    monkeypatch.setattr(
-        gpt_command_parser.json.JSONDecoder, "raw_decode", fake_raw_decode
-    )
+    monkeypatch.setattr(gpt_command_parser.json.JSONDecoder, "raw_decode", fake_raw_decode)
     text = '{"skip":1} {"action":"add_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
@@ -667,7 +648,7 @@ def test_extract_first_json_non_dict_reset(monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_extract_first_json_nested_object() -> None:
-    text = 'prefix {"action":"add_entry","fields":{"nested":{"level":1}}}' " suffix"
+    text = 'prefix {"action":"add_entry","fields":{"nested":{"level":1}}} suffix'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {"nested": {"level": 1}},
@@ -675,7 +656,7 @@ def test_extract_first_json_nested_object() -> None:
 
 
 def test_extract_first_json_nested_array() -> None:
-    text = 'prefix {"action":"add_entry","fields":{"list":[{"x":1},{"x":2}]}}' " suffix"
+    text = 'prefix {"action":"add_entry","fields":{"list":[{"x":1},{"x":2}]}} suffix'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {"list": [{"x": 1}, {"x": 2}]},
@@ -691,9 +672,7 @@ def test_extract_first_json_with_escaped_chars() -> None:
 
 
 def test_extract_first_json_braces_inside_string_field() -> None:
-    text = (
-        'prefix {"action":"add_entry","fields":{"note":"use {curly} braces"}} ' "suffix"
-    )
+    text = 'prefix {"action":"add_entry","fields":{"note":"use {curly} braces"}} suffix'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {"note": "use {curly} braces"},
@@ -709,10 +688,7 @@ def test_extract_first_json_braces_and_quotes_inside_string_field() -> None:
 
 
 def test_extract_first_json_deep_nested_arrays() -> None:
-    text = (
-        'start {"action":"add_entry","fields":{"matrix":[[1,2],[3,{"v":[4,5]}]]}}'
-        " end"
-    )
+    text = 'start {"action":"add_entry","fields":{"matrix":[[1,2],[3,{"v":[4,5]}]]}} end'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {"matrix": [[1, 2], [3, {"v": [4, 5]}]]},
@@ -729,9 +705,7 @@ def test_extract_first_json_quotes_inside_value() -> None:
 
 def test_extract_first_json_three_objects_in_row() -> None:
     text = (
-        '{"action":"add_entry","fields":{}}'
-        '{"action":"delete_entry","fields":{}}'
-        '{"action":"update_entry","fields":{}}'
+        '{"action":"add_entry","fields":{}}{"action":"delete_entry","fields":{}}{"action":"update_entry","fields":{}}'
     )
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
@@ -771,12 +745,7 @@ async def test_parse_command_with_multiple_jsons(
                     "message": type(
                         "Msg",
                         (),
-                        {
-                            "content": (
-                                '{"action":"add_entry","fields":{}} '
-                                '{"action":"delete_entry","fields":{}}'
-                            )
-                        },
+                        {"content": ('{"action":"add_entry","fields":{}} {"action":"delete_entry","fields":{}}')},
                     )()
                 },
             )
@@ -820,4 +789,4 @@ async def test_parse_command_with_malformed_json(
         result = await gpt_command_parser.parse_command("test")
 
     assert result is None
-    assert "Command validation failed" in caplog.text
+    assert "No JSON object found in response" in caplog.text

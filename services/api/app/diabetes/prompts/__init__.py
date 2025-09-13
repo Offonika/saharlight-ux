@@ -4,11 +4,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Mapping
 from pathlib import Path
 from textwrap import dedent
 
 # --- Meta ---------------------------------------------------------------------
+
+logger = logging.getLogger(__name__)
 
 PROMPT_VERSION = "v0.3"
 PROMPT_LANG = "ru-RU"
@@ -113,7 +116,9 @@ def build_system_prompt(p: Mapping[str, str | None], task: object | None = None)
     return _trim(prompt)
 
 
-def build_user_prompt_step(topic_slug: str, step_idx: int, prev_summary: str | None) -> str:
+def build_user_prompt_step(
+    topic_slug: str, step_idx: int, prev_summary: str | None
+) -> str:
     """Build a user-level prompt for a learning step."""
     slug = _canon_slug(topic_slug)
     goal = LESSON_GOALS_RU.get(slug, "дать понятный и безопасный шаг по теме")
@@ -174,7 +179,8 @@ try:
         LESSONS_V0_DATA = json.load(fp)
 except FileNotFoundError:
     LESSONS_V0_DATA = {}
-except Exception:
+except (OSError, json.JSONDecodeError):
+    logger.exception("Failed to load legacy lessons from %s", LESSONS_V0_PATH)
     # fail-open: не ломаем импорт, просто оставляем пустые данные
     LESSONS_V0_DATA = {}
 

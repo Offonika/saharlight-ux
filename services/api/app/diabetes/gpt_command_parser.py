@@ -4,6 +4,7 @@ import logging
 import re
 from collections import deque
 from collections.abc import Awaitable
+from functools import lru_cache
 from typing import cast
 
 from openai import OpenAIError
@@ -56,23 +57,33 @@ SYSTEM_PROMPT = (
 )
 
 
-API_KEY_MIN_LENGTH = config.get_settings().api_key_min_length
-
-API_KEY_RE = re.compile(
-    r"\b(?=[A-Za-z0-9_-]*[a-z])"
-    r"(?=[A-Za-z0-9_-]*[A-Z])"
-    r"(?=[A-Za-z0-9_-]*\d)"
-    rf"[A-Za-z0-9_-]{{{API_KEY_MIN_LENGTH},}}\b"
-)
-
 ACTIONS_REQUIRE_FIELDS: set[str] = {"add_entry", "update_entry"}
 
 MAX_JSON_CHARS = 10_000
 
 
+@lru_cache(maxsize=None)
+def _compile_api_key_re(min_length: int) -> re.Pattern[str]:
+    """Return a regex matching API-like tokens of at least *min_length*.
+
+    The result is cached so that repeated calls with the same ``min_length``
+    reuse the compiled pattern. When configuration changes, a new pattern is
+    compiled automatically.
+    """
+
+    return re.compile(
+        r"\b(?=[A-Za-z0-9_-]*[a-z])"
+        r"(?=[A-Za-z0-9_-]*[A-Z])"
+        r"(?=[A-Za-z0-9_-]*\d)"
+        rf"[A-Za-z0-9_-]{{{min_length},}}\b"
+    )
+
+
 def _sanitize_sensitive_data(text: str) -> str:
     """Mask potentially sensitive tokens in *text* before logging."""
-    return API_KEY_RE.sub("[REDACTED]", text)
+    settings_obj = config.get_settings()
+    min_length = getattr(settings_obj, "api_key_min_length", 32)
+    return _compile_api_key_re(min_length).sub("[REDACTED]", text)
 
 
 def _extract_first_json(text: str) -> dict[str, object] | None:
@@ -94,7 +105,6 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
     start = -1
     braces = 0
     brackets = 0
-    saw_closing = False
 
     def search_dict(obj: object) -> dict[str, object] | None:
         queue: deque[object] = deque([obj])
@@ -127,18 +137,17 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
             quote = ch
             i += 1
             continue
-        if ch == '{' or ch == '[':
+        if ch == "{" or ch == "[":
             if braces == 0 and brackets == 0:
                 start = i
-            if ch == '{':
+            if ch == "{":
                 braces += 1
             else:
                 brackets += 1
-        elif ch == '}' or ch == ']':
-            saw_closing = True
-            if ch == '}' and braces > 0:
+        elif ch == "}" or ch == "]":
+            if ch == "}" and braces > 0:
                 braces -= 1
-            elif ch == ']' and brackets > 0:
+            elif ch == "]" and brackets > 0:
                 brackets -= 1
             else:
                 start = -1
@@ -151,7 +160,6 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
                 try:
                     obj = json.loads(segment)
                 except json.JSONDecodeError:
-                    saw_closing = True
                     start += 1
                     i = start
                     braces = 0
@@ -164,7 +172,7 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
         i += 1
 
     if start != -1:
-        return {} if saw_closing else None
+        return None
     return None
 
 
@@ -197,9 +205,7 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
             timeout=timeout,
         )
         try:
-            response: ChatCompletion = await asyncio.wait_for(
-                cast(Awaitable[ChatCompletion], resp), timeout
-            )
+            response: ChatCompletion = await asyncio.wait_for(cast(Awaitable[ChatCompletion], resp), timeout)
         except TypeError:
             if isinstance(resp, Awaitable):
                 raise

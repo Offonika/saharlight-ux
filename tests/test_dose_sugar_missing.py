@@ -60,7 +60,6 @@ async def test_dose_sugar_requires_carbs_or_xe() -> None:
     assert context.user_data == {}
 
 
-
 @pytest.mark.asyncio
 async def test_dose_sugar_requires_pending_entry() -> None:
     message = DummyMessage("5.5")
@@ -114,3 +113,41 @@ async def test_dose_sugar_uses_async_db(monkeypatch: pytest.MonkeyPatch) -> None
 
     assert result == dose_calc.END
     assert called
+
+
+@pytest.mark.asyncio
+async def test_dose_sugar_missing_carbs(monkeypatch: pytest.MonkeyPatch) -> None:
+    entry = {
+        "telegram_id": 1,
+        "event_time": datetime.datetime.now(datetime.timezone.utc),
+        "xe": 1.0,
+    }
+    message = DummyMessage("5.5")
+    update = cast(
+        Update, SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1))
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"pending_entry": entry}),
+    )
+
+    profile = SimpleNamespace(icr=10.0, cf=2.0, target_bg=5.5)
+
+    async def fake_run_db(func: Callable[[Any], Any], sessionmaker: Any) -> Any:
+        return profile
+
+    monkeypatch.setattr(dose_calc, "run_db", fake_run_db)
+
+    class MulNone:
+        def __mul__(self, other: float) -> Any:
+            return None
+
+        __rmul__ = __mul__
+
+    monkeypatch.setattr(dose_calc, "XE_GRAMS", MulNone())
+
+    result = await dose_calc.dose_sugar(update, context)
+
+    assert result == dose_calc.END
+    assert any("расчёт невозможен" in r.lower() for r in message.replies)
+    assert context.user_data == {}
