@@ -57,6 +57,12 @@ from .alert_handlers import check_alert as _check_alert
 
 check_alert = _check_alert
 
+try:  # pragma: no cover - fallback if PTB lacks PersistenceError
+    from telegram.ext import PersistenceError
+except Exception:  # noqa: BLE001
+    class PersistenceError(Exception):
+        """Generic persistence error."""
+
 P = ParamSpec("P")
 T = TypeVar("T")
 S = TypeVar("S", bound=Session)
@@ -657,7 +663,7 @@ async def reminder_webapp_save(update: Update, context: ContextTypes.DEFAULT_TYP
             try:
                 await persistence.update_user_data(user.id, context.user_data)
                 await persistence.flush()
-            except Exception as exc:  # pragma: no cover - log only
+            except (PersistenceError, OSError) as exc:  # pragma: no cover - log only
                 logger.warning("Failed to persist tg_init_data: %s", exc)
 
     sugar_raw = data.get("sugar")
