@@ -43,7 +43,7 @@ if TYPE_CHECKING:
 else:
     DefaultJobQueue = JobQueue
 
-JobCallback = Callable[[CustomContext], Coroutine[Any, Any, object]]
+JobCallback = Callable[[CustomContext], Coroutine[Any, Any, None]]
 
 
 def _derive_timezone(
@@ -103,7 +103,7 @@ def schedule_once(
     supports_name = "name" in sig.parameters
     supports_timezone = "timezone" in sig.parameters
 
-    call_kwargs: dict[str, Any] = {"when": when, "data": data}
+    call_kwargs: dict[str, object] = {"when": when, "data": data}
     jk: dict[str, object] = dict(job_kwargs or {})
 
     if name is not None:
@@ -120,12 +120,10 @@ def schedule_once(
     if jk and supports_job_kwargs:
         call_kwargs["job_kwargs"] = jk
 
-    run_once = cast(Any, job_queue.run_once)
+    run_once = cast(Callable[..., Job[CustomContext]], job_queue.run_once)
     if supports_timezone:
-        result = run_once(callback, timezone=tz, **call_kwargs)
-    else:
-        result = run_once(callback, **call_kwargs)
-    return cast(Job[CustomContext], result)
+        return run_once(callback, timezone=tz, **call_kwargs)
+    return run_once(callback, **call_kwargs)
 
 
 def schedule_daily(
@@ -166,7 +164,7 @@ def schedule_daily(
     supports_days = "days" in sig.parameters
     supports_timezone = "timezone" in sig.parameters
 
-    call_kwargs: dict[str, Any] = {"time": time, "data": data}
+    call_kwargs: dict[str, object] = {"time": time, "data": data}
     jk: dict[str, object] = dict(job_kwargs or {})
 
     if days is not None and supports_days:
@@ -186,12 +184,10 @@ def schedule_daily(
     if jk and supports_job_kwargs:
         call_kwargs["job_kwargs"] = jk
 
-    run_daily = cast(Any, job_queue.run_daily)
+    run_daily = cast(Callable[..., Job[CustomContext]], job_queue.run_daily)
     if supports_timezone:
-        result = run_daily(callback, timezone=tz, **call_kwargs)
-    else:
-        result = run_daily(callback, **call_kwargs)
-    return cast(Job[CustomContext], result)
+        return run_daily(callback, timezone=tz, **call_kwargs)
+    return run_daily(callback, **call_kwargs)
 
 
 def _safe_remove(job: object) -> bool:
