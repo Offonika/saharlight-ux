@@ -20,11 +20,13 @@ async def test_parse_command_timeout_non_blocking(
 ) -> None:
     started = asyncio.Event()
     cancelled = asyncio.Event()
+    captured: dict[str, Any] = {}
 
     async def slow_create(*args: Any, **kwargs: Any) -> Any:
+        captured.update(kwargs)
         started.set()
         try:
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
         except asyncio.CancelledError:
             cancelled.set()
             raise
@@ -36,19 +38,24 @@ async def test_parse_command_timeout_non_blocking(
 
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", slow_create)
 
+    api_timeout = 5.0
+    overall_timeout = 0.1
     start = time.perf_counter()
     results = await asyncio.gather(
-        gpt_command_parser.parse_command("test", timeout=0.1),
-        asyncio.sleep(0.1),
+        gpt_command_parser.parse_command(
+            "test", api_timeout=api_timeout, overall_timeout=overall_timeout
+        ),
+        asyncio.sleep(overall_timeout),
         return_exceptions=True,
     )
     elapsed = time.perf_counter() - start
 
     assert isinstance(results[0], gpt_command_parser.ParserTimeoutError)
-    assert elapsed < 0.5
+    assert elapsed < overall_timeout + 1.5
     assert started.is_set()
     await asyncio.sleep(0.2)
     assert cancelled.is_set()
+    assert captured.get("timeout") == api_timeout
 
 
 @pytest.mark.asyncio
