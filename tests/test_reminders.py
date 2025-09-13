@@ -2078,3 +2078,14 @@ def test_patch_reminder_forbidden(
     assert resp.status_code == 403
     assert resp.json() == {"detail": "forbidden"}
     fastapi_app.dependency_overrides[check_token] = lambda: {"id": 1}
+
+
+@pytest.mark.asyncio
+async def test_preset_requires_run_db(monkeypatch: pytest.MonkeyPatch) -> None:
+    from services.api.app import config
+    from services.api.app.diabetes.handlers import reminder_handlers as handlers
+
+    monkeypatch.setattr(config.settings, "allow_sync_db_fallback", False, raising=False)
+    monkeypatch.setattr(handlers, "run_db", None)
+    with pytest.raises(RuntimeError):
+        await handlers.create_reminder_from_preset(1, "sugar_08", None)
