@@ -178,14 +178,18 @@ def test_save_profile_creates_missing_user(
 def test_local_profiles_post_failure(
     monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
-    api = profile_api.LocalProfileAPI(session_factory)
+    monkeypatch.setattr(profile_api, "SessionLocal", session_factory)
+    api = profile_api.LocalProfileAPI()
     monkeypatch.setattr(profile_api, "save_profile", lambda *a, **k: False)
     with pytest.raises(profile_api.ProfileSaveError):
         api.profiles_post(profile_api.LocalProfile(telegram_id=1))
 
 
-def test_local_profiles_roundtrip(session_factory: sessionmaker[Session]) -> None:
-    api = profile_api.LocalProfileAPI(session_factory)
+def test_local_profiles_roundtrip(
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
+) -> None:
+    monkeypatch.setattr(profile_api, "SessionLocal", session_factory)
+    api = profile_api.LocalProfileAPI()
 
     with session_factory() as session:
         session.add(User(telegram_id=1, thread_id="t"))
@@ -209,9 +213,10 @@ def test_local_profiles_roundtrip(session_factory: sessionmaker[Session]) -> Non
 
 
 def test_local_profiles_partial_update_keeps_existing(
-    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
-    api = profile_api.LocalProfileAPI(session_factory)
+    monkeypatch.setattr(profile_api, "SessionLocal", session_factory)
+    api = profile_api.LocalProfileAPI()
 
     initial = profile_api.LocalProfile(
         telegram_id=1,
@@ -237,9 +242,10 @@ def test_local_profiles_partial_update_keeps_existing(
 
 
 def test_local_profiles_missing_required_raises(
-    session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch, session_factory: sessionmaker[Session]
 ) -> None:
-    api = profile_api.LocalProfileAPI(session_factory)
+    monkeypatch.setattr(profile_api, "SessionLocal", session_factory)
+    api = profile_api.LocalProfileAPI()
 
     with pytest.raises(profile_api.ProfileSaveError):
         api.profiles_post(
