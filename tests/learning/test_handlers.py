@@ -72,7 +72,12 @@ async def test_learning_flow(monkeypatch: pytest.MonkeyPatch) -> None:
     call_count = 0
 
     async def fake_check_user_answer(
-        profile: object, topic: str, answer: str, last_step_text: str
+        profile: object,
+        topic: str,
+        answer: str,
+        last_step_text: str,
+        *,
+        user_id: int | None = None,
     ) -> tuple[bool, str]:
         return True, "<b>✅ feedback</b>"
 
@@ -272,9 +277,7 @@ async def test_static_mode_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
         "settings",
         SimpleNamespace(learning_content_mode="static", learning_mode_enabled=True),
     )
-    monkeypatch.setattr(
-        learning_handlers, "_static_learn_command", fake_learn_command
-    )
+    monkeypatch.setattr(learning_handlers, "_static_learn_command", fake_learn_command)
 
     upd = cast(Update, SimpleNamespace(message=object()))
     ctx = cast(ContextTypes.DEFAULT_TYPE, SimpleNamespace())

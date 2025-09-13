@@ -44,7 +44,9 @@ class ProgressNotFoundError(Exception):
     """Raised when a user's lesson progress is missing."""
 
     def __init__(self, user_id: int, lesson_id: int) -> None:
-        super().__init__(f"progress not found: user_id={user_id}, lesson_id={lesson_id}")
+        super().__init__(
+            f"progress not found: user_id={user_id}, lesson_id={lesson_id}"
+        )
         self.user_id = user_id
         self.lesson_id = lesson_id
 
@@ -53,7 +55,9 @@ async def start_lesson(user_id: int, lesson_slug: str) -> LessonProgress:
     """Start or reset a lesson for a user and return progress."""
 
     def _start(session: Session) -> LessonProgress:
-        lesson = session.execute(sa.select(Lesson).filter_by(slug=lesson_slug)).scalar_one_or_none()
+        lesson = session.execute(
+            sa.select(Lesson).filter_by(slug=lesson_slug)
+        ).scalar_one_or_none()
         if lesson is None:
             raise LessonNotFoundError(lesson_slug)
         progress = session.execute(
@@ -101,11 +105,15 @@ async def next_step(
 
         def _get_progress(session: Session) -> tuple[int, str]:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+                sa.select(LessonProgress).filter_by(
+                    user_id=user_id, lesson_id=lesson_id
+                )
             ).scalar_one_or_none()
             if progress is None:
                 raise ProgressNotFoundError(user_id, lesson_id)
-            lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one_or_none()
+            lesson = session.execute(
+                sa.select(Lesson).filter_by(id=lesson_id)
+            ).scalar_one_or_none()
             if lesson is None:
                 raise LessonNotFoundError(str(lesson_id))
             return progress.current_step, lesson.slug
@@ -113,7 +121,9 @@ async def next_step(
         current_step, slug = await db.run_db(_get_progress)
         step_idx = current_step + 1
         try:
-            text = await generate_step_text(profile, slug, step_idx, prev_summary)
+            text = await generate_step_text(
+                profile, slug, step_idx, prev_summary, user_id=user_id
+            )
         except OpenAIError:
             logger.exception(
                 "openai error during dynamic step generation",
@@ -132,7 +142,9 @@ async def next_step(
 
         def _advance(session: Session) -> None:
             progress = session.execute(
-                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+                sa.select(LessonProgress).filter_by(
+                    user_id=user_id, lesson_id=lesson_id
+                )
             ).scalar_one()
             progress.current_step = step_idx
             commit(session)
@@ -150,7 +162,9 @@ async def next_step(
         ).scalar_one()
         lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one()
         steps = session.scalars(
-            sa.select(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order)
+            sa.select(LessonStep)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(LessonStep.step_order)
         ).all()
         if progress.current_step < len(steps):
             step = steps[progress.current_step]
@@ -160,12 +174,16 @@ async def next_step(
             commit(session)
             return step.content, None, first_step, False, step_idx, False, lesson.slug
         questions = session.scalars(
-            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+            sa.select(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
         ).all()
         if progress.current_question < len(questions):
             q = questions[progress.current_question]
             first_question = progress.current_question == 0
-            opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1))
+            opts = "\n".join(
+                f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1)
+            )
             return (
                 None,
                 f"{q.question}\n{opts}",
@@ -198,6 +216,7 @@ async def next_step(
                     {"role": "system", "content": SYSTEM_TUTOR_RU},
                     {"role": "user", "content": build_explain_step(step_content)},
                 ],
+                user_id=user_id,
             )
         except OpenAIError:
             logger.exception(
@@ -253,11 +272,15 @@ async def check_answer(
     if settings.learning_content_mode == "dynamic":
 
         def _get_slug(session: Session) -> str:
-            lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one()
+            lesson = session.execute(
+                sa.select(Lesson).filter_by(id=lesson_id)
+            ).scalar_one()
             return lesson.slug
 
         slug = await db.run_db(_get_slug)
-        correct, feedback = await check_user_answer(profile, slug, str(answer), last_step_text or "")
+        correct, feedback = await check_user_answer(
+            profile, slug, str(answer), last_step_text or "", user_id=user_id
+        )
         feedback = feedback.strip()
         return correct, feedback
 
@@ -271,7 +294,9 @@ async def check_answer(
             sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
         ).scalar_one()
         questions = session.scalars(
-            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+            sa.select(QuizQuestion)
+            .filter_by(lesson_id=lesson_id)
+            .order_by(QuizQuestion.id)
         ).all()
         question = questions[progress.current_question]
         correct = answer_index == question.correct_option
@@ -304,6 +329,7 @@ async def check_answer(
             },
             {"role": "user", "content": build_feedback(correct, explanation)},
         ],
+        user_id=user_id,
     )
     latency = time.monotonic() - start
     logger.info(

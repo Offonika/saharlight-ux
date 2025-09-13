@@ -122,12 +122,19 @@ async def test_hydrate_generates_snapshot_and_persists(
         return f"Шаг {step_idx}", False
 
     async def fake_generate_step_text(
-        _profile: Any, _topic: str, step_idx: int, _prev: str | None
+        _profile: Any,
+        _topic: str,
+        step_idx: int,
+        _prev: str | None,
+        *,
+        user_id: int | None = None,
     ) -> str:
         gen_calls.append(step_idx)
         return f"Шаг {step_idx}"
 
-    async def fake_assistant_chat(_profile: Any, _text: str) -> str:
+    async def fake_assistant_chat(
+        _profile: Any, _text: str, *, user_id: int | None = None
+    ) -> str:
         return "feedback"
 
     monkeypatch.setattr(

@@ -272,7 +272,9 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     user_data["learning_plan_index"] = step_idx - 1 if step_idx > 0 else 0
     if snapshot is None:
         profile_map = _get_profile(user_data)
-        snapshot = await generate_step_text(profile_map, topic, step_idx, prev_summary)
+        snapshot = await generate_step_text(
+            profile_map, topic, step_idx, prev_summary, user_id=user.id
+        )
         if snapshot == BUSY_MESSAGE:
             message = update.effective_message
             if message is not None:
@@ -436,7 +438,7 @@ async def _dynamic_learn_command(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
-        text = await generate_step_text(profile, slug, 1, None)
+        text = await generate_step_text(profile, slug, 1, None, user_id=user.id)
     except (
         SQLAlchemyError,
         OpenAIError,
@@ -515,7 +517,9 @@ async def _start_lesson(
             "no_static_lessons; run dynamic",
             extra={"hint": "make load-lessons"},
         )
-        text = await generate_step_text(profile, topic_slug, 1, None)
+        text = await generate_step_text(
+            profile, topic_slug, 1, None, user_id=from_user.id
+        )
         if text == BUSY_MESSAGE or not text:
             user_data.pop("lesson_id", None)
             await message.reply_text(BUSY_MESSAGE, reply_markup=build_main_keyboard())
@@ -734,7 +738,9 @@ async def lesson_answer_handler(
     try:
         if user_text.lower() == "не знаю":
             feedback = await assistant_chat(
-                profile, f"Объясни подробнее: {state.last_step_text}"
+                profile,
+                f"Объясни подробнее: {state.last_step_text}",
+                user_id=telegram_id,
             )
         else:
             _correct, feedback = await check_user_answer(
@@ -742,6 +748,7 @@ async def lesson_answer_handler(
                 state.topic,
                 user_text,
                 state.last_step_text or "",
+                user_id=telegram_id,
             )
         feedback = format_reply(feedback)
         if feedback == BUSY_MESSAGE:
@@ -762,6 +769,7 @@ async def lesson_answer_handler(
                     state.topic,
                     prev_step + 1,
                     feedback,
+                    user_id=telegram_id,
                 )
         except (
             LessonNotFoundError,
@@ -1046,7 +1054,9 @@ async def progress_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await message.reply_text("\n".join(lines))
 
 
-async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
+async def assistant_chat(
+    profile: Mapping[str, str | None], text: str, *, user_id: int | None = None
+) -> str:
     """Answer a general user question via the learning LLM."""
 
     system = build_system_prompt(profile)
@@ -1059,6 +1069,7 @@ async def assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
                 {"role": "user", "content": user},
             ],
             max_tokens=200,
+            user_id=user_id,
         )
     except (OpenAIError, httpx.HTTPError, RuntimeError) as exc:
         logger.exception("[GPT] assistant chat failed: %s", exc)
@@ -1071,6 +1082,7 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     message = update.message
     if message is None or not message.text:
         return
+    user = update.effective_user
     if not settings.learning_mode_enabled:
         return
     if settings.learning_content_mode != "dynamic":
@@ -1088,7 +1100,9 @@ async def on_any_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await lesson_answer_handler(update, context)
         raise ApplicationHandlerStop
     profile = _get_profile(user_data)
-    reply = await assistant_chat(profile, message.text.strip())
+    reply = await assistant_chat(
+        profile, message.text.strip(), user_id=user.id if user else None
+    )
     reply = format_reply(reply)
     await message.reply_text(reply, reply_markup=build_main_keyboard())
     raise ApplicationHandlerStop

@@ -49,19 +49,23 @@ _client: OpenAI | None = None
 _client_lock = threading.Lock()
 
 _async_clients: dict[AbstractEventLoop, AsyncOpenAI] = {}
-_async_client_locks: WeakKeyDictionary[AbstractEventLoop, asyncio.Lock] = WeakKeyDictionary()
+_async_client_locks: WeakKeyDictionary[AbstractEventLoop, asyncio.Lock] = (
+    WeakKeyDictionary()
+)
 
 _learning_router = LLMRouter()
 
-CacheKey = tuple[str, str, str]
+CacheKey = tuple[str, str, str, str]
 
 _learning_cache: OrderedDict[CacheKey, tuple[str, float]] = OrderedDict()
 _learning_cache_lock = threading.Lock()
 
 
-def _make_cache_key(model: str, system: str, user: str) -> CacheKey:
-    """Create a hashable cache key from model and prompts."""
-    return model, system, user
+def _make_cache_key(
+    model: str, system: str, user: str, user_id: int | str | None
+) -> CacheKey:
+    """Create a hashable cache key from model, prompts and user id."""
+    return model, system, user, str(user_id)
 
 
 def _get_client() -> OpenAI:
@@ -119,7 +123,11 @@ def format_reply(text: str, *, max_len: int = 800) -> str:
     str
         Formatted text with paragraphs truncated and separated by blank lines.
     """
-    paragraphs = [part.strip()[:max_len] for part in re.split(r"\n\s*\n", text.strip()) if part.strip()]
+    paragraphs = [
+        part.strip()[:max_len]
+        for part in re.split(r"\n\s*\n", text.strip())
+        if part.strip()
+    ]
     return "\n\n".join(paragraphs)
 
 
@@ -193,7 +201,10 @@ async def create_chat_completion(
             status_code = getattr(exc, "status_code", None)
             if isinstance(exc, httpx.HTTPStatusError):
                 status_code = exc.response.status_code
-            if status_code in {429, 500, 502, 503, 504} and attempt < CHAT_COMPLETION_MAX_RETRIES:
+            if (
+                status_code in {429, 500, 502, 503, 504}
+                and attempt < CHAT_COMPLETION_MAX_RETRIES
+            ):
                 backoff = 2**attempt
                 logger.warning(
                     "[OpenAI] transient error (status %s), retrying in %s s",
@@ -215,6 +226,7 @@ async def create_learning_chat_completion(
     temperature: float | None = None,
     max_tokens: int | None = None,
     timeout: float | httpx.Timeout | None = None,
+    user_id: int | str | None = None,
 ) -> str:
     """Create and format a chat completion for learning tasks."""
     model = _learning_router.choose_model(task)
@@ -229,7 +241,7 @@ async def create_learning_chat_completion(
         elif role == "user" and not user:
             user = str(mapping.get("content", ""))
     settings = config.get_settings()
-    cache_key = _make_cache_key(model, system, user)
+    cache_key = _make_cache_key(model, system, user, user_id)
     if settings.learning_prompt_cache:
         now = time.time()
         with _learning_cache_lock:
@@ -361,7 +373,9 @@ async def _upload_image_file(client: OpenAI, image_path: str) -> FileObject:
             with open(safe_path, "rb") as f:
                 return client.files.create(file=f, purpose="vision")
 
-        file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
+        file = await asyncio.wait_for(
+            asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT
+        )
     except asyncio.TimeoutError:
         logger.exception("[OpenAI] Timeout while uploading %s", safe_path)
         raise RuntimeError("Timed out while uploading image")
@@ -384,7 +398,9 @@ async def _upload_image_bytes(client: OpenAI, image_bytes: bytes) -> FileObject:
             with io.BytesIO(image_bytes) as buffer:
                 return client.files.create(file=("image.jpg", buffer), purpose="vision")
 
-        file = await asyncio.wait_for(asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT)
+        file = await asyncio.wait_for(
+            asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT
+        )
     except asyncio.TimeoutError:
         logger.exception("[OpenAI] Timeout while uploading bytes")
         raise RuntimeError("Timed out while uploading image")
@@ -447,7 +463,9 @@ async def send_message(
         "type": "text",
         "text": content if content is not None else "Что изображено на фото?",
     }
-    message_content: Iterable[ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam]
+    message_content: Iterable[
+        ImageFileContentBlockParam | ImageURLContentBlockParam | TextContentBlockParam
+    ]
     if image_path:
         file = await _upload_image_file(client, image_path)
         image_block: ImageFileContentBlockParam = {

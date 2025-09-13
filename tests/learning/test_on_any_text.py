@@ -30,7 +30,12 @@ async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
     called = False
 
     async def fake_check_user_answer(
-        profile: Mapping[str, str | None], topic: str, answer: str, last: str
+        profile: Mapping[str, str | None],
+        topic: str,
+        answer: str,
+        last: str,
+        *,
+        user_id: int | None = None,
     ) -> tuple[bool, str]:
         nonlocal called
         called = True
@@ -39,7 +44,12 @@ async def test_on_any_text_answer(monkeypatch: pytest.MonkeyPatch) -> None:
         return True, "fb"
 
     async def fake_generate_step_text(
-        profile: Mapping[str, str | None], topic: str, step_idx: int, prev: object
+        profile: Mapping[str, str | None],
+        topic: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
     ) -> str:
         return "next"
 
@@ -74,14 +84,24 @@ async def test_on_any_text_idontknow(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     called = False
 
-    async def fake_assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
+    async def fake_assistant_chat(
+        profile: Mapping[str, str | None],
+        text: str,
+        *,
+        user_id: int | None = None,
+    ) -> str:
         nonlocal called
         called = True
         assert "q" in text
         return "fb"
 
     async def fake_generate_step_text(
-        profile: Mapping[str, str | None], topic: str, step_idx: int, prev: object
+        profile: Mapping[str, str | None],
+        topic: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
     ) -> str:
         assert prev == "fb"
         return "next"
@@ -118,7 +138,12 @@ async def test_on_any_text_general(monkeypatch: pytest.MonkeyPatch) -> None:
     user_data: dict[str, object] = {}
     called = False
 
-    async def fake_assistant_chat(profile: Mapping[str, str | None], text: str) -> str:
+    async def fake_assistant_chat(
+        profile: Mapping[str, str | None],
+        text: str,
+        *,
+        user_id: int | None = None,
+    ) -> str:
         nonlocal called
         called = True
         assert text == "hello"
@@ -161,14 +186,24 @@ async def test_on_any_text_within_grace(monkeypatch: pytest.MonkeyPatch) -> None
     called = False
 
     async def fake_check_user_answer(
-        profile: Mapping[str, str | None], topic: str, answer: str, last: str
+        profile: Mapping[str, str | None],
+        topic: str,
+        answer: str,
+        last: str,
+        *,
+        user_id: int | None = None,
     ) -> tuple[bool, str]:
         nonlocal called
         called = True
         return True, "fb"
 
     async def fake_generate_step_text(
-        profile: Mapping[str, str | None], topic: str, step_idx: int, prev: object
+        profile: Mapping[str, str | None],
+        topic: str,
+        step_idx: int,
+        prev: object,
+        *,
+        user_id: int | None = None,
     ) -> str:
         return "next"
 

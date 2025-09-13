@@ -85,7 +85,9 @@ async def test_plan_button_flow(
         learning_handlers.curriculum_engine, "next_step", fake_next_step
     )
 
-    async def fake_assistant_chat(_profile: Any, _text: str) -> str:
+    async def fake_assistant_chat(
+        _profile: Any, _text: str, *, user_id: int | None = None
+    ) -> str:
         return "feedback"
 
     monkeypatch.setattr(learning_handlers, "assistant_chat", fake_assistant_chat)

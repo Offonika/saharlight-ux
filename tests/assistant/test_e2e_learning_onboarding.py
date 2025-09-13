@@ -84,11 +84,18 @@ async def test_first_run_restart_and_type_questions(
     ) -> tuple[str, bool]:
         return next(steps), False
 
-    async def fake_assistant_chat(_profile: Any, _text: str) -> str:
+    async def fake_assistant_chat(
+        _profile: Any, _text: str, *, user_id: int | None = None
+    ) -> str:
         return "feedback"
 
     async def fake_check_user_answer(
-        _profile: Any, _topic: str, _text: str, _prev: str
+        _profile: Any,
+        _topic: str,
+        _text: str,
+        _prev: str,
+        *,
+        user_id: int | None = None,
     ) -> tuple[bool, str]:
         return False, "feedback"
 
