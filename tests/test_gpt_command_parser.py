@@ -21,8 +21,11 @@ async def test_parse_command_timeout_non_blocking(
     started = asyncio.Event()
     cancelled = asyncio.Event()
 
+    captured: dict[str, Any] = {}
+
     async def slow_create(*args: Any, **kwargs: Any) -> Any:
         started.set()
+        captured.update(kwargs)
         try:
             await asyncio.sleep(1)
         except asyncio.CancelledError:
@@ -30,7 +33,9 @@ async def test_parse_command_timeout_non_blocking(
             raise
 
         class FakeResponse:
-            choices = [type("Choice", (), {"message": type("Msg", (), {"content": "{}"})()})]
+            choices = [
+                type("Choice", (), {"message": type("Msg", (), {"content": "{}"})()})
+            ]
 
         return FakeResponse()
 
@@ -38,7 +43,7 @@ async def test_parse_command_timeout_non_blocking(
 
     start = time.perf_counter()
     results = await asyncio.gather(
-        gpt_command_parser.parse_command("test", timeout=0.1),
+        gpt_command_parser.parse_command("test", api_timeout=1, overall_timeout=0.1),
         asyncio.sleep(0.1),
         return_exceptions=True,
     )
@@ -49,6 +54,7 @@ async def test_parse_command_timeout_non_blocking(
     assert started.is_set()
     await asyncio.sleep(0.2)
     assert cancelled.is_set()
+    assert captured.get("timeout") == 1
 
 
 @pytest.mark.asyncio
@@ -83,10 +89,11 @@ async def test_parse_command_with_explanatory_text(
     monkeypatch.setattr(gpt_command_parser, "create_chat_completion", create)
 
     with caplog.at_level(logging.DEBUG):
-        result = await gpt_command_parser.parse_command("test")
+        result = await gpt_command_parser.parse_command("test", api_timeout=2)
 
     assert result == {"action": "add_entry", "time": "09:00", "fields": {}}
     assert captured.get("model") == config.get_settings().openai_command_model
+    assert captured.get("timeout") == 2
     assert "GPT raw response:" in caplog.text
 
 
@@ -127,7 +134,11 @@ async def test_parse_command_uses_config_model(
             type(
                 "Choice",
                 (),
-                {"message": type("Msg", (), {"content": '{"action":"get_day_summary"}'})()},
+                {
+                    "message": type(
+                        "Msg", (), {"content": '{"action":"get_day_summary"}'}
+                    )()
+                },
             )
         ]
 
@@ -162,7 +173,11 @@ async def test_parse_command_with_array_multiple_objects(
                     "message": type(
                         "Msg",
                         (),
-                        {"content": ('[{"action":"add_entry","fields":{}},{"action":"delete_entry","fields":{}}]')},
+                        {
+                            "content": (
+                                '[{"action":"add_entry","fields":{}},{"action":"delete_entry","fields":{}}]'
+                            )
+                        },
                     )()
                 },
             )
@@ -189,7 +204,11 @@ async def test_parse_command_without_fields(
             type(
                 "Choice",
                 (),
-                {"message": type("Msg", (), {"content": '{"action":"get_day_summary"}'})()},
+                {
+                    "message": type(
+                        "Msg", (), {"content": '{"action":"get_day_summary"}'}
+                    )()
+                },
             )
         ]
 
@@ -235,7 +254,11 @@ async def test_parse_command_delete_entry_without_fields(
             type(
                 "Choice",
                 (),
-                {"message": type("Msg", (), {"content": '{"action":"delete_entry"}'})()},
+                {
+                    "message": type(
+                        "Msg", (), {"content": '{"action":"delete_entry"}'}
+                    )()
+                },
             )
         ]
 
@@ -335,7 +358,11 @@ async def test_parse_command_with_braces_in_explanatory_text(
                     "message": type(
                         "Msg",
                         (),
-                        {"content": ('"пример {текста}" {"action":"add_entry","fields":{}} trailing')},
+                        {
+                            "content": (
+                                '"пример {текста}" {"action":"add_entry","fields":{}} trailing'
+                            )
+                        },
                     )()
                 },
             )
@@ -472,7 +499,9 @@ async def test_parse_command_propagates_unexpected_exception(
 )
 def test_sanitize_masks_api_like_tokens(token: Any) -> None:
     text = f"before {token} after"
-    assert gpt_command_parser._sanitize_sensitive_data(text) == "before [REDACTED] after"
+    assert (
+        gpt_command_parser._sanitize_sensitive_data(text) == "before [REDACTED] after"
+    )
 
 
 def test_sanitize_leaves_numeric_strings() -> None:
@@ -485,7 +514,10 @@ def test_sanitize_masks_multiple_tokens() -> None:
     token1 = "sk-" + "A1b2_" * 8 + "Z9"
     token2 = "ghp_" + "A1b2" * 9 + "Cd"
     text = f"{token1} middle {token2}"
-    assert gpt_command_parser._sanitize_sensitive_data(text) == "[REDACTED] middle [REDACTED]"
+    assert (
+        gpt_command_parser._sanitize_sensitive_data(text)
+        == "[REDACTED] middle [REDACTED]"
+    )
 
 
 def test_sanitize_leaves_short_api_like_token() -> None:
@@ -508,8 +540,7 @@ def test_sanitize_respects_api_key_min_length(
         config, "get_settings", lambda: SimpleNamespace(api_key_min_length=10)
     )
     assert (
-        gpt_command_parser._sanitize_sensitive_data(text)
-        == "before [REDACTED] after"
+        gpt_command_parser._sanitize_sensitive_data(text) == "before [REDACTED] after"
     )
 
 
@@ -634,12 +665,16 @@ def test_extract_first_json_malformed_then_valid() -> None:
 def test_extract_first_json_non_dict_reset(monkeypatch: pytest.MonkeyPatch) -> None:
     orig_raw_decode = gpt_command_parser.json.JSONDecoder.raw_decode
 
-    def fake_raw_decode(self: gpt_command_parser.json.JSONDecoder, s: str, idx: int = 0) -> tuple[object, int]:
+    def fake_raw_decode(
+        self: gpt_command_parser.json.JSONDecoder, s: str, idx: int = 0
+    ) -> tuple[object, int]:
         if s[idx:].startswith('{"skip":1}'):
             return 1, idx + len('{"skip":1}')
         return orig_raw_decode(self, s, idx)
 
-    monkeypatch.setattr(gpt_command_parser.json.JSONDecoder, "raw_decode", fake_raw_decode)
+    monkeypatch.setattr(
+        gpt_command_parser.json.JSONDecoder, "raw_decode", fake_raw_decode
+    )
     text = '{"skip":1} {"action":"add_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
@@ -688,7 +723,9 @@ def test_extract_first_json_braces_and_quotes_inside_string_field() -> None:
 
 
 def test_extract_first_json_deep_nested_arrays() -> None:
-    text = 'start {"action":"add_entry","fields":{"matrix":[[1,2],[3,{"v":[4,5]}]]}} end'
+    text = (
+        'start {"action":"add_entry","fields":{"matrix":[[1,2],[3,{"v":[4,5]}]]}} end'
+    )
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {"matrix": [[1, 2], [3, {"v": [4, 5]}]]},
@@ -704,9 +741,7 @@ def test_extract_first_json_quotes_inside_value() -> None:
 
 
 def test_extract_first_json_three_objects_in_row() -> None:
-    text = (
-        '{"action":"add_entry","fields":{}}{"action":"delete_entry","fields":{}}{"action":"update_entry","fields":{}}'
-    )
+    text = '{"action":"add_entry","fields":{}}{"action":"delete_entry","fields":{}}{"action":"update_entry","fields":{}}'
     assert gpt_command_parser._extract_first_json(text) == {
         "action": "add_entry",
         "fields": {},
@@ -745,7 +780,11 @@ async def test_parse_command_with_multiple_jsons(
                     "message": type(
                         "Msg",
                         (),
-                        {"content": ('{"action":"add_entry","fields":{}} {"action":"delete_entry","fields":{}}')},
+                        {
+                            "content": (
+                                '{"action":"add_entry","fields":{}} {"action":"delete_entry","fields":{}}'
+                            )
+                        },
                     )()
                 },
             )

@@ -176,15 +176,22 @@ def _extract_first_json(text: str) -> dict[str, object] | None:
     return None
 
 
-async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | None:
+async def parse_command(
+    text: str,
+    api_timeout: float = 10,
+    overall_timeout: float | None = None,
+) -> dict[str, object] | None:
     """Parse *text* with GPT and return a command dictionary.
 
     Parameters
     ----------
     text:
         Free-form diary message that should be interpreted.
-    timeout:
-        Maximum time in seconds to wait for the OpenAI response.
+    api_timeout:
+        Maximum time in seconds to wait for the OpenAI API call itself.
+    overall_timeout:
+        Total time allowed for the whole parsing operation. If ``None``,
+        ``api_timeout`` plus one second is used.
 
     Returns
     -------
@@ -192,6 +199,8 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
         A dictionary with keys like ``action``, ``entry_date`` or ``time`` and
         optional ``fields`` describing the command, or ``None`` if parsing fails.
     """
+
+    wait_timeout = overall_timeout if overall_timeout is not None else api_timeout + 1
 
     try:
         resp: ChatCompletion | Awaitable[ChatCompletion] = create_chat_completion(
@@ -202,10 +211,12 @@ async def parse_command(text: str, timeout: float = 10) -> dict[str, object] | N
             ],
             temperature=0,
             max_tokens=256,
-            timeout=timeout,
+            timeout=api_timeout,
         )
         try:
-            response: ChatCompletion = await asyncio.wait_for(cast(Awaitable[ChatCompletion], resp), timeout)
+            response: ChatCompletion = await asyncio.wait_for(
+                cast(Awaitable[ChatCompletion], resp), wait_timeout
+            )
         except TypeError:
             if isinstance(resp, Awaitable):
                 raise
