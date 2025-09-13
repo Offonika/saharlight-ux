@@ -4,6 +4,7 @@ import logging
 import re
 from collections import deque
 from collections.abc import Awaitable
+from functools import lru_cache
 from typing import cast
 
 from openai import OpenAIError
@@ -56,23 +57,33 @@ SYSTEM_PROMPT = (
 )
 
 
-API_KEY_MIN_LENGTH = config.get_settings().api_key_min_length
-
-API_KEY_RE = re.compile(
-    r"\b(?=[A-Za-z0-9_-]*[a-z])"
-    r"(?=[A-Za-z0-9_-]*[A-Z])"
-    r"(?=[A-Za-z0-9_-]*\d)"
-    rf"[A-Za-z0-9_-]{{{API_KEY_MIN_LENGTH},}}\b"
-)
-
 ACTIONS_REQUIRE_FIELDS: set[str] = {"add_entry", "update_entry"}
 
 MAX_JSON_CHARS = 10_000
 
 
+@lru_cache(maxsize=None)
+def _compile_api_key_re(min_length: int) -> re.Pattern[str]:
+    """Return a regex matching API-like tokens of at least *min_length*.
+
+    The result is cached so that repeated calls with the same ``min_length``
+    reuse the compiled pattern. When configuration changes, a new pattern is
+    compiled automatically.
+    """
+
+    return re.compile(
+        r"\b(?=[A-Za-z0-9_-]*[a-z])"
+        r"(?=[A-Za-z0-9_-]*[A-Z])"
+        r"(?=[A-Za-z0-9_-]*\d)"
+        rf"[A-Za-z0-9_-]{{{min_length},}}\b"
+    )
+
+
 def _sanitize_sensitive_data(text: str) -> str:
     """Mask potentially sensitive tokens in *text* before logging."""
-    return API_KEY_RE.sub("[REDACTED]", text)
+    settings_obj = config.get_settings()
+    min_length = getattr(settings_obj, "api_key_min_length", 32)
+    return _compile_api_key_re(min_length).sub("[REDACTED]", text)
 
 
 def _extract_first_json(text: str) -> dict[str, object] | None:
