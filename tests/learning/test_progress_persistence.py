@@ -40,6 +40,7 @@ async def test_persist_saves_progress(monkeypatch: pytest.MonkeyPatch) -> None:
         "step_idx": 2,
         "snapshot": "s",
         "prev_summary": "p",
+        "last_sent_step_id": None,
     }
     progress_map = bot_data[learning_handlers.PROGRESS_KEY]
     assert progress_map == {1: expected}
@@ -55,6 +56,7 @@ async def test_hydrate_loads_progress(monkeypatch: pytest.MonkeyPatch) -> None:
         "step_idx": 1,
         "snapshot": "snap",
         "prev_summary": None,
+        "last_sent_step_id": None,
     }
 
     async def fake_get_active_plan(user_id: int) -> Any:

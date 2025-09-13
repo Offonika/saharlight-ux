@@ -47,6 +47,7 @@ async def test_get_and_upsert(session_local: sessionmaker[Session]) -> None:
         "step_idx": 1,
         "snapshot": None,
         "prev_summary": None,
+        "last_sent_step_id": None,
     }
     prog = await progress.upsert_progress(1, plan_id, data1)
     assert prog.progress_json == data1
@@ -61,6 +62,7 @@ async def test_get_and_upsert(session_local: sessionmaker[Session]) -> None:
         "step_idx": 2,
         "snapshot": None,
         "prev_summary": None,
+        "last_sent_step_id": None,
     }
     prog2 = await progress.upsert_progress(1, plan_id, data2)
     assert prog2.progress_json == data2

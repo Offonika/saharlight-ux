@@ -14,6 +14,7 @@ class LearnState:
     step: int
     last_step_text: str | None = None
     prev_summary: str | None = None
+    last_sent_step_id: int | None = None
     awaiting: bool = True
     last_step_at: float = 0.0
 
