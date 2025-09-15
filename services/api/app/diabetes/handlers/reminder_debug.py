@@ -37,11 +37,14 @@ def _fmt_jobs(app: Application) -> str:
             when_msk = nrt.astimezone(tz).strftime(
                 f"%Y-%m-%d %H:%M:%S {tz.key if hasattr(tz,'key') else 'TZ'}"
             )
-        lines.append(
-            f"• {j.name}  (id={j.id})\n"
-            f"  next_run: {when_msk} | {when_utc}\n"
-            f"  trigger: {j.trigger!s}"
+        job_text = "\n".join(
+            [
+                f"• {j.name}  (id={j.id})",
+                f"  next_run: {when_msk} | {when_utc}",
+                f"  trigger: {j.trigger!s}",
+            ]
         )
+        lines.append(job_text)
     return "📋 Запланированные задачи:\n" + "\n".join(lines)
 
 

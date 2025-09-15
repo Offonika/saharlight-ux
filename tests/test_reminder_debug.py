@@ -47,6 +47,36 @@ def test_fmt_jobs_with_job() -> None:
     )
 
 
+def test_fmt_jobs_with_multiple_jobs() -> None:
+    tz = ZoneInfo("Europe/Moscow")
+    dt = datetime(2025, 5, 17, 12, 0, tzinfo=timezone.utc)
+
+    class DailyTrigger:
+        def __str__(self) -> str:
+            return "daily"
+
+    class WeeklyTrigger:
+        def __str__(self) -> str:
+            return "weekly"
+
+    job1 = SimpleNamespace(name="job1", id="1", next_run_time=dt, trigger=DailyTrigger())
+    job2 = SimpleNamespace(name="job2", id="2", next_run_time=None, trigger=WeeklyTrigger())
+    scheduler = SimpleNamespace(timezone=tz, get_jobs=Mock(return_value=[job1, job2]))
+    app = cast(
+        Application, SimpleNamespace(job_queue=SimpleNamespace(scheduler=scheduler))
+    )
+    result = reminder_debug._fmt_jobs(app)
+    assert (
+        result == "📋 Запланированные задачи:\n"
+        "• job1  (id=1)\n"
+        "  next_run: 2025-05-17 15:00:00 Europe/Moscow | 2025-05-17 12:00:00 UTC\n"
+        "  trigger: daily\n"
+        "• job2  (id=2)\n"
+        "  next_run: — | —\n"
+        "  trigger: weekly"
+    )
+
+
 @pytest.mark.asyncio
 async def test_dbg_tz_admin(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "admin_id", 1, raising=False)
