@@ -52,7 +52,7 @@ async def expire_subscriptions(_context: ContextTypes.DEFAULT_TYPE) -> None:
         subs = session.scalars(
             sa.select(Subscription).where(
                 Subscription.status.in_([SubStatus.trial.value, SubStatus.active.value]),
-                Subscription.end_date != None,  # noqa: E711
+                Subscription.end_date.is_not(None),
                 Subscription.end_date < now,
             )
         ).all()
