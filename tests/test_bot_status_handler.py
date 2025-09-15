@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import aiohttp
+from aiohttp.client_reqrep import RequestInfo
 import asyncio
 import logging
 import pytest
@@ -24,9 +25,13 @@ class DummyMessage:
 
 
 class DummyResponse:
-    def __init__(self, data: dict[str, Any]) -> None:
-        self.status = 200
+    def __init__(
+        self, data: dict[str, Any], status: int = 200, message: str = ""
+    ) -> None:
+        self.status = status
         self._data = data
+        self._message = message
+        self.url = ""
 
     async def __aenter__(self) -> DummyResponse:
         return self
@@ -34,13 +39,22 @@ class DummyResponse:
     async def __aexit__(self, exc_type, exc, tb) -> None:
         return None
 
+    def raise_for_status(self) -> None:
+        if self.status >= 400:
+            raise aiohttp.ClientResponseError(
+                cast(RequestInfo, SimpleNamespace(real_url=self.url)),
+                (),
+                status=self.status,
+                message=self._message,
+            )
+
     async def json(self) -> dict[str, Any]:
         return self._data
 
 
 class DummySession:
-    def __init__(self, data: dict[str, Any]) -> None:
-        self._data = data
+    def __init__(self, resp: DummyResponse) -> None:
+        self._resp = resp
         self.timeout: aiohttp.ClientTimeout | None = None
 
     async def __aenter__(self) -> DummySession:
@@ -57,13 +71,16 @@ class DummySession:
         timeout: aiohttp.ClientTimeout | None = None,
     ) -> DummyResponse:
         self.timeout = timeout
-        return DummyResponse(self._data)
+        self._resp.url = url
+        return self._resp
 
 
 @pytest.mark.asyncio
 async def test_status_incomplete(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TELEGRAM_TOKEN", "t")
-    resp = {"completed": False, "missing": ["profile", "reminders"], "step": "profile"}
+    resp = DummyResponse(
+        {"completed": False, "missing": ["profile", "reminders"], "step": "profile"}
+    )
     session = DummySession(resp)
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: session)
 
@@ -93,7 +110,7 @@ async def test_status_incomplete(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_status_completed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TELEGRAM_TOKEN", "t")
-    resp = {"completed": True, "missing": [], "step": None}
+    resp = DummyResponse({"completed": True, "missing": [], "step": None})
     session = DummySession(resp)
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: session)
 
@@ -205,7 +222,7 @@ async def test_status_invalid_payload(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     monkeypatch.setenv("TELEGRAM_TOKEN", "t")
-    session = DummySession({"completed": "yes"})
+    session = DummySession(DummyResponse({"completed": "yes"}))
     monkeypatch.setattr(aiohttp, "ClientSession", lambda: session)
 
     handler = build_status_handler("https://ui.example", api_base="https://api.example")
