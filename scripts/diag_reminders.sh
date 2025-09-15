@@ -1,5 +1,5 @@
-# scripts/diag_reminders.sh
 #!/usr/bin/env bash
+# scripts/diag_reminders.sh
 set -euo pipefail
 
 # Настройки (можешь менять при запуске через аргументы)
