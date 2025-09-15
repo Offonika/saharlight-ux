@@ -68,7 +68,7 @@ async def _exercise(
     context = cast(
         CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
         SimpleNamespace(
-            user_data={"pending_entry": {"foo": "bar"}, "dose_method": "xe"}
+            user_data={"pending_entry": {"foo": "bar"}}
         ),
     )
     await handler.callback(update, context)

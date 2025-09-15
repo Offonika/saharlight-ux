@@ -38,7 +38,6 @@ class UserData(TypedDict, total=False):
     thread_id: str
     pending_entry: EntryData
     pending_fields: list[str]
-    dose_method: str
     edit_id: int | None
     edit_entry: dict[str, object]
     edit_field: str
