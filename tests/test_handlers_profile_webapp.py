@@ -1,7 +1,7 @@
 import json
 import importlib
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -152,7 +152,10 @@ async def test_webapp_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
     post_mock = MagicMock(return_value=(True, None))
     save_mock = MagicMock(return_value=True)
 
-    async def run_db(func, sessionmaker):
+    async def run_db(
+        func: Callable[..., object],
+        sessionmaker: object,
+    ) -> object:
         session = MagicMock()
         return func(session)
 
@@ -190,7 +193,10 @@ async def test_webapp_save_success(monkeypatch: pytest.MonkeyPatch) -> None:
 async def test_webapp_save_db_error(monkeypatch: pytest.MonkeyPatch) -> None:
     post_mock = MagicMock(return_value=(True, None))
 
-    async def run_db(func, sessionmaker):
+    async def run_db(
+        func: Callable[..., object],
+        sessionmaker: object,
+    ) -> object:
         session = MagicMock()
         return func(session)
 
@@ -249,7 +255,10 @@ async def test_webapp_save_settings_patch_error(
     post_mock = MagicMock(return_value=(True, None))
     save_mock = MagicMock(return_value=True)
 
-    async def run_db(func, sessionmaker):
+    async def run_db(
+        func: Callable[..., object],
+        sessionmaker: object,
+    ) -> object:
         session = MagicMock()
         return func(session)
 
