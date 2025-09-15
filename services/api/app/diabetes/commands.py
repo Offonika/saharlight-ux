@@ -82,9 +82,6 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             # Swallow known Telegram/runtime errors: they are logged to avoid double
             # reporting and the task shouldn't fail because of them.
             logger.exception("Reset onboarding timeout task failed: %s", exc)
-        except Exception as exc:
-            logger.exception("Reset onboarding timeout task failed: %s", exc)
-            raise
 
     user_data["_onb_reset_confirm"] = True
     task = asyncio.create_task(_reset_timeout())
