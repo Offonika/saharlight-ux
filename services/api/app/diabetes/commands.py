@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from typing import cast
 
@@ -55,10 +56,8 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if user_data.pop("_onb_reset_confirm", False):
         if isinstance(task, asyncio.Task):
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
         await _reset_onboarding(update, context)
         return
 
