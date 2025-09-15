@@ -59,6 +59,18 @@ async def test_parse_command_timeout_non_blocking(
 
 
 @pytest.mark.asyncio
+async def test_parse_command_rejects_non_positive_api_timeout() -> None:
+    with pytest.raises(ValueError, match="api_timeout must be greater than 0"):
+        await gpt_command_parser.parse_command("test", api_timeout=0)
+
+
+@pytest.mark.asyncio
+async def test_parse_command_rejects_non_positive_overall_timeout() -> None:
+    with pytest.raises(ValueError, match="overall_timeout must be greater than 0 when provided"):
+        await gpt_command_parser.parse_command("test", overall_timeout=0)
+
+
+@pytest.mark.asyncio
 async def test_parse_command_respects_overall_timeout(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

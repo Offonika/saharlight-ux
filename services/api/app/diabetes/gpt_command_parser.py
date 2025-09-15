@@ -207,6 +207,11 @@ async def parse_command(
         optional ``fields`` describing the command, or ``None`` if parsing fails.
     """
 
+    if api_timeout <= 0:
+        raise ValueError("api_timeout must be greater than 0")
+    if overall_timeout is not None and overall_timeout <= 0:
+        raise ValueError("overall_timeout must be greater than 0 when provided")
+
     wait_timeout = overall_timeout if overall_timeout is not None else api_timeout + 1
     try:
         resp: ChatCompletion | Awaitable[ChatCompletion] = create_chat_completion(
