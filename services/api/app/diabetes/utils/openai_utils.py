@@ -4,6 +4,7 @@ import logging
 import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Final, TypeAlias
 
 import httpx
 from openai import AsyncOpenAI, OpenAI
@@ -12,40 +13,74 @@ from services.api.app import config
 
 logger = logging.getLogger(__name__)
 
-_http_client: dict[str, httpx.Client] = {}
+TimeoutKey: TypeAlias = tuple[float | None, float | None, float | None, float | None]
+TimeoutInput: TypeAlias = httpx.Timeout | float
+
+DEFAULT_HTTP_TIMEOUT: Final[httpx.Timeout] = httpx.Timeout(10.0)
+
+_http_client: dict[tuple[str, TimeoutKey], httpx.Client] = {}
 _http_client_lock = threading.Lock()
 
-_async_http_client: dict[str, httpx.AsyncClient] = {}
+_async_http_client: dict[tuple[str, TimeoutKey], httpx.AsyncClient] = {}
 _async_http_client_lock = threading.Lock()
 
 
-def build_http_client(proxy: str | None) -> httpx.Client | None:
+def _resolve_timeout(timeout: TimeoutInput | None) -> tuple[httpx.Timeout, TimeoutKey]:
+    """Return an ``httpx.Timeout`` instance and a hashable key representation."""
+
+    if timeout is None:
+        resolved_timeout = DEFAULT_HTTP_TIMEOUT
+    elif isinstance(timeout, httpx.Timeout):
+        resolved_timeout = timeout
+    else:
+        resolved_timeout = httpx.Timeout(float(timeout))
+
+    timeout_key: TimeoutKey = (
+        resolved_timeout.connect,
+        resolved_timeout.read,
+        resolved_timeout.write,
+        resolved_timeout.pool,
+    )
+    return resolved_timeout, timeout_key
+
+
+def build_http_client(
+    proxy: str | None,
+    timeout: TimeoutInput | None = None,
+) -> httpx.Client | None:
     """Return a synchronous httpx client configured with optional proxy."""
 
     if proxy is None:
         return None
 
     global _http_client
+    resolved_timeout, timeout_key = _resolve_timeout(timeout)
+    key = (proxy, timeout_key)
     with _http_client_lock:
-        client = _http_client.get(proxy)
+        client = _http_client.get(key)
         if client is None:
-            client = httpx.Client(proxy=proxy)
-            _http_client[proxy] = client
+            client = httpx.Client(proxy=proxy, timeout=resolved_timeout)
+            _http_client[key] = client
         return client
 
 
-def build_async_http_client(proxy: str | None) -> httpx.AsyncClient | None:
+def build_async_http_client(
+    proxy: str | None,
+    timeout: TimeoutInput | None = None,
+) -> httpx.AsyncClient | None:
     """Return an asynchronous httpx client configured with optional proxy."""
 
     if proxy is None:
         return None
 
     global _async_http_client
+    resolved_timeout, timeout_key = _resolve_timeout(timeout)
+    key = (proxy, timeout_key)
     with _async_http_client_lock:
-        client = _async_http_client.get(proxy)
+        client = _async_http_client.get(key)
         if client is None:
-            client = httpx.AsyncClient(proxy=proxy)
-            _async_http_client[proxy] = client
+            client = httpx.AsyncClient(proxy=proxy, timeout=resolved_timeout)
+            _async_http_client[key] = client
         return client
 
 
