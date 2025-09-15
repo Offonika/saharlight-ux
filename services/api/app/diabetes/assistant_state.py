@@ -37,7 +37,11 @@ def add_turn(user_data: MutableMapping[str, object], text: str) -> int:
     be used by higher-level services to persist summaries in a database when
     new portions are produced.
     """
-    history = cast(list[str], user_data.setdefault(HISTORY_KEY, []))
+    history_obj = user_data.get(HISTORY_KEY)
+    if not isinstance(history_obj, list):
+        history_obj = []
+        user_data[HISTORY_KEY] = history_obj
+    history = cast(list[str], history_obj)
     history.append(text)
     summarized = 0
     if len(history) >= ASSISTANT_SUMMARY_TRIGGER:

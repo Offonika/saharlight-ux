@@ -27,6 +27,17 @@ async def test_history_trim_and_summary(monkeypatch: pytest.MonkeyPatch) -> None
     assert data[assistant_state.SUMMARY_KEY] == "a1"
 
 
+def test_add_turn_replaces_non_list_history() -> None:
+    data: dict[str, Any] = {
+        assistant_state.HISTORY_KEY: "x",
+        assistant_state.SUMMARY_KEY: "y",
+    }
+    summarized = assistant_state.add_turn(data, "new")
+    assert summarized == 0
+    assert data[assistant_state.HISTORY_KEY] == ["new"]
+    assert data[assistant_state.SUMMARY_KEY] == "y"
+
+
 @pytest.mark.asyncio
 async def test_reset_command_clears(monkeypatch: pytest.MonkeyPatch) -> None:
     user_data: dict[str, Any] = {
