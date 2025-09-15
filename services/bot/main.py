@@ -33,6 +33,7 @@ from services.api.app.billing.jobs import schedule_subscription_expiration
 from services.api.app.config import settings
 from services.api.app.diabetes.handlers.registration import register_handlers
 from services.api.app.diabetes.services.db import init_db
+from services.api.app.diabetes.utils.menu_setup import setup_chat_menu
 from services.api.app.menu_button import post_init as menu_button_post_init
 from services.bot.handlers.start_webapp import build_start_handler
 from services.bot.ptb_patches import apply_jobqueue_stop_workaround  # 👈 добавили
@@ -132,6 +133,7 @@ async def post_init(
     if redis_client is not None:
         await redis_client.close()
     await menu_button_post_init(app)
+    await setup_chat_menu(app.bot)
     from services.api.app.diabetes.handlers import assistant_menu
 
     await assistant_menu.post_init(app)
