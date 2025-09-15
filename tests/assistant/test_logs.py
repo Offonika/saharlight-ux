@@ -17,10 +17,10 @@ from services.api.app.config import settings
 
 
 @pytest.mark.asyncio
-async def test_add_lesson_log_silent_when_not_required(
+async def test_add_lesson_log_logs_failure_when_not_required(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """Failures should not log when logging isn't required."""
+    """Failures log an error without raising when logging isn't required."""
 
     monkeypatch.setattr(settings, "learning_logging_required", False)
 
@@ -30,9 +30,18 @@ async def test_add_lesson_log_silent_when_not_required(
     monkeypatch.setattr(logs, "run_db", fail_run_db)
 
     logs.pending_logs.clear()
-    with caplog.at_level(logging.WARNING):
-        await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
-    assert "Failed to flush" not in caplog.text
+    lesson_log_failures._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
+
+    try:
+        with caplog.at_level(logging.ERROR):
+            await add_lesson_log(1, 1, 0, 1, "assistant", "hi")
+
+        assert "flush_pending_logs failed" in caplog.text
+        assert len(logs.pending_logs) == 1
+        assert lesson_log_failures._value.get() == 1  # type: ignore[attr-defined]
+    finally:
+        logs.pending_logs.clear()
+        lesson_log_failures._value.set(0)  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
