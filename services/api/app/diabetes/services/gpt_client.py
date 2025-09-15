@@ -56,6 +56,37 @@ _learning_router = LLMRouter()
 
 CacheKey = tuple[str, str, str, str, str, str, str, str]
 
+
+def choose_model(task: LLMTask) -> str:
+    """Return the model name configured for the given learning task."""
+
+    return _learning_router.choose_model(task)
+
+
+def make_cache_key(
+    model: str,
+    system: str,
+    user: str,
+    user_id: str | None,
+    plan_id: str | None,
+    topic_slug: str | None,
+    step_idx: int | None,
+    last_reply_hash: str,
+) -> CacheKey:
+    """Create a cache key for learning prompt completions."""
+
+    return _make_cache_key(
+        model,
+        system,
+        user,
+        user_id,
+        plan_id,
+        topic_slug,
+        step_idx,
+        last_reply_hash,
+    )
+
+
 _learning_cache: OrderedDict[CacheKey, tuple[str, float]] = OrderedDict()
 _learning_cache_lock = threading.Lock()
 
@@ -241,7 +272,7 @@ async def create_learning_chat_completion(
     last_reply: str | None = None,
 ) -> str:
     """Create and format a chat completion for learning tasks."""
-    model = _learning_router.choose_model(task)
+    model = choose_model(task)
     msg_list = list(messages)
     system = ""
     user = ""
@@ -279,7 +310,7 @@ async def create_learning_chat_completion(
         else ""
     )
     settings = config.get_settings()
-    cache_key = _make_cache_key(
+    cache_key = make_cache_key(
         model, system, user, user_id, plan_id, topic_slug, step_idx, last_hash
     )
     if settings.learning_prompt_cache:

@@ -29,7 +29,7 @@ async def test_generate_step_text_logged(
         learning_handlers, "generate_step_text", fake_generate_step_text
     )
     monkeypatch.setattr(
-        learning_handlers.gpt_client._learning_router,
+        learning_handlers,
         "choose_model",
         lambda task: "m",
     )
@@ -61,10 +61,8 @@ async def test_generate_step_text_logged(
     assert rec.sys_h == learning_handlers._sha1("sys")[:12]
     assert rec.usr_h == learning_handlers._sha1("usr")[:12]
 
-    old_key = learning_handlers.gpt_client._make_cache_key(
-        "m", "sys", "usr", "", "", "", None, ""
-    )
-    new_key = learning_handlers.gpt_client._make_cache_key(
+    old_key = learning_handlers.make_cache_key("m", "sys", "usr", "", "", "", None, "")
+    new_key = learning_handlers.make_cache_key(
         "m", "sys", "usr", "1", "42", "topic", 2, ""
     )
     assert rec.cache_key_old_preview == learning_handlers._sha1("|".join(old_key))[:12]

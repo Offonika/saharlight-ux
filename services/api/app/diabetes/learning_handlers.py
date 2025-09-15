@@ -53,8 +53,12 @@ from . import curriculum_engine as curriculum_engine
 from .curriculum_engine import LessonNotFoundError, ProgressNotFoundError
 from .prompts import build_system_prompt, build_user_prompt_step, disclaimer
 from .llm_router import LLMTask
-from .services import gpt_client
-from .services.gpt_client import create_learning_chat_completion, format_reply
+from .services.gpt_client import (
+    choose_model,
+    create_learning_chat_completion,
+    format_reply,
+    make_cache_key,
+)
 from services.api.app.assistant.repositories.logs import (
     _PendingLog,
     pending_logs,
@@ -149,12 +153,10 @@ async def _generate_step_text_logged(
 
     system = build_system_prompt(profile, task=LLMTask.EXPLAIN_STEP)
     user_prompt = build_user_prompt_step(topic_slug, step_idx, prev_summary)
-    if debug and logger:
-        model = gpt_client._learning_router.choose_model(LLMTask.EXPLAIN_STEP)
-        old_key = gpt_client._make_cache_key(
-            model, system, user_prompt, "", "", "", None, ""
-        )
-        new_key = gpt_client._make_cache_key(
+    if debug:
+        model = choose_model(LLMTask.EXPLAIN_STEP)
+        old_key = make_cache_key(model, system, user_prompt, "", "", "", None, "")
+        new_key = make_cache_key(
             model,
             system,
             user_prompt,
@@ -179,7 +181,7 @@ async def _generate_step_text_logged(
             },
         )
     text = await generate_step_text(profile, topic_slug, step_idx, prev_summary)
-    if debug and logger:
+    if debug:
         logger.info(
             "learning_debug_after_llm",
             extra={
