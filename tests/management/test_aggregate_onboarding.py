@@ -64,7 +64,9 @@ def test_aggregate_onboarding(session_local: sessionmaker[SASession]) -> None:
         assert counts[("A", "start")] == 2
         assert counts[("A", "finish")] == 1
 def test_main_logs_json(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     metrics = [{"variant": "A", "step": "start", "count": 1}]
     monkeypatch.setattr(
@@ -73,5 +75,8 @@ def test_main_logs_json(
 
     caplog.set_level(logging.INFO, logger=aggregate_onboarding.logger.name)
     result = aggregate_onboarding.main(["--date", "2024-01-02"])
-    assert json.loads(result) == metrics
-    assert result in caplog.text
+    assert result == 0
+
+    stdout = capsys.readouterr().out.strip()
+    assert json.loads(stdout) == metrics
+    assert json.dumps(metrics, ensure_ascii=False) in caplog.text
