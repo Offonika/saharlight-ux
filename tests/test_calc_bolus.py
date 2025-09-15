@@ -93,3 +93,14 @@ def test_calc_bolus_negative_max_bolus() -> None:
             profile=profile,
             max_bolus=-1.0,
         )
+
+
+def test_calc_bolus_invalid_carb_units() -> None:
+    profile = PatientProfile(icr=10, cf=2, target_bg=6)
+    with pytest.raises(ValueError, match="carb_units must be 'g' or 'xe'"):
+        calc_bolus(
+            carbs=10,
+            current_bg=7,
+            profile=profile,
+            carb_units="kg",
+        )

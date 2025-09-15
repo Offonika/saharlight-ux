@@ -83,12 +83,10 @@ def calc_bolus(
     if bolus_round_step <= 0:
         raise ValueError("bolus_round_step must be positive")
 
-    if carb_units == "xe":
-        carbs_g = carbs * XE_GRAMS
-    elif carb_units == "g":
-        carbs_g = carbs
-    else:  # pragma: no cover - invalid unit branch
+    if carb_units not in {"g", "xe"}:
         raise ValueError("carb_units must be 'g' or 'xe'")
+
+    carbs_g = carbs * XE_GRAMS if carb_units == "xe" else carbs
 
     with localcontext() as ctx:
         ctx.prec = 6
