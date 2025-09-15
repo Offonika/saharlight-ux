@@ -110,6 +110,22 @@ async def test_dose_xe_rejects_non_numeric() -> None:
 
 
 @pytest.mark.asyncio
+async def test_dose_xe_negative_input() -> None:
+    update, context = make_update_context("-1")
+
+    result = await dose_calc.dose_xe(
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
+    )
+
+    assert result == dose_calc.DoseState.XE
+    assert any("не может быть отриц" in reply.lower() for reply in update.message.replies)
+
+
+@pytest.mark.asyncio
 async def test_dose_carbs_negative() -> None:
     update, context = make_update_context("-1")
 
@@ -173,6 +189,23 @@ async def test_dose_sugar_profile_required(monkeypatch: pytest.MonkeyPatch) -> N
     assert result == dose_calc.END
     assert any("профиль не настроен" in r.lower() for r in update.message.replies)
     assert context.user_data == {}
+
+
+@pytest.mark.asyncio
+async def test_dose_sugar_negative_input() -> None:
+    update, context = make_update_context("-2")
+    context.user_data["pending_entry"] = {"carbs_g": 10}
+
+    result = await dose_calc.dose_sugar(
+        cast(Update, update),
+        cast(
+            CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+            context,
+        ),
+    )
+
+    assert result == dose_calc.DoseState.SUGAR
+    assert any("не может быть отриц" in r.lower() for r in update.message.replies)
 
 
 @pytest.mark.asyncio
@@ -284,14 +317,14 @@ def _get_regex(state: object) -> str:
     return regex.pattern
 
 
-def _assert_negative_rejected(state: object) -> None:
+def _assert_negative_allowed(state: object) -> None:
     pattern = _get_regex(state)
     assert re.fullmatch(pattern, "5")
-    assert not re.fullmatch(pattern, "-5")
+    assert re.fullmatch(pattern, "-5")
 
 
-def test_states_reject_negative_numbers() -> None:
-    _assert_negative_rejected(dose_calc.DoseState.XE)
-    _assert_negative_rejected(dose_calc.DoseState.CARBS)
-    _assert_negative_rejected(dose_calc.DoseState.SUGAR)
-    _assert_negative_rejected(photo_handlers.PHOTO_SUGAR)
+def test_states_accept_negative_numbers() -> None:
+    _assert_negative_allowed(dose_calc.DoseState.XE)
+    _assert_negative_allowed(dose_calc.DoseState.CARBS)
+    _assert_negative_allowed(dose_calc.DoseState.SUGAR)
+    _assert_negative_allowed(photo_handlers.PHOTO_SUGAR)
