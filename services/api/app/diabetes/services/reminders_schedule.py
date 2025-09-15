@@ -7,19 +7,35 @@ from zoneinfo import ZoneInfo
 
 from .db import Reminder
 
+_MAX_NONEXISTENT_SHIFT_HOURS = 24
+
 
 def _safe_combine(day: date, t: time, tz: ZoneInfo) -> datetime:
     """Создать ``datetime`` с повтором при ``nonexistent time``.
 
     Если ``datetime.combine`` выбрасывает ``ValueError`` (например, при переходе
-    на летнее время), сдвигаем время на час вперёд и повторяем попытку.
+    на летнее время), сдвигаем время на час вперёд и повторяем попытку. Чтобы
+    избежать бесконечного цикла при некорректных данных таймзоны, ограничиваем
+    количество повторов одним сутками и выбрасываем осмысленную ошибку.
     """
 
+    original_day = day
+    original_time = t
+    attempts = 0
     while True:
         try:
             return datetime.combine(day, t, tzinfo=tz)
-        except ValueError:
+        except ValueError as exc:
+            attempts += 1
+            if attempts > _MAX_NONEXISTENT_SHIFT_HOURS:
+                raise ValueError(
+                    "Не удалось подобрать корректное локальное время "
+                    f"{original_day.isoformat()}T{original_time.isoformat()} "
+                    f"в таймзоне {tz.key} в течение "
+                    f"{_MAX_NONEXISTENT_SHIFT_HOURS} часов."
+                ) from exc
             dt = datetime.combine(day, t) + timedelta(hours=1)
+            day = dt.date()
             t = dt.time()
 
 
