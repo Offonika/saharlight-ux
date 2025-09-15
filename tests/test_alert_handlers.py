@@ -24,15 +24,28 @@ class DummyJob:
 
     def __init__(
         self,
+        *,
+        remover: Callable[[DummyJob], None],
         callback: Callable[..., object],
         when: datetime.timedelta,
         data: dict[str, object] | None,
         name: str | None,
     ) -> None:
+        self._remover = remover
         self.callback = callback
         self.when = when
         self.data = data
         self.name = name
+        self.removed = False
+
+    def remove(self) -> None:
+        if self.removed:
+            return
+        self.removed = True
+        self._remover(self)
+
+    def schedule_removal(self) -> None:
+        self.remove()
 
 
 class DummyJobQueue:
@@ -50,7 +63,21 @@ class DummyJobQueue:
         name: str | None = None,
         timezone: object | None = None,
     ) -> None:
-        self.jobs.append(DummyJob(callback, when, data, name))
+        self.jobs.append(
+            DummyJob(
+                remover=self._remove,
+                callback=callback,
+                when=when,
+                data=data,
+                name=name,
+            )
+        )
+
+    def _remove(self, job: DummyJob) -> None:
+        self.jobs = [existing for existing in self.jobs if existing is not job]
+
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
+        return [job for job in self.jobs if job.name == name]
 
 
 @pytest.mark.asyncio
@@ -165,6 +192,34 @@ def test_schedule_alert_schedules_job() -> None:
     }
 
 
+def test_schedule_alert_replaces_existing_job() -> None:
+    """Scheduling twice replaces the previous alert job."""
+
+    job_queue = DummyJobQueue()
+    profile: dict[str, object] = {"sos_contact": "@alice"}
+    handlers.schedule_alert(
+        1,
+        cast(JobQueue[Any], job_queue),
+        sugar=10.0,
+        profile=profile,
+        first_name="Ivan",
+    )
+    first_job = job_queue.jobs[0]
+
+    handlers.schedule_alert(
+        1,
+        cast(JobQueue[Any], job_queue),
+        sugar=11.0,
+        profile=profile,
+        first_name="Ivan",
+        count=2,
+    )
+
+    assert len(job_queue.jobs) == 1
+    assert job_queue.jobs[0] is not first_job
+    assert first_job.removed is True
+
+
 class DummyJobQueueNoTZ:
     """JobQueue stub without timezone parameter."""
 
@@ -179,7 +234,21 @@ class DummyJobQueueNoTZ:
         data: dict[str, object] | None = None,
         name: str | None = None,
     ) -> None:
-        self.jobs.append(DummyJob(callback, when, data, name))
+        self.jobs.append(
+            DummyJob(
+                remover=self._remove,
+                callback=callback,
+                when=when,
+                data=data,
+                name=name,
+            )
+        )
+
+    def _remove(self, job: DummyJob) -> None:
+        self.jobs = [existing for existing in self.jobs if existing is not job]
+
+    def get_jobs_by_name(self, name: str) -> list[DummyJob]:
+        return [job for job in self.jobs if job.name == name]
 
 
 def test_schedule_alert_without_timezone_kwarg() -> None:
