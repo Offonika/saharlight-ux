@@ -85,12 +85,39 @@ def schedule_alert(
         "profile": profile,
         "first_name": first_name,
     }
+    job_name = f"alert_{user_id}"
+    existing_jobs: Sequence[Job[CustomContext] | None]
+    try:
+        existing_jobs = cast(
+            Sequence[Job[CustomContext] | None],
+            job_queue.get_jobs_by_name(job_name),
+        )
+    except AttributeError:
+        existing_jobs = ()
+    except TypeError:
+        existing_jobs = ()
+    for job in existing_jobs:
+        if job is None:
+            continue
+        for method_name in ("remove", "schedule_removal"):
+            cancel = cast(Callable[[], None] | None, getattr(job, method_name, None))
+            if cancel is None:
+                continue
+            try:
+                cancel()
+                break
+            except Exception:  # pragma: no cover - defensive
+                logger.exception(
+                    "Failed to cancel existing alert job '%s' via %s",
+                    job_name,
+                    method_name,
+                )
     schedule_once(
         job_queue,
         alert_job,
         when=ALERT_REPEAT_DELAY,
         data=cast(dict[str, object], data),
-        name=f"alert_{user_id}",
+        name=job_name,
     )
 
 
