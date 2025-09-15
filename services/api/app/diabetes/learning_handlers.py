@@ -950,7 +950,7 @@ async def lesson_answer_handler(
                         role,
                         "",
                     )
-                except Exception as exc:  # pragma: no cover - logging only
+                except (httpx.HTTPError, SQLAlchemyError) as exc:
                     logger.exception("lesson log failed: %s", exc)
                     pending_logs.append(
                         _PendingLog(
@@ -963,6 +963,9 @@ async def lesson_answer_handler(
                         )
                     )
                     pending_logs_size.set(len(pending_logs))
+                except Exception as exc:  # pragma: no cover - unexpected
+                    logger.exception("unexpected lesson log error: %s", exc)
+                    raise
                 return ok
 
             log_user_ok = await _record(prev_step, "user")
