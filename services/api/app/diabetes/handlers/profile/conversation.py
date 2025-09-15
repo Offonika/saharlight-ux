@@ -29,6 +29,13 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+
+try:  # pragma: no cover - fallback if PTB lacks PersistenceError
+    from telegram.ext import PersistenceError
+except ImportError:
+
+    class PersistenceError(Exception):
+        """Generic persistence error."""
 from pydantic import ValidationError
 
 from services.api.app.diabetes.services.db import (
@@ -343,11 +350,12 @@ async def profile_webapp_save(
             try:
                 await persistence.update_user_data(user.id, context.user_data)
                 await persistence.flush()
-            except (OSError, PickleError) as exc:  # pragma: no cover - log only
-                logger.warning("Failed to persist tg_init_data: %s", exc)
-            except Exception:  # pragma: no cover - log & propagate
-                logger.exception("Unexpected error persisting tg_init_data")
-                raise
+            except (OSError, PickleError, PersistenceError, ValueError) as exc:
+                logger.warning(
+                    "Persistence rejected tg_init_data (%s): %s",
+                    type(exc).__name__,
+                    exc,
+                )
     if {
         "icr",
         "cf",
@@ -538,11 +546,17 @@ async def profile_timezone_save(
                     try:
                         await persistence.update_user_data(user.id, context.user_data)
                         await persistence.flush()
-                    except (OSError, PickleError) as exc:  # pragma: no cover - log only
-                        logger.warning("Failed to persist tg_init_data: %s", exc)
-                    except Exception:  # pragma: no cover - log & propagate
-                        logger.exception("Unexpected error persisting tg_init_data")
-                        raise
+                    except (
+                        OSError,
+                        PickleError,
+                        PersistenceError,
+                        ValueError,
+                    ) as exc:
+                        logger.warning(
+                            "Persistence rejected tg_init_data (%s): %s",
+                            type(exc).__name__,
+                            exc,
+                        )
             raw = str(payload.get("timezone", "")).strip()
         else:
             raw = str(payload).strip()

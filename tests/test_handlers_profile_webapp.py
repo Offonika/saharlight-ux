@@ -23,6 +23,18 @@ class DummyMessage:
         self.texts.append(text)
 
 
+class FaultyPersistence:
+    def __init__(self, exc: Exception) -> None:
+        self.exc = exc
+        self.flushed = False
+
+    async def update_user_data(self, user_id: int, data: dict[str, Any]) -> None:
+        raise self.exc
+
+    async def flush(self) -> None:
+        self.flushed = True
+
+
 ERROR_MSG = "⚠️ Некорректные данные из WebApp."
 
 
@@ -307,3 +319,93 @@ def test_parse_profile_values_error() -> None:
             {"icr": "0", "cf": "3", "target": "6", "low": "4", "high": "9"}
         )
     assert str(exc.value) == handlers.MSG_ICR_GT0
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_persistence_known_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    post_mock = MagicMock(return_value=(True, None))
+    save_mock = MagicMock(return_value=True)
+
+    async def run_db(
+        func: Callable[..., object],
+        *,
+        sessionmaker: object,
+    ) -> object:
+        session = MagicMock()
+        return func(session)
+
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    monkeypatch.setattr(handlers, "post_profile", post_mock)
+    monkeypatch.setattr(handlers, "save_profile", save_mock)
+    monkeypatch.setattr(handlers, "run_db", run_db)
+    msg = DummyMessage()
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps(
+            {
+                "icr": 8,
+                "cf": 3,
+                "target": 6,
+                "low": 4,
+                "high": 9,
+                "init_data": "secret",
+            }
+        )
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    persistence = FaultyPersistence(handlers.PersistenceError("boom"))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={}, application=SimpleNamespace(persistence=persistence)
+        ),
+    )
+    await handlers.profile_webapp_save(update, context)
+    assert context.user_data["tg_init_data"] == "secret"
+    assert not persistence.flushed
+    post_mock.assert_called_once()
+    save_mock.assert_called_once()
+    assert msg.texts and msg.texts[0].startswith("✅ Профиль обновлён")
+
+
+@pytest.mark.asyncio
+async def test_webapp_save_persistence_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    post_mock = MagicMock()
+    save_mock = MagicMock()
+    monkeypatch.setattr(handlers, "get_api", lambda: (None, None, None))
+    monkeypatch.setattr(handlers, "post_profile", post_mock)
+    monkeypatch.setattr(handlers, "save_profile", save_mock)
+    msg = DummyMessage()
+    msg.web_app_data = SimpleNamespace(
+        data=json.dumps(
+            {
+                "icr": 8,
+                "cf": 3,
+                "target": 6,
+                "low": 4,
+                "high": 9,
+                "init_data": "secret",
+            }
+        )
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(effective_message=msg, effective_user=SimpleNamespace(id=1)),
+    )
+    persistence = FaultyPersistence(RuntimeError("boom"))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={}, application=SimpleNamespace(persistence=persistence)
+        ),
+    )
+    with pytest.raises(RuntimeError):
+        await handlers.profile_webapp_save(update, context)
+    post_mock.assert_not_called()
+    save_mock.assert_not_called()
