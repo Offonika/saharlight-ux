@@ -78,5 +78,24 @@ def test_main_logs_json(
     assert result == 0
 
     stdout = capsys.readouterr().out.strip()
-    assert json.loads(stdout) == metrics
+    assert stdout == ""
     assert json.dumps(metrics, ensure_ascii=False) in caplog.text
+
+
+def test_main_stdout_flag(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    metrics = [{"variant": "A", "step": "start", "count": 1}]
+    monkeypatch.setattr(
+        aggregate_onboarding, "aggregate_for_date", lambda d: metrics
+    )
+
+    caplog.set_level(logging.INFO, logger=aggregate_onboarding.logger.name)
+    result = aggregate_onboarding.main(["--date", "2024-01-02", "--stdout"])
+    assert result == 0
+
+    stdout = capsys.readouterr().out.strip()
+    assert json.loads(stdout) == metrics
+    assert caplog.text == ""

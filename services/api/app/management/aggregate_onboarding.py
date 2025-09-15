@@ -84,6 +84,11 @@ def main(argv: Iterable[str] | None = None) -> int:
         default=date.today(),
         help="Target date in YYYY-MM-DD (defaults to today)",
     )
+    parser.add_argument(
+        "--stdout",
+        action="store_true",
+        help="Print aggregated metrics to stdout instead of logging",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     try:
@@ -93,8 +98,10 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 1
 
     metrics_json = json.dumps(metrics, ensure_ascii=False)
-    print(metrics_json)
-    logger.info("Aggregated metrics for %s: %s", args.date, metrics_json)
+    if args.stdout:
+        print(metrics_json)
+    else:
+        logger.info("Aggregated metrics for %s: %s", args.date, metrics_json)
     return 0
 
 
