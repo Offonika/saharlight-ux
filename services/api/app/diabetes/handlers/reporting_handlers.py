@@ -26,13 +26,15 @@ from telegram import (
 )
 from telegram.ext import ContextTypes
 
+import sqlalchemy as sa
+from sqlalchemy.orm import Session
 from services.api.app.diabetes.services.db import (
     SessionLocal,
     Entry,
     User,
     HistoryRecord,
+    run_db,
 )
-import sqlalchemy as sa
 from services.api.app.diabetes.services.gpt_client import (
     send_message,
     _get_client,
@@ -367,23 +369,9 @@ async def send_report(
     user_data = cast(UserData, context.user_data)
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
-        with SessionLocal() as session:
-            db_user = session.get(User, user_id)
-            thread_id = getattr(db_user, "thread_id", None)
-            if thread_id is None:
-                thread_id = await create_thread()
-                if db_user:
-                    db_user.thread_id = thread_id
-                else:
-                    session.add(User(telegram_id=user_id, thread_id=thread_id))
-                try:
-                    commit(session)
-                except CommitError:
-                    thread_id = None
-                else:
-                    user_data["thread_id"] = thread_id
-            else:
-                user_data["thread_id"] = thread_id
+        thread_id, saved = await _ensure_user_thread_id(user_id)
+        if thread_id and saved:
+            user_data["thread_id"] = thread_id
     if thread_id:
         try:
             run = await send_message(thread_id=thread_id, content=prompt)
@@ -466,6 +454,57 @@ async def send_report(
             filename="diabetes_report.pdf",
             caption="PDF-отчёт для врача",
         )
+
+
+def _thread_id_db_task(
+    session: Session,
+    user_id: int,
+    new_thread_id: str | None = None,
+) -> tuple[str | None, bool]:
+    """Fetch or persist a ``thread_id`` for ``user_id`` within one session.
+
+    When ``new_thread_id`` is ``None`` the current identifier is returned.
+    Otherwise the provided identifier is saved to the database.
+    """
+
+    db_user = session.get(User, user_id)
+    if new_thread_id is None:
+        if db_user is None:
+            return None, False
+        return db_user.thread_id, True
+
+    if db_user is None:
+        session.add(User(telegram_id=user_id, thread_id=new_thread_id))
+    else:
+        db_user.thread_id = new_thread_id
+    try:
+        commit(session)
+    except CommitError:
+        return None, False
+    return new_thread_id, True
+
+
+async def _ensure_user_thread_id(user_id: int) -> tuple[str | None, bool]:
+    """Return an existing thread or create and persist a new one."""
+
+    thread_id, saved = await run_db(
+        _thread_id_db_task,
+        user_id,
+        sessionmaker=SessionLocal,
+    )
+    if thread_id is not None:
+        return thread_id, saved
+
+    new_thread_id = await create_thread()
+    thread_id, saved = await run_db(
+        _thread_id_db_task,
+        user_id,
+        new_thread_id,
+        sessionmaker=SessionLocal,
+    )
+    if not saved:
+        return None, False
+    return thread_id, True
 
 
 __all__ = [
