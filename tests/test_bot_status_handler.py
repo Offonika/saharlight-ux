@@ -8,7 +8,7 @@ import asyncio
 import logging
 import pytest
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import CallbackContext, CommandHandler
 
 from services.api.app.diabetes.bot_status_handlers import build_status_handler
 
@@ -58,6 +58,11 @@ class DummySession:
     ) -> DummyResponse:
         self.timeout = timeout
         return DummyResponse(self._data)
+
+
+def test_build_status_handler_creates_command_handler() -> None:
+    handler = build_status_handler("https://ui.example", api_base="https://api.example")
+    assert isinstance(handler, CommandHandler)
 
 
 @pytest.mark.asyncio

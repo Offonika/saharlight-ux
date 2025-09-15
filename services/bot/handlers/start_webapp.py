@@ -48,7 +48,7 @@ def build_start_handler() -> CommandHandlerT:
         if update.message:
             await update.message.reply_text(text, reply_markup=kb)
 
-    return CommandHandlerT("start", _start)
+    return CommandHandler("start", _start)
 
 
 __all__ = ["build_start_handler"]
