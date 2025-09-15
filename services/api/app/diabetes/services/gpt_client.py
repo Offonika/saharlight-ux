@@ -388,25 +388,32 @@ async def create_thread() -> str:
 def create_thread_sync() -> str:
     """Synchronously create an empty thread.
 
-    The function bridges synchronous and asynchronous code.  If no event loop
-    is currently running in the calling thread, the helper coroutine is
-    executed using :func:`asyncio.run`.  When invoked from a thread with an
-    active loop (for example, inside ``pytest.mark.asyncio`` tests), the
-    coroutine is scheduled via :func:`asyncio.create_task` and the loop waits
-    for its completion.
+    The helper bridges synchronous and asynchronous call sites. When no
+    running event loop is detected in the current thread the coroutine is
+    executed via :func:`asyncio.run`. Calling the function while an event loop
+    is already running is unsafe, therefore a clear ``RuntimeError`` is raised
+    instructing the caller to await :func:`create_thread` instead.
 
     Returns
     -------
     str
         Identifier of the created thread.
+
+    Raises
+    ------
+    RuntimeError
+        If called from a thread with an active event loop.
     """
 
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.run(create_thread())
-    task = asyncio.create_task(create_thread())
-    return loop.run_until_complete(task)
+
+    raise RuntimeError(
+        "create_thread_sync() cannot be used when the event loop is running; "
+        "await create_thread() instead."
+    )
 
 
 def _validate_image_path(image_path: str) -> str:

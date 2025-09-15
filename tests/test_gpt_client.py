@@ -351,6 +351,14 @@ def test_create_thread_sync_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_thread_sync_running_loop_error() -> None:
+    message = r"create_thread_sync\(\) cannot be used when the event loop is running"
+
+    with pytest.raises(RuntimeError, match=message):
+        gpt_client.create_thread_sync()
+
+
+@pytest.mark.asyncio
 async def test_send_message_timeout(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:

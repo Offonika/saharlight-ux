@@ -226,28 +226,20 @@ def test_create_thread_sync_no_loop(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_create_thread_sync_running_loop(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def fake_create_thread() -> str:
-        return "tid"
+    called: dict[str, bool] = {"run": False}
 
-    called: dict[str, bool] = {"create_task": False, "run_until_complete": False}
+    def fake_run(coro: Coroutine[Any, Any, str]) -> str:
+        called["run"] = True
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(coro)
+        finally:
+            loop.close()
 
-    def fake_create_task(coro: Coroutine[Any, Any, str]) -> Coroutine[Any, Any, str]:
-        called["create_task"] = True
-        return coro
+    monkeypatch.setattr(asyncio, "run", fake_run)
+    monkeypatch.setattr(asyncio, "get_running_loop", lambda: object())
 
-    class DummyLoop:
-        def run_until_complete(self, coro: Coroutine[Any, Any, str]) -> str:
-            called["run_until_complete"] = True
-            loop = asyncio.new_event_loop()
-            try:
-                return loop.run_until_complete(coro)
-            finally:
-                loop.close()
+    with pytest.raises(RuntimeError, match=r"await create_thread\(\)"):
+        gpt_client.create_thread_sync()
 
-    monkeypatch.setattr(asyncio, "create_task", fake_create_task)
-    monkeypatch.setattr(asyncio, "get_running_loop", lambda: DummyLoop())
-    monkeypatch.setattr(gpt_client, "create_thread", fake_create_thread)
-
-    assert gpt_client.create_thread_sync() == "tid"
-    assert called["create_task"]
-    assert called["run_until_complete"]
+    assert not called["run"]
