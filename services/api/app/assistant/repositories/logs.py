@@ -98,11 +98,12 @@ async def flush_pending_logs() -> None:
             if settings.learning_logging_required:
                 raise
             return
-    except Exception:  # pragma: no cover - logging only
+    except Exception as exc:  # pragma: no cover - logging only
         lesson_log_failures.inc(len(queued))
         async with pending_logs_lock:
             pending_logs.extend(queued)
             _trim_pending_logs()
+        logger.exception("flush_pending_logs failed", exc_info=exc)
         if settings.learning_logging_required:
             raise
         return
