@@ -49,7 +49,9 @@ async def test_get_openai_client_uses_proxy(
 
     client = openai_utils.get_openai_client()
 
-    http_client_mock.assert_called_once_with(proxy="http://proxy")
+    http_client_mock.assert_called_once_with(
+        proxy="http://proxy", timeout=openai_utils.DEFAULT_HTTP_TIMEOUT
+    )
     fake_http_client.close.assert_not_called()
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_http_client)
     assert client is openai_mock.return_value
@@ -163,7 +165,9 @@ async def test_get_async_openai_client_uses_proxy(
 
     client = openai_utils.get_async_openai_client()
 
-    async_client_mock.assert_called_once_with(proxy="http://proxy")
+    async_client_mock.assert_called_once_with(
+        proxy="http://proxy", timeout=openai_utils.DEFAULT_HTTP_TIMEOUT
+    )
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_async_client)
     assert client is openai_mock.return_value
 
@@ -396,6 +400,40 @@ async def test_build_http_client_returns_separate_clients_for_each_proxy(
 
 
 @pytest.mark.asyncio
+async def test_build_http_client_allows_timeout_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_default_client = Mock()
+    fake_custom_client = Mock()
+    client_mock = Mock(side_effect=[fake_default_client, fake_custom_client])
+    monkeypatch.setattr(httpx, "Client", client_mock)
+    monkeypatch.setattr(openai_utils, "_http_client", {})
+    monkeypatch.setattr(openai_utils, "_async_http_client", {})
+
+    custom_timeout = httpx.Timeout(1.0)
+
+    default_client = openai_utils.build_http_client("http://proxy")
+    override_client = openai_utils.build_http_client(
+        "http://proxy", timeout=custom_timeout
+    )
+
+    assert default_client is fake_default_client
+    assert override_client is fake_custom_client
+
+    default_call_kwargs = client_mock.call_args_list[0].kwargs
+    assert default_call_kwargs["proxy"] == "http://proxy"
+    assert default_call_kwargs["timeout"] is openai_utils.DEFAULT_HTTP_TIMEOUT
+
+    override_call_kwargs = client_mock.call_args_list[1].kwargs
+    assert override_call_kwargs["proxy"] == "http://proxy"
+    assert override_call_kwargs["timeout"] is custom_timeout
+
+    await openai_utils.dispose_http_client()
+    fake_default_client.close.assert_called_once()
+    fake_custom_client.close.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_build_async_http_client_returns_separate_clients_for_each_proxy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -419,3 +457,42 @@ async def test_build_async_http_client_returns_separate_clients_for_each_proxy(
     await openai_utils.dispose_http_client()
     fake_async_client1.aclose.assert_awaited_once()
     fake_async_client2.aclose.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_build_async_http_client_allows_timeout_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_default_async_client = Mock()
+    fake_default_async_client.aclose = AsyncMock()
+    fake_custom_async_client = Mock()
+    fake_custom_async_client.aclose = AsyncMock()
+    async_client_mock = Mock(
+        side_effect=[fake_default_async_client, fake_custom_async_client]
+    )
+
+    monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
+    monkeypatch.setattr(openai_utils, "_async_http_client", {})
+    monkeypatch.setattr(openai_utils, "_http_client", {})
+
+    custom_timeout = httpx.Timeout(1.0)
+
+    default_client = openai_utils.build_async_http_client("http://proxy")
+    override_client = openai_utils.build_async_http_client(
+        "http://proxy", timeout=custom_timeout
+    )
+
+    assert default_client is fake_default_async_client
+    assert override_client is fake_custom_async_client
+
+    default_call_kwargs = async_client_mock.call_args_list[0].kwargs
+    assert default_call_kwargs["proxy"] == "http://proxy"
+    assert default_call_kwargs["timeout"] is openai_utils.DEFAULT_HTTP_TIMEOUT
+
+    override_call_kwargs = async_client_mock.call_args_list[1].kwargs
+    assert override_call_kwargs["proxy"] == "http://proxy"
+    assert override_call_kwargs["timeout"] is custom_timeout
+
+    await openai_utils.dispose_http_client()
+    fake_default_async_client.aclose.assert_awaited_once()
+    fake_custom_async_client.aclose.assert_awaited_once()
