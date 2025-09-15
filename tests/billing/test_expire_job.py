@@ -71,6 +71,70 @@ async def test_expire_subscriptions_logs_event(
     assert any("expired 1 subscription" in r.getMessage() for r in caplog.records)
 
 
+@pytest.mark.asyncio
+async def test_expire_subscriptions_ignores_missing_end_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session_local = _setup_db()
+    with session_local() as session:
+        sub1 = Subscription(
+            user_id=1,
+            plan=SubscriptionPlan.PRO,
+            status=SubStatus.active,
+            provider="dummy",
+            transaction_id="tx1",
+            end_date=None,
+        )
+        sub2 = Subscription(
+            user_id=2,
+            plan=SubscriptionPlan.PRO,
+            status=SubStatus.active,
+            provider="dummy",
+            transaction_id="tx2",
+            end_date=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        session.add_all([sub1, sub2])
+        session.commit()
+
+    async def run_db(
+        fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs
+    ) -> Any:
+        with sessionmaker() as session:
+            return fn(session, *args, **kwargs)
+
+    monkeypatch.setattr(jobs, "run_db", run_db)
+    monkeypatch.setattr(jobs, "_utcnow", lambda: datetime(2024, 1, 2, tzinfo=timezone.utc))
+
+    await jobs.expire_subscriptions(None)
+
+    with session_local() as session:
+        sub1_db = session.scalar(
+            select(Subscription).where(Subscription.user_id == 1)
+        )
+        sub2_db = session.scalar(
+            select(Subscription).where(Subscription.user_id == 2)
+        )
+        assert sub1_db is not None
+        assert sub1_db.status == SubStatus.active
+        log1 = session.scalar(
+            select(BillingLog).where(
+                BillingLog.user_id == 1,
+                BillingLog.event == BillingEvent.EXPIRED,
+            )
+        )
+        assert log1 is None
+
+        assert sub2_db is not None
+        assert sub2_db.status == SubStatus.expired
+        log2 = session.scalar(
+            select(BillingLog).where(
+                BillingLog.user_id == 2,
+                BillingLog.event == BillingEvent.EXPIRED,
+            )
+        )
+        assert log2 is not None
+
+
 def test_schedule_subscription_expiration_sets_job_kwargs() -> None:
     class DummyJob:
         next_run_time = None
