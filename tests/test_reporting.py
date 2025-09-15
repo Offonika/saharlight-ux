@@ -55,20 +55,20 @@ class DummyEntry:
 
 
 def test_register_fonts_threadsafe(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(reporting, "_fonts_registered", False)
+    monkeypatch.setattr(reporting, "_fonts_registration_result", None)
 
     counter = {"n": 0}
     lock = threading.Lock()
 
-    def fake_register_font(name: str, filename: str) -> str | None:
+    def fake_register_font(name: str, filename: str) -> tuple[bool, str | None]:
         time.sleep(0.05)
         with lock:
             counter["n"] += 1
-        return None
+        return True, None
 
     monkeypatch.setattr(reporting, "_register_font", fake_register_font)
 
-    results: list[list[str]] = []
+    results: list[bool] = []
 
     def worker() -> None:
         results.append(register_fonts())
@@ -80,7 +80,28 @@ def test_register_fonts_threadsafe(monkeypatch: pytest.MonkeyPatch) -> None:
         t.join()
 
     assert counter["n"] == 2
-    assert results and all(r == [] for r in results)
+    assert results and all(results)
+
+
+def test_register_fonts_reports_failure(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(reporting, "_fonts_registration_result", None)
+
+    calls: list[tuple[str, str]] = []
+
+    def fake_register_font(name: str, filename: str) -> tuple[bool, str | None]:
+        calls.append((name, filename))
+        return False, f"missing {name}"
+
+    monkeypatch.setattr(reporting, "_register_font", fake_register_font)
+
+    result = register_fonts()
+
+    assert result is False
+    assert reporting._fonts_registration_result is False
+    assert calls == [
+        ("DejaVuSans", "DejaVuSans.ttf"),
+        ("DejaVuSans-Bold", "DejaVuSans-Bold.ttf"),
+    ]
 
 
 def test_register_font_uses_dynamic_settings(
@@ -98,8 +119,9 @@ def test_register_font_uses_dynamic_settings(
     fake_settings = SimpleNamespace(font_dir=str(tmp_path))
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
 
-    msg = reporting._register_font("DejaVuSans", "DejaVuSans.ttf")
+    success, msg = reporting._register_font("DejaVuSans", "DejaVuSans.ttf")
 
+    assert success is True
     assert msg is None
     assert captured["path"] == os.path.join(str(tmp_path), "DejaVuSans.ttf")
 
@@ -203,6 +225,53 @@ def test_generate_pdf_report() -> None:
     reader = read_pdf(pdf_buf)
     text = "".join(page.extract_text() for page in reader.pages)
     assert "высокий сахар 15.0" in text
+
+
+def test_generate_pdf_report_falls_back_to_builtin_fonts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(reporting, "register_fonts", lambda: False)
+
+    captured_fonts: list[tuple[str, int]] = []
+
+    class DummyCanvas:
+        def __init__(
+            self,
+            stream: io.BytesIO,
+            pagesize: tuple[float, float],
+            **_: Any,
+        ) -> None:
+            self.stream = stream
+            self.pagesize = pagesize
+
+        def setFont(self, name: str, size: int) -> None:  # noqa: N802
+            captured_fonts.append((name, size))
+
+        def drawString(self, *args: Any, **kwargs: Any) -> None:  # noqa: N802
+            return None
+
+        def showPage(self) -> None:  # noqa: N802
+            return None
+
+        def drawImage(self, *args: Any, **kwargs: Any) -> None:  # noqa: N802
+            return None
+
+        def save(self) -> None:  # noqa: N802
+            self.stream.write(b"dummy")
+
+    monkeypatch.setattr(reporting.canvas, "Canvas", DummyCanvas)
+
+    pdf_buf = generate_pdf_report(
+        summary_lines=["Всего записей: 1"],
+        errors=[],
+        day_lines=[],
+        gpt_text="Текст",
+        plot_buf=None,
+    )
+
+    assert isinstance(pdf_buf, io.BytesIO)
+    font_names = {name for name, _ in captured_fonts}
+    assert font_names == {"Helvetica", "Helvetica-Bold"}
 
 
 @pytest.mark.parametrize("block", ["summary_lines", "errors", "day_lines"])
