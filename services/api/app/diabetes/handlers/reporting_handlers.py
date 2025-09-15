@@ -281,9 +281,7 @@ async def report_period_callback(
         )
         await send_report(update, context, date_from, "последний месяц", query=query)
     elif period == "custom":
-        context.user_data = context.user_data or {}
-        if context.user_data is None:  # pragma: no cover - defensive
-            raise RuntimeError("context.user_data could not be initialized")
+        context.user_data = context.user_data or {}  # context.user_data всегда словарь.
         user_data = cast(UserData, context.user_data)
         user_data["awaiting_report_date"] = True
         await query.edit_message_text(
@@ -361,9 +359,7 @@ async def send_report(
 
     default_gpt_text = "Не удалось получить рекомендации."
     gpt_text: str | None = default_gpt_text
-    context.user_data = context.user_data or {}
-    if context.user_data is None:  # pragma: no cover - defensive
-        raise RuntimeError("context.user_data could not be initialized")
+    context.user_data = context.user_data or {}  # context.user_data всегда словарь.
     user_data = cast(UserData, context.user_data)
     thread_id = cast(str | None, user_data.get("thread_id"))
     if thread_id is None:
