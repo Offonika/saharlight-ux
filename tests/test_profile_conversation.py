@@ -1,4 +1,5 @@
 import importlib
+import json
 from types import SimpleNamespace
 from typing import Any, cast
 from unittest.mock import AsyncMock
@@ -25,6 +26,18 @@ class DummyMessage:
 
     async def delete(self) -> None:
         pass
+
+
+class FaultyPersistence:
+    def __init__(self, exc: Exception) -> None:
+        self.exc = exc
+        self.flushed = False
+
+    async def update_user_data(self, user_id: int, data: dict[str, Any]) -> None:
+        raise self.exc
+
+    async def flush(self) -> None:
+        self.flushed = True
 
 
 @pytest.mark.asyncio
@@ -158,6 +171,61 @@ async def test_profile_timezone_save_success(monkeypatch: pytest.MonkeyPatch) ->
     assert any("Часовой пояс обновлён" in r for r in message.replies)
     assert calls == [(job_queue, reminder, reminder_user)]
     assert run_db_mock.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_profile_timezone_save_persistence_known_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_db_mock = AsyncMock(return_value=(True, True))
+    monkeypatch.setattr(handlers, "run_db", run_db_mock)
+    message = DummyMessage()
+    message.web_app_data = SimpleNamespace(
+        data=json.dumps({"timezone": "Europe/Moscow", "init_data": "secret"})
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    persistence = FaultyPersistence(handlers.PersistenceError("boom"))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={}, application=SimpleNamespace(persistence=persistence)
+        ),
+    )
+    state = await handlers.profile_timezone_save(update, context)
+    assert state == handlers.END
+    assert context.user_data["tg_init_data"] == "secret"
+    assert not persistence.flushed
+    run_db_mock.assert_awaited_once()
+    assert any("Часовой пояс" in reply for reply in message.replies)
+
+
+@pytest.mark.asyncio
+async def test_profile_timezone_save_persistence_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    run_db_mock = AsyncMock()
+    monkeypatch.setattr(handlers, "run_db", run_db_mock)
+    message = DummyMessage()
+    message.web_app_data = SimpleNamespace(
+        data=json.dumps({"timezone": "Europe/Moscow", "init_data": "secret"})
+    )
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    persistence = FaultyPersistence(RuntimeError("boom"))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={}, application=SimpleNamespace(persistence=persistence)
+        ),
+    )
+    with pytest.raises(RuntimeError):
+        await handlers.profile_timezone_save(update, context)
+    run_db_mock.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
