@@ -55,4 +55,4 @@ def build_start_handler(ui_base_url: str) -> CommandHandlerT:
         if update.message:
             await update.message.reply_text(text, reply_markup=kb)
 
-    return CommandHandlerT("start", _start)
+    return CommandHandler("start", _start)

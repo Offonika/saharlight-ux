@@ -137,4 +137,4 @@ def build_status_handler(ui_base_url: str, api_base: str = "/api") -> CommandHan
                 reply_markup=InlineKeyboardMarkup(btns),
             )
 
-    return CommandHandlerT("status", _status)
+    return CommandHandler("status", _status)
