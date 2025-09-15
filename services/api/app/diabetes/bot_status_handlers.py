@@ -12,7 +12,7 @@ from typing import TypeAlias
 
 import aiohttp
 from aiohttp.client import ClientTimeout
-from aiohttp.client_exceptions import ClientError
+from aiohttp.client_exceptions import ClientError, ClientResponseError
 from pydantic import BaseModel, ValidationError
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CommandHandler, ContextTypes
@@ -65,10 +65,17 @@ def build_status_handler(ui_base_url: str, api_base: str = "/api") -> CommandHan
                     headers={TG_INIT_DATA_HEADER: init_data},
                     timeout=ClientTimeout(total=5),
                 ) as resp:
+                    resp.raise_for_status()
                     data = OnboardingStatus.model_validate(await resp.json())
         except asyncio.TimeoutError:
             logger.exception("Status request timed out")
             await update.message.reply_text("Не удалось получить статус онбординга")
+            return
+        except ClientResponseError as exc:
+            logger.exception("Status request failed")
+            await update.message.reply_text(
+                f"Не удалось получить статус онбординга: {exc.message}"
+            )
             return
         except ClientError:
             logger.exception("Status request failed")
