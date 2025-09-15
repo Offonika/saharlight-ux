@@ -169,6 +169,58 @@ async def test_reset_onboarding_timeout_telegram_error(
 
 
 @pytest.mark.asyncio
+async def test_reset_onboarding_timeout_unexpected_error(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class FailingMessage:
+        def __init__(self) -> None:
+            self.replies: list[str] = []
+            self.calls = 0
+
+        async def reply_text(self, text: str) -> None:
+            self.calls += 1
+            if self.calls > 1:
+                raise ValueError("boom")
+            self.replies.append(text)
+
+    message = FailingMessage()
+    user = SimpleNamespace(id=1)
+    update = cast(
+        Update,
+        SimpleNamespace(
+            effective_message=message, message=message, effective_user=user
+        ),
+    )
+    app = DummyApp()
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(application=app, user_data={}),
+    )
+
+    async def fast_sleep(_: float) -> None:
+        return
+
+    monkeypatch.setattr(commands.asyncio, "sleep", fast_sleep)
+
+    with caplog.at_level(logging.ERROR):
+        await commands.reset_onboarding(update, context)
+        task = context.user_data.get("_onb_reset_task")
+        assert isinstance(task, asyncio.Task)
+        with pytest.raises(ValueError):
+            await task
+        assert any(
+            "Reset onboarding timeout task failed" in r.message for r in caplog.records
+        )
+
+    assert task.exception() is not None
+    assert isinstance(task.exception(), ValueError)
+    assert len(message.replies) == 1
+    assert "_onb_reset_confirm" not in context.user_data
+    assert "_onb_reset_task" not in context.user_data
+
+
+@pytest.mark.asyncio
 async def test_reset_onboarding_consume_cancelled_task(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
