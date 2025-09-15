@@ -96,7 +96,6 @@ async def next_step(
     * "dynamic" - generate step text on the fly.
     * "static" - use predefined steps and quiz questions from the database.
     """
-
     if settings.learning_content_mode == "dynamic":
 
         def _get_progress(session: Session) -> tuple[int, str]:
@@ -141,104 +140,110 @@ async def next_step(
         if step_idx == 1:
             return f"{disclaimer()}\n\n{text}", False
         return text, False
+    elif settings.learning_content_mode == "static":
 
-    def _advance_static(
-        session: Session,
-    ) -> tuple[str | None, str | None, bool, bool, int, bool, str]:
-        progress = session.execute(
-            sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
-        ).scalar_one()
-        lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one()
-        steps = session.scalars(
-            sa.select(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order)
-        ).all()
-        if progress.current_step < len(steps):
-            step = steps[progress.current_step]
-            first_step = progress.current_step == 0
-            progress.current_step += 1
-            step_idx = progress.current_step
-            commit(session)
-            return step.content, None, first_step, False, step_idx, False, lesson.slug
-        questions = session.scalars(
-            sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
-        ).all()
-        if progress.current_question < len(questions):
-            q = questions[progress.current_question]
-            first_question = progress.current_question == 0
-            opts = "\n".join(f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1))
-            return (
-                None,
-                f"{q.question}\n{opts}",
-                False,
-                first_question,
-                progress.current_step,
-                False,
-                lesson.slug,
-            )
-        if not progress.completed:
-            progress.completed = True
-            commit(session)
-        return None, None, False, False, progress.current_step, True, lesson.slug
+        def _advance_static(
+            session: Session,
+        ) -> tuple[str | None, str | None, bool, bool, int, bool, str]:
+            progress = session.execute(
+                sa.select(LessonProgress).filter_by(user_id=user_id, lesson_id=lesson_id)
+            ).scalar_one()
+            lesson = session.execute(sa.select(Lesson).filter_by(id=lesson_id)).scalar_one()
+            steps = session.scalars(
+                sa.select(LessonStep).filter_by(lesson_id=lesson_id).order_by(LessonStep.step_order)
+            ).all()
+            if progress.current_step < len(steps):
+                step = steps[progress.current_step]
+                first_step = progress.current_step == 0
+                progress.current_step += 1
+                step_idx = progress.current_step
+                commit(session)
+                return step.content, None, first_step, False, step_idx, False, lesson.slug
+            questions = session.scalars(
+                sa.select(QuizQuestion).filter_by(lesson_id=lesson_id).order_by(QuizQuestion.id)
+            ).all()
+            if progress.current_question < len(questions):
+                q = questions[progress.current_question]
+                first_question = progress.current_question == 0
+                opts = "\n".join(
+                    f"{idx}. {opt}" for idx, opt in enumerate(q.options, start=1)
+                )
+                return (
+                    None,
+                    f"{q.question}\n{opts}",
+                    False,
+                    first_question,
+                    progress.current_step,
+                    False,
+                    lesson.slug,
+                )
+            if not progress.completed:
+                progress.completed = True
+                commit(session)
+            return None, None, False, False, progress.current_step, True, lesson.slug
 
-    (
-        step_content,
-        question_text,
-        first_step,
-        first_question,
-        step_idx,
-        completed,
-        slug,
-    ) = await db.run_db(_advance_static)
-    if step_content is not None and step_idx is not None:
-        start = time.monotonic()
-        try:
-            text = await gpt_client.create_learning_chat_completion(
-                task=LLMTask.EXPLAIN_STEP,
-                messages=[
-                    {"role": "system", "content": SYSTEM_TUTOR_RU},
-                    {"role": "user", "content": build_explain_step(step_content)},
-                ],
-            )
-        except OpenAIError:
-            logger.exception(
-                "openai error during learning chat completion",
+        (
+            step_content,
+            question_text,
+            first_step,
+            first_question,
+            step_idx,
+            completed,
+            slug,
+        ) = await db.run_db(_advance_static)
+        if step_content is not None and step_idx is not None:
+            start = time.monotonic()
+            try:
+                text = await gpt_client.create_learning_chat_completion(
+                    task=LLMTask.EXPLAIN_STEP,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_TUTOR_RU},
+                        {"role": "user", "content": build_explain_step(step_content)},
+                    ],
+                )
+            except OpenAIError:
+                logger.exception(
+                    "openai error during learning chat completion",
+                    extra={
+                        "user_id": user_id,
+                        "lesson_id": lesson_id,
+                        "step": step_idx,
+                    },
+                )
+                return BUSY_MESSAGE, completed
+            except SQLAlchemyError:
+                logger.exception(
+                    "database error during learning chat completion",
+                    extra={
+                        "user_id": user_id,
+                        "lesson_id": lesson_id,
+                        "step": step_idx,
+                    },
+                )
+                raise
+            latency = time.monotonic() - start
+            logger.info(
+                "lesson_step",
                 extra={
                     "user_id": user_id,
                     "lesson_id": lesson_id,
                     "step": step_idx,
+                    "latency": latency,
                 },
             )
-            return BUSY_MESSAGE, completed
-        except SQLAlchemyError:
-            logger.exception(
-                "database error during learning chat completion",
-                extra={
-                    "user_id": user_id,
-                    "lesson_id": lesson_id,
-                    "step": step_idx,
-                },
-            )
-            raise
-        latency = time.monotonic() - start
-        logger.info(
-            "lesson_step",
-            extra={
-                "user_id": user_id,
-                "lesson_id": lesson_id,
-                "step": step_idx,
-                "latency": latency,
-            },
-        )
-        text = ensure_single_question(text)
-        if first_step:
-            return f"{disclaimer()}\n\n{text}", completed
-        return text, completed
-    if question_text is not None:
-        question_text = ensure_single_question(question_text)
-        if first_question:
-            return f"{disclaimer()}\n\n{question_text}", completed
-        return question_text, completed
-    return None, completed
+            text = ensure_single_question(text)
+            if first_step:
+                return f"{disclaimer()}\n\n{text}", completed
+            return text, completed
+        if question_text is not None:
+            question_text = ensure_single_question(question_text)
+            if first_question:
+                return f"{disclaimer()}\n\n{question_text}", completed
+            return question_text, completed
+        return None, completed
+    message = f"unknown learning_content_mode: {settings.learning_content_mode}"
+    logger.error(message)
+    raise ValueError(message)
 
 
 async def check_answer(
