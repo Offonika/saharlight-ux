@@ -458,3 +458,16 @@ async def test_next_step_dynamic_exception_does_not_increment(
     with db.SessionLocal() as session:
         progress = session.query(LessonProgress).filter_by(user_id=1, lesson_id=lesson_id).one()
         assert progress.current_step == 0
+
+
+@pytest.mark.asyncio()
+async def test_next_step_unknown_mode(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "learning_content_mode", "unknown")
+
+    async def fake_run_db(*args: object, **kwargs: object) -> None:
+        raise AssertionError("run_db should not be called")
+
+    monkeypatch.setattr(curriculum_engine.db, "run_db", fake_run_db)
+
+    with pytest.raises(ValueError):
+        await next_step(1, 1, {})
