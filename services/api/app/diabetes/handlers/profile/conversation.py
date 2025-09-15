@@ -7,7 +7,7 @@ import logging
 from pickle import PickleError
 from datetime import time as dt_time
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import Any, Protocol, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import sqlalchemy as sa
@@ -20,6 +20,7 @@ from telegram import (
     Message,
     ReplyKeyboardMarkup,
     Update,
+    User,
     WebAppInfo,
 )
 from telegram.ext import (
@@ -95,6 +96,41 @@ from services.api.app.diabetes.schemas.profile import ProfileSettingsIn  # noqa:
 back_keyboard: ReplyKeyboardMarkup = _back_keyboard
 
 from .. import UserData  # noqa: E402
+
+
+class _PersistenceProtocol(Protocol):
+    async def update_user_data(self, user_id: int, data: dict[str, Any]) -> None:
+        ...
+
+    async def flush(self) -> None:
+        ...
+
+
+async def _persist_tg_init_data(
+    context: ContextTypes.DEFAULT_TYPE,
+    init_data: str,
+    user: User | None,
+) -> None:
+    """Persist Telegram init data in the context and storage."""
+
+    cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
+    if user is None:
+        return
+
+    app = getattr(context, "application", None)
+    persistence_obj = getattr(app, "persistence", None) if app is not None else None
+    if persistence_obj is None:
+        return
+
+    persistence = cast(_PersistenceProtocol, persistence_obj)
+    try:
+        await persistence.update_user_data(user.id, context.user_data)
+        await persistence.flush()
+    except (OSError, PickleError) as exc:  # pragma: no cover - log only
+        logger.warning("Failed to persist tg_init_data: %s", exc)
+    except Exception:  # pragma: no cover - log & propagate
+        logger.exception("Unexpected error persisting tg_init_data")
+        raise
 
 
 PROFILE_ICR, PROFILE_CF, PROFILE_TARGET, PROFILE_LOW, PROFILE_HIGH, PROFILE_TZ = range(
@@ -335,19 +371,7 @@ async def profile_webapp_save(
         return
     init_data = data.get("init_data")
     if isinstance(init_data, str):
-        cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
-        user = update.effective_user
-        app = getattr(context, "application", None)
-        persistence = getattr(app, "persistence", None) if app else None
-        if persistence is not None and user is not None:
-            try:
-                await persistence.update_user_data(user.id, context.user_data)
-                await persistence.flush()
-            except (OSError, PickleError) as exc:  # pragma: no cover - log only
-                logger.warning("Failed to persist tg_init_data: %s", exc)
-            except Exception:  # pragma: no cover - log & propagate
-                logger.exception("Unexpected error persisting tg_init_data")
-                raise
+        await _persist_tg_init_data(context, init_data, update.effective_user)
     if {
         "icr",
         "cf",
@@ -530,19 +554,7 @@ async def profile_timezone_save(
         if isinstance(payload, dict):
             init_data = payload.get("init_data")
             if isinstance(init_data, str):
-                cast(dict[str, Any], context.user_data)["tg_init_data"] = init_data
-                user = update.effective_user
-                app = getattr(context, "application", None)
-                persistence = getattr(app, "persistence", None) if app else None
-                if persistence is not None and user is not None:
-                    try:
-                        await persistence.update_user_data(user.id, context.user_data)
-                        await persistence.flush()
-                    except (OSError, PickleError) as exc:  # pragma: no cover - log only
-                        logger.warning("Failed to persist tg_init_data: %s", exc)
-                    except Exception:  # pragma: no cover - log & propagate
-                        logger.exception("Unexpected error persisting tg_init_data")
-                        raise
+                await _persist_tg_init_data(context, init_data, update.effective_user)
             raw = str(payload.get("timezone", "")).strip()
         else:
             raw = str(payload).strip()

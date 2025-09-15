@@ -200,6 +200,61 @@ async def test_reminder_webapp_init_data_unexpected_error() -> None:
 
 
 @pytest.mark.asyncio
+async def test_persist_tg_init_data_updates_storage() -> None:
+    ctx = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(
+            user_data={}, application=SimpleNamespace(persistence=DummyPersistence())
+        ),
+    )
+    user = SimpleNamespace(id=2)
+    await profile_conv._persist_tg_init_data(ctx, "secret", user)
+    assert ctx.user_data["tg_init_data"] == "secret"
+    assert ctx.application.persistence.updated == [(2, ctx.user_data)]
+    assert ctx.application.persistence.flushed
+
+
+@pytest.mark.asyncio
+async def test_persist_tg_init_data_logs_oserror(caplog: pytest.LogCaptureFixture) -> None:
+    class OSPersistence(DummyPersistence):
+        async def update_user_data(
+            self, user_id: int, data: dict[str, Any]
+        ) -> None:
+            raise OSError("disk full")
+
+    persistence = OSPersistence()
+    ctx = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, application=SimpleNamespace(persistence=persistence)),
+    )
+    user = SimpleNamespace(id=3)
+    with caplog.at_level(logging.WARNING):
+        await profile_conv._persist_tg_init_data(ctx, "secret", user)
+    assert ctx.user_data["tg_init_data"] == "secret"
+    assert not persistence.flushed
+    assert "Failed to persist tg_init_data" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_persist_tg_init_data_reraises_other_errors() -> None:
+    class FaultyPersistence(DummyPersistence):
+        async def update_user_data(
+            self, user_id: int, data: dict[str, Any]
+        ) -> None:
+            raise RuntimeError("boom")
+
+    persistence = FaultyPersistence()
+    ctx = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={}, application=SimpleNamespace(persistence=persistence)),
+    )
+    user = SimpleNamespace(id=4)
+    with pytest.raises(RuntimeError):
+        await profile_conv._persist_tg_init_data(ctx, "secret", user)
+    assert ctx.user_data["tg_init_data"] == "secret"
+
+
+@pytest.mark.asyncio
 async def test_existing_init_data_authorizes_request(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
