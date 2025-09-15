@@ -75,6 +75,7 @@ class Settings(BaseSettings):
     # Optional service URLs and API keys
     public_origin: str = Field(default="", alias="PUBLIC_ORIGIN")
     ui_base_url: str = Field(default="/ui", alias="UI_BASE_URL")
+    webapp_url: Optional[str] = Field(default=None, alias="WEBAPP_URL")
     api_url: Optional[str] = Field(default=None, alias="API_URL")
     subscription_url: Optional[str] = Field(default=None, alias="SUBSCRIPTION_URL")
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
