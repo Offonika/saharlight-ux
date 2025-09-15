@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from typing import Iterable, MutableMapping, cast
 
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from telegram import Message, Update
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
 from services.api.app.ui.keyboard import build_main_keyboard
@@ -142,7 +144,7 @@ def _extract_text_from_file(file_bytes: bytes, mime: str | None) -> str:
         try:
             reader = PdfReader(io.BytesIO(file_bytes))
             return "\n".join(page.extract_text() or "" for page in reader.pages)
-        except Exception as exc:  # pragma: no cover - best effort
+        except (PdfReadError, OSError) as exc:  # pragma: no cover - best effort
             logger.warning("Failed to read PDF: %s", exc)
     try:
         return file_bytes.decode("utf-8")
@@ -159,7 +161,7 @@ async def _download_file(message: Message, ctx: ContextTypes.DEFAULT_TYPE) -> tu
             file = await ctx.bot.get_file(document.file_id)
             data = bytes(await file.download_as_bytearray())
             return data, document.mime_type
-        except Exception as exc:  # pragma: no cover - network errors
+        except (TelegramError, OSError) as exc:  # pragma: no cover - network errors
             logger.exception("Failed to download document: %s", exc)
             return None
 
@@ -169,7 +171,7 @@ async def _download_file(message: Message, ctx: ContextTypes.DEFAULT_TYPE) -> tu
             file = await ctx.bot.get_file(photo[-1].file_id)
             data = bytes(await file.download_as_bytearray())
             return data, "image/jpeg"
-        except Exception as exc:  # pragma: no cover - network errors
+        except (TelegramError, OSError) as exc:  # pragma: no cover - network errors
             logger.exception("Failed to download photo: %s", exc)
             return None
     return None
