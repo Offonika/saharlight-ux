@@ -24,6 +24,77 @@ _http_client_lock = threading.Lock()
 _async_http_client: dict[tuple[str, TimeoutKey], httpx.AsyncClient] = {}
 _async_http_client_lock = threading.Lock()
 
+_HTTP_CLIENT_CLOSE_ATTR: Final[str] = "_openai_utils_original_close"
+_ASYNC_HTTP_CLIENT_CLOSE_ATTR: Final[str] = "_openai_utils_original_aclose"
+
+
+def _create_http_client(proxy: str, timeout: httpx.Timeout) -> httpx.Client:
+    """Instantiate a synchronous ``httpx.Client``."""
+
+    return httpx.Client(proxy=proxy, timeout=timeout)
+
+
+def _create_async_http_client(proxy: str, timeout: httpx.Timeout) -> httpx.AsyncClient:
+    """Instantiate an asynchronous ``httpx.AsyncClient``."""
+
+    return httpx.AsyncClient(proxy=proxy, timeout=timeout)
+
+
+def _remove_cached_http_client(
+    key: tuple[str, TimeoutKey], client: httpx.Client
+) -> None:
+    """Remove a cached synchronous client if it matches the stored instance."""
+
+    with _http_client_lock:
+        cached_client = _http_client.get(key)
+        if cached_client is client:
+            del _http_client[key]
+
+
+def _remove_cached_async_http_client(
+    key: tuple[str, TimeoutKey], client: httpx.AsyncClient
+) -> None:
+    """Remove a cached asynchronous client if it matches the stored instance."""
+
+    with _async_http_client_lock:
+        cached_client = _async_http_client.get(key)
+        if cached_client is client:
+            del _async_http_client[key]
+
+
+def _attach_http_client_cleanup(
+    client: httpx.Client, key: tuple[str, TimeoutKey]
+) -> None:
+    """Ensure cached synchronous clients evict themselves once closed."""
+
+    original_close = client.close
+    setattr(client, _HTTP_CLIENT_CLOSE_ATTR, original_close)
+
+    def close_with_cleanup(*args: object, **kwargs: object) -> None:
+        try:
+            return original_close(*args, **kwargs)
+        finally:
+            _remove_cached_http_client(key, client)
+
+    setattr(client, "close", close_with_cleanup)
+
+
+def _attach_async_http_client_cleanup(
+    client: httpx.AsyncClient, key: tuple[str, TimeoutKey]
+) -> None:
+    """Ensure cached asynchronous clients evict themselves once closed."""
+
+    original_aclose = client.aclose
+    setattr(client, _ASYNC_HTTP_CLIENT_CLOSE_ATTR, original_aclose)
+
+    async def aclose_with_cleanup(*args: object, **kwargs: object) -> None:
+        try:
+            return await original_aclose(*args, **kwargs)
+        finally:
+            _remove_cached_async_http_client(key, client)
+
+    setattr(client, "aclose", aclose_with_cleanup)
+
 
 def _resolve_timeout(timeout: TimeoutInput | None) -> tuple[httpx.Timeout, TimeoutKey]:
     """Return an ``httpx.Timeout`` instance and a hashable key representation."""
@@ -53,13 +124,13 @@ def build_http_client(
     if proxy is None:
         return None
 
-    global _http_client
     resolved_timeout, timeout_key = _resolve_timeout(timeout)
     key = (proxy, timeout_key)
     with _http_client_lock:
         client = _http_client.get(key)
         if client is None:
-            client = httpx.Client(proxy=proxy, timeout=resolved_timeout)
+            client = _create_http_client(proxy, resolved_timeout)
+            _attach_http_client_cleanup(client, key)
             _http_client[key] = client
         return client
 
@@ -73,13 +144,13 @@ def build_async_http_client(
     if proxy is None:
         return None
 
-    global _async_http_client
     resolved_timeout, timeout_key = _resolve_timeout(timeout)
     key = (proxy, timeout_key)
     with _async_http_client_lock:
         client = _async_http_client.get(key)
         if client is None:
-            client = httpx.AsyncClient(proxy=proxy, timeout=resolved_timeout)
+            client = _create_async_http_client(proxy, resolved_timeout)
+            _attach_async_http_client_cleanup(client, key)
             _async_http_client[key] = client
         return client
 
@@ -134,7 +205,7 @@ async def dispose_http_client() -> None:
     for sync_client in sync_clients:
         try:
             sync_client.close()
-        except Exception:  # pragma: no cover - best effort
+        except (httpx.HTTPError, OSError, RuntimeError):  # pragma: no cover - best effort
             logger.exception("[OpenAI] Failed to close HTTP client")
 
     # Gather and clear asynchronous clients under lock, then close outside the lock
@@ -144,7 +215,7 @@ async def dispose_http_client() -> None:
     for async_client in async_clients:
         try:
             await async_client.aclose()
-        except Exception:  # pragma: no cover - best effort
+        except (httpx.HTTPError, OSError, RuntimeError):  # pragma: no cover - best effort
             logger.exception("[OpenAI] Failed to close HTTP client")
 
 
