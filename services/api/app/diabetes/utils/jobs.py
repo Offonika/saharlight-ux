@@ -32,6 +32,9 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for older APScheduler
 from telegram.ext import ContextTypes, Job, JobQueue
 
 APS_RUNTIME_ERRORS = (RuntimeError, APSchedulerError, JobLookupError)
+# Some job stores surface raw LookupError (e.g. KeyError) when a job is already gone.
+# Treat those as expected cleanup races to avoid crashing the scheduler.
+JOB_REMOVAL_EXPECTED_ERRORS = (LookupError,)
 
 
 logger = logging.getLogger(__name__)
@@ -204,25 +207,33 @@ def _safe_remove(job: object) -> bool:
         try:
             remover()
             return True
-        except AttributeError as exc:  # pragma: no cover - defensive
+        except AttributeError as exc:  # pragma: no cover - job wrapper missing remove()
             logger.warning(
                 "remove() failed for job id=%s name=%s: %s",
                 job_id,
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
-        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
+        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - APScheduler clean-up
             logger.warning(
                 "remove() failed for job id=%s name=%s: %s",
                 job_id,
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
-        except Exception:  # pragma: no cover - defensive
+        except JOB_REMOVAL_EXPECTED_ERRORS as exc:  # pragma: no cover - job already gone
+            logger.warning(
+                "remove() failed for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - expected race
+        except Exception as exc:  # pragma: no cover - unexpected failure
             logger.exception(
                 "remove() raised unexpected error for job id=%s name=%s",
                 job_id,
                 job_name,
+                exc_info=exc,
             )
             raise
 
@@ -239,40 +250,54 @@ def _safe_remove(job: object) -> bool:
             try:
                 remove_job(job_id)
                 return True
-            except AttributeError as exc:  # pragma: no cover - defensive
+            except AttributeError as exc:  # pragma: no cover - scheduler remove_job missing attribute
                 logger.warning(
                     "remove_job(%s) failed: %s",
                     job_id,
                     exc,
                 )  # pragma: no cover - defensive
-            except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
+            except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - APScheduler clean-up
                 logger.warning(
                     "remove_job(%s) failed: %s",
                     job_id,
                     exc,
                 )  # pragma: no cover - defensive
-            except Exception:  # pragma: no cover - defensive
+            except JOB_REMOVAL_EXPECTED_ERRORS as exc:  # pragma: no cover - job already gone
+                logger.warning(
+                    "remove_job(%s) failed: %s",
+                    job_id,
+                    exc,
+                )  # pragma: no cover - expected race
+            except Exception as exc:  # pragma: no cover - unexpected failure
                 logger.exception(
                     "remove_job(%s) raised unexpected error",
                     job_id,
+                    exc_info=exc,
                 )
                 raise
-        except AttributeError as exc:  # pragma: no cover - defensive
+        except AttributeError as exc:  # pragma: no cover - scheduler remove_job missing attribute
             logger.warning(
                 "remove_job(job_id=%s) failed: %s",
                 job_id,
                 exc,
             )  # pragma: no cover - defensive
-        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
+        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - APScheduler clean-up
             logger.warning(
                 "remove_job(job_id=%s) failed: %s",
                 job_id,
                 exc,
             )  # pragma: no cover - defensive
-        except Exception:  # pragma: no cover - defensive
+        except JOB_REMOVAL_EXPECTED_ERRORS as exc:  # pragma: no cover - job already gone
+            logger.warning(
+                "remove_job(job_id=%s) failed: %s",
+                job_id,
+                exc,
+            )  # pragma: no cover - expected race
+        except Exception as exc:  # pragma: no cover - unexpected failure
             logger.exception(
                 "remove_job(job_id=%s) raised unexpected error",
                 job_id,
+                exc_info=exc,
             )
             raise
 
@@ -283,25 +308,33 @@ def _safe_remove(job: object) -> bool:
         try:
             schedule_removal()
             return True
-        except AttributeError as exc:  # pragma: no cover - defensive
+        except AttributeError as exc:  # pragma: no cover - job wrapper missing schedule_removal()
             logger.warning(
                 "schedule_removal() failed for job id=%s name=%s: %s",
                 job_id,
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
-        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
+        except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - APScheduler clean-up
             logger.warning(
                 "schedule_removal() failed for job id=%s name=%s: %s",
                 job_id,
                 job_name,
                 exc,
             )  # pragma: no cover - defensive
-        except Exception:  # pragma: no cover - defensive
+        except JOB_REMOVAL_EXPECTED_ERRORS as exc:  # pragma: no cover - job already gone
+            logger.warning(
+                "schedule_removal() failed for job id=%s name=%s: %s",
+                job_id,
+                job_name,
+                exc,
+            )  # pragma: no cover - expected race
+        except Exception as exc:  # pragma: no cover - unexpected failure
             logger.exception(
                 "schedule_removal() raised unexpected error for job id=%s name=%s",
                 job_id,
                 job_name,
+                exc_info=exc,
             )
             raise
     return False
@@ -335,40 +368,54 @@ def _remove_jobs(job_queue: DefaultJobQueue, base_name: str) -> int:
             except TypeError:  # pragma: no cover - APScheduler compatibility
                 try:
                     remove_job_direct(name)
-                except AttributeError as exc:  # pragma: no cover - defensive
+                except AttributeError as exc:  # pragma: no cover - scheduler remove_job missing attribute
                     logger.warning(
                         "remove_job_direct(%s) failed: %s",
                         name,
                         exc,
                     )  # pragma: no cover - defensive
-                except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
+                except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - APScheduler clean-up
                     logger.warning(
                         "remove_job_direct(%s) failed: %s",
                         name,
                         exc,
                     )  # pragma: no cover - defensive
-                except Exception:  # pragma: no cover - defensive
+                except JOB_REMOVAL_EXPECTED_ERRORS as exc:  # pragma: no cover - job already gone
+                    logger.warning(
+                        "remove_job_direct(%s) failed: %s",
+                        name,
+                        exc,
+                    )  # pragma: no cover - expected race
+                except Exception as exc:  # pragma: no cover - unexpected failure
                     logger.exception(
                         "remove_job_direct(%s) raised unexpected error",
                         name,
+                        exc_info=exc,
                     )
                     raise
-            except AttributeError as exc:  # pragma: no cover - defensive
+            except AttributeError as exc:  # pragma: no cover - scheduler remove_job missing attribute
                 logger.warning(
                     "remove_job_direct(job_id=%s) failed: %s",
                     name,
                     exc,
                 )  # pragma: no cover - defensive
-            except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - defensive
+            except APS_RUNTIME_ERRORS as exc:  # pragma: no cover - APScheduler clean-up
                 logger.warning(
                     "remove_job_direct(job_id=%s) failed: %s",
                     name,
                     exc,
                 )  # pragma: no cover - defensive
-            except Exception:  # pragma: no cover - defensive
+            except JOB_REMOVAL_EXPECTED_ERRORS as exc:  # pragma: no cover - job already gone
+                logger.warning(
+                    "remove_job_direct(job_id=%s) failed: %s",
+                    name,
+                    exc,
+                )  # pragma: no cover - expected race
+            except Exception as exc:  # pragma: no cover - unexpected failure
                 logger.exception(
                     "remove_job_direct(job_id=%s) raised unexpected error",
                     name,
+                    exc_info=exc,
                 )
                 raise
             if existed:
