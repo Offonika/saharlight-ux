@@ -201,6 +201,8 @@ async def labs_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         if mime and not (mime.lower().startswith(("image/", "text/")) or "pdf" in mime.lower()):
             logger.warning("Unsupported MIME type: %s", mime)
             await message.reply_text("⚠️ Неподдерживаемый тип файла.")
+            user_data.pop("waiting_labs", None)
+            user_data.pop("assistant_last_mode", None)
             return END
         kind = KIND_FILE
         text = _extract_text_from_file(file_bytes, mime)
