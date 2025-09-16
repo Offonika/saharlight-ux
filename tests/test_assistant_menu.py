@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from types import MappingProxyType, SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -233,13 +234,15 @@ async def test_post_init_restores_modes(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setattr(assistant_menu.memory_service, "get_last_modes", fake_get_last_modes)
     bot = MagicMock()
     bot.send_message = AsyncMock()
-    app = SimpleNamespace(bot=bot, user_data=MappingProxyType({}))
-    app._user_data = {}
+    store: defaultdict[int, dict[str, object]] = defaultdict(dict)
+    app = SimpleNamespace(bot=bot, user_data=MappingProxyType(store))
 
     await assistant_menu.post_init(app)
 
-    assert app._user_data[1][assistant_state.LAST_MODE_KEY] == "chat"
-    assert app._user_data[2][assistant_state.LAST_MODE_KEY] == "learn"
+    assert store[1][assistant_state.LAST_MODE_KEY] == "chat"
+    assert store[1][assistant_state.AWAITING_KIND] == "chat"
+    assert store[2][assistant_state.LAST_MODE_KEY] == "learn"
+    assert store[2][assistant_state.AWAITING_KIND] == "learn"
     assert bot.send_message.await_count == 2
 
 
