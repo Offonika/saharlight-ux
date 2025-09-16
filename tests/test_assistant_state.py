@@ -45,16 +45,64 @@ async def test_reset_command_clears(monkeypatch: pytest.MonkeyPatch) -> None:
         assistant_state.SUMMARY_KEY: "y",
     }
     replies: list[str] = []
+    cleared: list[int] = []
 
     class DummyMessage:
         async def reply_text(self, text: str, **_: Any) -> None:
             replies.append(text)
 
-    update = SimpleNamespace(effective_message=DummyMessage())
+    async def fake_clear_memory(user_id: int) -> None:
+        cleared.append(user_id)
+
+    monkeypatch.setattr(commands, "_clear_memory", fake_clear_memory)
+
+    update = SimpleNamespace(
+        effective_message=DummyMessage(),
+        effective_user=SimpleNamespace(id=42),
+    )
     context = SimpleNamespace(user_data=user_data)
     await commands.reset_command(update, context)
     assert user_data == {}
     assert replies and "очищ" in replies[0].lower()
+    assert cleared == [42]
+
+
+@pytest.mark.asyncio
+async def test_reset_command_without_user_warns(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    user_data: dict[str, Any] = {
+        assistant_state.HISTORY_KEY: ["x"],
+        assistant_state.SUMMARY_KEY: "y",
+    }
+    replies: list[str] = []
+    cleared: list[int] = []
+
+    class DummyMessage:
+        async def reply_text(self, text: str, **_: Any) -> None:
+            replies.append(text)
+
+    async def fake_clear_memory(user_id: int) -> None:
+        cleared.append(user_id)
+
+    monkeypatch.setattr(commands, "_clear_memory", fake_clear_memory)
+
+    update = SimpleNamespace(effective_message=DummyMessage(), effective_user=None)
+    context = SimpleNamespace(user_data=user_data)
+
+    with caplog.at_level("WARNING"):
+        await commands.reset_command(update, context)
+
+    assert user_data == {
+        assistant_state.HISTORY_KEY: ["x"],
+        assistant_state.SUMMARY_KEY: "y",
+    }
+    assert replies == []
+    assert cleared == []
+    assert any(
+        record.message == "Reset command invoked without effective user."
+        for record in caplog.records
+    )
 
 
 def test_reset_mode_state() -> None:
