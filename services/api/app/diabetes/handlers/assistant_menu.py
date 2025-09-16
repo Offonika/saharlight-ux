@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
@@ -99,11 +98,11 @@ async def post_init(
     """Restore last assistant modes for users on startup."""
 
     records = await memory_service.get_last_modes()
-    store = cast(defaultdict[int, dict[str, object]], app._user_data)  # type: ignore[redundant-cast]
+    user_data_map = app.user_data
     for user_id, mode in records:
         if mode not in MODE_TEXTS:
             continue
-        data = store.setdefault(user_id, {})
+        data = user_data_map[user_id]
         data[AWAITING_KIND] = mode
         set_last_mode(data, mode)
         await app.bot.send_message(
