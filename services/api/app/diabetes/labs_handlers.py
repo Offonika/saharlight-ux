@@ -62,13 +62,31 @@ def _parse_line(line: str) -> LabResult | None:
     if not m:
         return None
     name = m.group(1).strip()
-    value = float(m.group(2).replace(",", "."))
+    value_str = m.group(2).replace(",", ".")
+    try:
+        value = float(value_str)
+    except ValueError:
+        logger.warning(
+            "Skipping lab line due to invalid value '%s': %s", value_str, line
+        )
+        return None
     ref_low: float | None = None
     ref_high: float | None = None
     m_ref = re.search(r"([\d.,]+)\s*[–-]\s*([\d.,]+)", line)
     if m_ref:
-        ref_low = float(m_ref.group(1).replace(",", "."))
-        ref_high = float(m_ref.group(2).replace(",", "."))
+        ref_low_str = m_ref.group(1).replace(",", ".")
+        ref_high_str = m_ref.group(2).replace(",", ".")
+        try:
+            ref_low = float(ref_low_str)
+            ref_high = float(ref_high_str)
+        except ValueError:
+            logger.warning(
+                "Skipping lab line due to invalid reference range '%s'-'%s': %s",
+                ref_low_str,
+                ref_high_str,
+                line,
+            )
+            return None
     else:
         default = DEFAULT_REFS.get(name.lower())
         if default:
