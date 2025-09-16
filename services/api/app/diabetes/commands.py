@@ -130,11 +130,13 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user = getattr(update, "effective_user", None)
     if message is None or not settings.assistant_mode_enabled:
         return
+    if user is None:
+        logger.warning("Reset command invoked without effective user.")
+        return
     user_data = cast(dict[str, object], context.user_data)
     _reset_assistant(user_data)
     user_data.pop(MODE_DISCLAIMED_KEY, None)
-    if user is not None:
-        await _clear_memory(user.id)
+    await _clear_memory(user.id)
     await message.reply_text("История очищена.")
 
 
