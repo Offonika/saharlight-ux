@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
+import posixpath
 import threading
 from typing import Literal, Optional
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator
 
@@ -253,20 +255,55 @@ def get_db_write_password() -> Optional[str]:
 
 
 def build_ui_url(path: str) -> str:
-    """Return an absolute UI URL for ``path``.
+    """Return an absolute UI URL for ``path`` relative to ``public_origin``.
 
-    Slashes are normalized and ``settings.public_origin`` must be configured.
-    ``settings.ui_base_url`` is stripped of leading and trailing slashes.
+    ``path`` must be a relative URL segment. It is normalized so that duplicate
+    slashes and ``.`` segments are collapsed, while ``..`` segments are
+    rejected to prevent escaping from ``ui_base_url``. Query strings and
+    fragments are preserved.
     """
 
     if not settings.public_origin:
         raise RuntimeError("PUBLIC_ORIGIN not configured")
+
     origin = settings.public_origin.rstrip("/")
     base = settings.ui_base_url.strip("/")
-    rel = path.lstrip("/")
-    if base:
-        return f"{origin}/{base}/{rel}"
-    return f"{origin}/{rel}"
+
+    parsed = urlsplit(path)
+    if parsed.scheme or parsed.netloc:
+        raise ValueError("UI path must be relative to PUBLIC_ORIGIN")
+
+    relative_path = parsed.path.lstrip("/")
+    if any(part == ".." for part in relative_path.split("/") if part):
+        raise ValueError("UI path must not contain '..' segments")
+
+    segments = [segment for segment in (base, relative_path) if segment]
+    combined = "/".join(segments)
+    normalized_path = posixpath.normpath(f"/{combined}" if combined else "/")
+    if not normalized_path.startswith("/"):
+        normalized_path = f"/{normalized_path}"
+
+    should_have_trailing_slash = parsed.path.endswith("/") or (
+        not parsed.path and bool(base)
+    )
+    if should_have_trailing_slash and normalized_path != "/":
+        normalized_path = normalized_path.rstrip("/") + "/"
+
+    base_prefix = base.strip("/")
+    if base_prefix:
+        expected_prefix = f"/{base_prefix}"
+        if not (
+            normalized_path == expected_prefix
+            or normalized_path.startswith(f"{expected_prefix}/")
+        ):
+            raise ValueError("UI path escapes configured UI_BASE_URL")
+
+    url = f"{origin}{normalized_path}"
+    if parsed.query:
+        url = f"{url}?{parsed.query}"
+    if parsed.fragment:
+        url = f"{url}#{parsed.fragment}"
+    return url
 
 
 __all__ = [
