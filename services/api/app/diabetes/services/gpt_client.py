@@ -169,6 +169,9 @@ def format_reply(text: str, *, max_len: int = 800) -> str:
     str
         Formatted text with paragraphs truncated and separated by blank lines.
     """
+    if max_len <= 0:
+        raise ValueError("max_len must be positive")
+
     paragraphs = [part.strip()[:max_len] for part in re.split(r"\n\s*\n", text.strip()) if part.strip()]
     return "\n\n".join(paragraphs)
 
