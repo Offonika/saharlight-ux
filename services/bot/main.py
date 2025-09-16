@@ -82,7 +82,9 @@ async def post_init(
         try:
             import redis.asyncio as real_redis  # type: ignore[import-not-found]
         except ModuleNotFoundError:
-            pass
+            logger.warning(
+                "redis.asyncio is not installed; Redis-dependent features are disabled"
+            )
         else:
             patched_from_url = getattr(getattr(redis, "Redis", None), "from_url", None)
             if patched_from_url is not None:
