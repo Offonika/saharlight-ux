@@ -191,6 +191,66 @@ async def _send_alert_message(
                 )
 
 
+def db_eval(
+    session: Session,
+    user_id: int,
+    sugar: float,
+) -> tuple[bool, dict[str, object] | None]:
+    """Evaluate sugar value in the database context."""
+
+    profile = session.get(Profile, user_id)
+    if not profile:
+        return False, None
+    low = profile.low_threshold
+    high = profile.high_threshold
+
+    active = session.scalars(
+        sa.select(Alert).filter_by(user_id=user_id, resolved=False)
+    ).all()
+
+    if (low is not None and sugar < low) or (high is not None and sugar > high):
+        atype = "hypo" if low is not None and sugar < low else "hyper"
+        alert = Alert(user_id=user_id, sugar=sugar, type=atype)
+        session.add(alert)
+        try:
+            commit(session)
+        except CommitError:
+            logger.error("Failed to commit new alert for user %s", user_id)
+            return False, None
+        alerts = session.scalars(
+            sa.select(Alert)
+            .filter_by(user_id=user_id, resolved=False)
+            .order_by(Alert.ts.desc())
+            .limit(3)
+        ).all()
+        notify = len(alerts) == 3 and all(a.type == atype for a in alerts)
+        if notify:
+            for a in alerts:
+                a.resolved = True
+            try:
+                commit(session)
+            except CommitError:
+                logger.error("Failed to commit resolved alerts for user %s", user_id)
+                return False, None
+        return True, {
+            "action": "schedule",
+            "notify": notify,
+            "profile": {
+                "sos_contact": profile.sos_contact,
+                "sos_alerts_enabled": profile.sos_alerts_enabled,
+            },
+        }
+
+    for alert in active:
+        alert.resolved = True
+    try:
+        commit(session)
+    except CommitError:
+        logger.error("Failed to commit resolved alerts for user %s", user_id)
+        return False, None
+    return True, {"action": "remove", "notify": False}
+
+
 async def evaluate_sugar(
     user_id: int,
     sugar: float,
@@ -216,64 +276,14 @@ async def evaluate_sugar(
         alert messages.
     """
 
-    def db_eval(session: Session) -> tuple[bool, dict[str, object] | None]:
-        profile = session.get(Profile, user_id)
-        if not profile:
-            return False, None
-        low = profile.low_threshold
-        high = profile.high_threshold
-
-        active = session.scalars(
-            sa.select(Alert).filter_by(user_id=user_id, resolved=False)
-        ).all()
-
-        if (low is not None and sugar < low) or (high is not None and sugar > high):
-            atype = "hypo" if low is not None and sugar < low else "hyper"
-            alert = Alert(user_id=user_id, sugar=sugar, type=atype)
-            session.add(alert)
-            try:
-                commit(session)
-            except CommitError:
-                logger.error("Failed to commit new alert for user %s", user_id)
-                return False, None
-            alerts = session.scalars(
-                sa.select(Alert)
-                .filter_by(user_id=user_id, resolved=False)
-                .order_by(Alert.ts.desc())
-                .limit(3)
-            ).all()
-            notify = len(alerts) == 3 and all(a.type == atype for a in alerts)
-            if notify:
-                for a in alerts:
-                    a.resolved = True
-                try:
-                    commit(session)
-                except CommitError:
-                    logger.error(
-                        "Failed to commit resolved alerts for user %s", user_id
-                    )
-                    return False, None
-            return True, {
-                "action": "schedule",
-                "notify": notify,
-                "profile": {
-                    "sos_contact": profile.sos_contact,
-                    "sos_alerts_enabled": profile.sos_alerts_enabled,
-                },
-            }
-        else:
-            for a in active:
-                a.resolved = True
-            try:
-                commit(session)
-            except CommitError:
-                logger.error("Failed to commit resolved alerts for user %s", user_id)
-                return False, None
-            return True, {"action": "remove", "notify": False}
-
     ok, result = cast(
         tuple[bool, dict[str, object] | None],
-        await run_db(db_eval, sessionmaker=SessionLocal),
+        await run_db(
+            db_eval,
+            user_id=user_id,
+            sugar=sugar,
+            sessionmaker=SessionLocal,
+        ),
     )
     if not ok or result is None:
         return
