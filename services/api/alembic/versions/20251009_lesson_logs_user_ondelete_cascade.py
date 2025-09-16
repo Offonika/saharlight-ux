@@ -20,7 +20,7 @@ def upgrade() -> None:
     inspector = inspect(bind)
 
     if "lesson_logs" not in inspector.get_table_names():
-        print("⚠️ Skipping: lesson_logs table does not exist yet")
+        op.get_context().log.warning("⚠️ Skipping: lesson_logs table does not exist yet")
         return
 
     # пробуем дропнуть FK, если он есть
