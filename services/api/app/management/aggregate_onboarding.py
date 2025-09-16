@@ -10,10 +10,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import sys
 from datetime import date, datetime, timedelta
 from typing import Iterable, Sequence, cast
 
 import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -93,13 +95,26 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     try:
         metrics = aggregate_for_date(args.date)
+    except SQLAlchemyError:
+        logger.exception(
+            "Database error while aggregating onboarding metrics for %s", args.date
+        )
+        return 1
+    except (TypeError, ValueError):
+        logger.exception(
+            "Invalid data encountered while aggregating onboarding metrics for %s",
+            args.date,
+        )
+        return 1
     except Exception:  # pragma: no cover - defensive programming
-        logger.exception("Failed to aggregate onboarding metrics for %s", args.date)
+        logger.exception(
+            "Unexpected error while aggregating onboarding metrics for %s", args.date
+        )
         return 1
 
     metrics_json = json.dumps(metrics, ensure_ascii=False)
     if args.stdout:
-        print(metrics_json)
+        sys.stdout.write(f"{metrics_json}\n")
     else:
         logger.info("Aggregated metrics for %s: %s", args.date, metrics_json)
     return 0
