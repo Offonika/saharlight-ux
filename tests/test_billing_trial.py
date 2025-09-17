@@ -45,7 +45,12 @@ def setup_db() -> sessionmaker[Session]:
 def make_client(monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]) -> TestClient:
     from services.api.app.billing.config import BillingSettings
 
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn,
+        *args,
+        sessionmaker: sessionmaker[Session] = session_local,
+        **kwargs,
+    ) -> Any:
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 

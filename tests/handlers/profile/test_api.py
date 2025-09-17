@@ -1,5 +1,6 @@
 import importlib
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -338,7 +339,7 @@ def _build_app(
 
     monkeypatch.setattr(db, "SessionLocal", session_factory, raising=False)
 
-    async def _run_db(fn, *args, **kwargs):
+    async def _run_db(fn, *args, **kwargs) -> Any:
         return await db.run_db(fn, *args, sessionmaker=session_factory, **kwargs)
 
     monkeypatch.setattr(main, "run_db", _run_db)

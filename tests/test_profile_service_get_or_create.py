@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
@@ -19,7 +21,12 @@ async def test_get_profile_settings_creates_profile(
         bind=engine, autoflush=False, autocommit=False, class_=Session
     )
 
-    async def run_db(func, *args, sessionmaker: sessionmaker[Session], **kwargs):
+    async def run_db(
+        func,
+        *args,
+        sessionmaker: sessionmaker[Session],
+        **kwargs,
+    ) -> Any:
         with sessionmaker() as session:
             return func(session, *args, **kwargs)
 
@@ -50,7 +57,12 @@ async def test_get_profile_settings_negative_id(
         bind=engine, autoflush=False, autocommit=False, class_=Session
     )
 
-    async def run_db(func, *args, sessionmaker: sessionmaker[Session], **kwargs):
+    async def run_db(
+        func,
+        *args,
+        sessionmaker: sessionmaker[Session],
+        **kwargs,
+    ) -> Any:
         with sessionmaker() as session:
             return func(session, *args, **kwargs)
 

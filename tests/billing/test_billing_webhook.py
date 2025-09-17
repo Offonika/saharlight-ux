@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+from typing import Any
+
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -36,7 +38,12 @@ def make_client(
     session_local: sessionmaker[Session],
     **settings_kwargs: object,
 ) -> TestClient:
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn,
+        *args,
+        sessionmaker: sessionmaker[Session] = session_local,
+        **kwargs,
+    ) -> Any:
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
