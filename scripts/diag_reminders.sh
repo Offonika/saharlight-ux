@@ -121,7 +121,7 @@ except Exception as e:
 
 token=os.environ.get("BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN")
 chat_id=int("${TG_ID}")
-async def main():
+async def main() -> None:
     bot=Bot(token=token)
     txt=f"Диагностика: бот доступен ✅ (UTC={datetime.now(UTC):%Y-%m-%d %H:%M:%S})"
     await bot.send_message(chat_id=chat_id, text=txt)
