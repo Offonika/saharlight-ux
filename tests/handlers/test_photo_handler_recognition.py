@@ -113,7 +113,7 @@ async def test_photo_handler_recognition_success_db_save(
     monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
     monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
 
-    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs) -> Any:
         def wrapper() -> Any:
             with sessionmaker() as sess:
                 return fn(sess, *args, **kwargs)

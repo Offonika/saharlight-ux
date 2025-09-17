@@ -71,7 +71,7 @@ async def test_profile_timezone_save_success(
     reminder_user = SimpleNamespace(id=1)
     reminder = SimpleNamespace(id=5, user=reminder_user)
 
-    async def run_db(fn, *, sessionmaker):
+    async def run_db(fn, *, sessionmaker) -> Any:
         run_db.calls += 1
         if run_db.calls == 1:
             return True, True

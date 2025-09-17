@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -24,7 +26,12 @@ def setup_db() -> sessionmaker[Session]:
 def make_client(
     monkeypatch: pytest.MonkeyPatch, session_local: sessionmaker[Session]
 ) -> TestClient:
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn,
+        *args,
+        sessionmaker: sessionmaker[Session] = session_local,
+        **kwargs,
+    ) -> Any:
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 
