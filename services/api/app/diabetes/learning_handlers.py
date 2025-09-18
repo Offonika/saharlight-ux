@@ -574,14 +574,6 @@ async def _dynamic_learn_command(
     )
     text = ensure_single_question(format_reply(plan[0]))
     sent = await message.reply_text(text, reply_markup=build_main_keyboard())
-    await safe_add_lesson_log(
-        user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
     state = LearnState(
         topic=slug,
         step=1,
@@ -593,6 +585,17 @@ async def _dynamic_learn_command(
     )
     set_state(user_data, state)
     await _persist(user.id, user_data, context.bot_data)
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    if plan_id is not None:
+        await safe_add_lesson_log(
+            user.id,
+            plan_id,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
 
 
 async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -668,14 +671,6 @@ async def _start_lesson(
     )
     text = ensure_single_question(format_reply(plan[0]))
     sent = await message.reply_text(text, reply_markup=build_main_keyboard())
-    await safe_add_lesson_log(
-        from_user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
     state = LearnState(
         topic=topic_slug,
         step=1,
@@ -687,6 +682,17 @@ async def _start_lesson(
     )
     set_state(user_data, state)
     await _persist(from_user.id, user_data, bot_data)
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    if plan_id is not None:
+        await safe_add_lesson_log(
+            from_user.id,
+            plan_id,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
 
 
 async def _static_lesson_command(
@@ -940,13 +946,17 @@ async def lesson_answer_handler(
         log_user_ok = log_feedback_ok = log_next_ok = False
         if telegram_id is not None:
             module_idx = cast(int, user_data.get("learning_module_idx", 0))
+            raw_plan_id = user_data.get("learning_plan_id")
+            plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
 
             async def _record(step_idx: int, role: str) -> bool:
+                if plan_id is None:
+                    return False
                 ok = False
                 try:
                     ok = await safe_add_lesson_log(
                         telegram_id,
-                        0,
+                        plan_id,
                         module_idx,
                         step_idx,
                         role,
@@ -957,7 +967,7 @@ async def lesson_answer_handler(
                     pending_logs.append(
                         _PendingLog(
                             user_id=telegram_id,
-                            plan_id=0,
+                            plan_id=plan_id,
                             module_idx=module_idx,
                             step_idx=step_idx,
                             role=role,
