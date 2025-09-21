@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import urljoin
 
-from typing import cast
-
-from telegram import Bot, MenuButton, MenuButtonWebApp, WebAppInfo
+from telegram import Bot, MenuButtonWebApp, WebAppInfo
 
 from services.api.app import config
 
@@ -34,12 +32,13 @@ async def setup_chat_menu(bot: Bot) -> None:
     if not base_url:
         return
 
-    buttons = [
-        MenuButtonWebApp(text=label, web_app=WebAppInfo(_build_url(base_url, path)))
-        for label, path in _MENU_ITEMS
-    ]
+    label, path = _MENU_ITEMS[0]
+    menu_button = MenuButtonWebApp(
+        text=label,
+        web_app=WebAppInfo(_build_url(base_url, path)),
+    )
 
-    await bot.set_chat_menu_button(menu_button=cast(MenuButton, buttons))
+    await bot.set_chat_menu_button(menu_button=menu_button)
 
 
 __all__ = ["setup_chat_menu"]
