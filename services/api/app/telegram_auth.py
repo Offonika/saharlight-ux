@@ -11,9 +11,6 @@ from fastapi import Header, HTTPException
 from . import config
 from .schemas.user import UserContext
 
-# Preserve the initial settings instance to accommodate tests that patch it.
-_INITIAL_SETTINGS = config.settings
-
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +80,14 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
 def get_tg_user(init_data: str) -> UserContext:
     """Validate ``init_data`` and return Telegram ``user`` info."""
     settings_obj = config.get_settings()
-    token: str | None = getattr(settings_obj, "telegram_token", None)
-    if not token:
-        token = getattr(_INITIAL_SETTINGS, "telegram_token", None)
+    token: str | None = None
+    for candidate in (settings_obj, getattr(config, "settings", None)):
+        if candidate is None:
+            continue
+        value = getattr(candidate, "telegram_token", None)
+        if isinstance(value, str) and value:
+            token = value
+            break
     if not token:
         logger.error("telegram token not configured")
         raise HTTPException(status_code=503, detail="telegram token not configured")
