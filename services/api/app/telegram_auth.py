@@ -21,6 +21,29 @@ TG_INIT_DATA_HEADER = "X-Telegram-Init-Data"
 AUTH_DATE_MAX_AGE = 24 * 60 * 60
 
 
+_ORIGINAL_SETTINGS = config.get_settings()
+
+
+def _iter_settings_candidates() -> list[object]:
+    """Return unique configuration objects to consult for the Telegram token."""
+
+    candidates: list[object] = []
+    seen_ids: set[int] = set()
+    for candidate in (
+        config.get_settings(),
+        getattr(config, "settings", None),
+        _ORIGINAL_SETTINGS,
+    ):
+        if candidate is None:
+            continue
+        candidate_id = id(candidate)
+        if candidate_id in seen_ids:
+            continue
+        seen_ids.add(candidate_id)
+        candidates.append(candidate)
+    return candidates
+
+
 def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
     """Parse and validate Telegram WebApp initialization data.
 
@@ -79,9 +102,8 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
 
 def get_tg_user(init_data: str) -> UserContext:
     """Validate ``init_data`` and return Telegram ``user`` info."""
-    settings_obj = config.get_settings()
     token: str | None = None
-    for candidate in (settings_obj, getattr(config, "settings", None)):
+    for candidate in _iter_settings_candidates():
         if candidate is None:
             continue
         value = getattr(candidate, "telegram_token", None)

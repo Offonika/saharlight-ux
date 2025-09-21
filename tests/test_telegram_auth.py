@@ -1,3 +1,4 @@
+import importlib
 import hashlib
 import hmac
 import json
@@ -103,6 +104,18 @@ def test_require_tg_user_prefers_runtime_settings(
     monkeypatch.setattr(config, "get_settings", lambda: stub)
     patched_token = "patched-token"
     monkeypatch.setattr(config.settings, "telegram_token", patched_token)
+    init_data = build_init_data(token=patched_token)
+    user = require_tg_user(init_data)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+
+def test_require_tg_user_after_config_reload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    importlib.reload(config)
+    patched_token = "reloaded-token"
+    monkeypatch.setattr(settings, "telegram_token", patched_token)
     init_data = build_init_data(token=patched_token)
     user = require_tg_user(init_data)
     assert user["id"] == 1
