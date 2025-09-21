@@ -464,7 +464,7 @@ async def _upload_image_file(client: OpenAI, image_path: str) -> FileObject:
 
         def _upload() -> FileObject:
             with open(safe_path, "rb") as f:
-                return client.files.create(file=f, purpose="vision")
+                return client.files.create(file=f, purpose="assistants")
 
         file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
     except asyncio.TimeoutError:
@@ -487,7 +487,9 @@ async def _upload_image_bytes(client: OpenAI, image_bytes: bytes) -> FileObject:
 
         def _upload_bytes() -> FileObject:
             with io.BytesIO(image_bytes) as buffer:
-                return client.files.create(file=("image.jpg", buffer), purpose="vision")
+                return client.files.create(
+                    file=("image.jpg", buffer), purpose="assistants"
+                )
 
         file = await asyncio.wait_for(asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT)
     except asyncio.TimeoutError:
