@@ -25,6 +25,7 @@ async def test_post_init_retries_on_retry_after(
     main = _reload_main()
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(side_effect=[RetryAfter(1), None]),
+        set_chat_menu_button=AsyncMock(),
     )
     app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
     app._user_data = {}
@@ -49,6 +50,7 @@ async def test_post_init_handles_retry_after_and_network_error(
     main = _reload_main()
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(side_effect=[RetryAfter(1), NetworkError("boom")]),
+        set_chat_menu_button=AsyncMock(),
     )
     app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
     app._user_data = {}
@@ -86,7 +88,10 @@ async def test_post_init_skips_recent_commands(monkeypatch: pytest.MonkeyPatch) 
     now = datetime.now(timezone.utc)
     redis_client = DummyRedis(now.isoformat().encode())
     monkeypatch.setattr(main.redis.Redis, "from_url", lambda url: redis_client)
-    bot = SimpleNamespace(set_my_commands=AsyncMock())
+    bot = SimpleNamespace(
+        set_my_commands=AsyncMock(),
+        set_chat_menu_button=AsyncMock(),
+    )
     app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
     app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
@@ -106,7 +111,10 @@ async def test_post_init_sets_and_caches(monkeypatch: pytest.MonkeyPatch) -> Non
     past = datetime.now(timezone.utc) - timedelta(hours=25)
     redis_client = DummyRedis(past.isoformat().encode())
     monkeypatch.setattr(main.redis.Redis, "from_url", lambda url: redis_client)
-    bot = SimpleNamespace(set_my_commands=AsyncMock())
+    bot = SimpleNamespace(
+        set_my_commands=AsyncMock(),
+        set_chat_menu_button=AsyncMock(),
+    )
     app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
     app._user_data = {}
     monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
@@ -120,3 +128,24 @@ async def test_post_init_sets_and_caches(monkeypatch: pytest.MonkeyPatch) -> Non
     assert redis_client.set_args is not None
     assert redis_client.set_args[0] == "bot:commands_set_at"
     assert redis_client.set_args[2] >= 86400
+
+
+@pytest.mark.asyncio
+async def test_post_init_with_webapp_url_and_stub_bot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
+    main = _reload_main()
+    bot = SimpleNamespace(set_my_commands=AsyncMock())
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
+    monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
+    import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
+
+    monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
+
+    await main.post_init(app)
+
+    bot.set_my_commands.assert_awaited_once_with(main.commands)
+    assert not hasattr(bot, "set_chat_menu_button")
+    main.menu_button_post_init.assert_not_awaited()

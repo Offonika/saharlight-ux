@@ -8,6 +8,7 @@ from typing import Any
 import pytest
 from fastapi import HTTPException
 
+from services.api.app import config
 from services.api.app.config import settings
 from services.api.app.schemas.user import UserContext
 from services.api.app.telegram_auth import (
@@ -91,6 +92,19 @@ def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
     user: UserContext = require_tg_user(init_data)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+
+def test_require_tg_user_prefers_runtime_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    stub = object()
+    monkeypatch.setattr(config, "get_settings", lambda: stub)
+    patched_token = "patched-token"
+    monkeypatch.setattr(config.settings, "telegram_token", patched_token)
+    init_data = build_init_data(token=patched_token)
+    user = require_tg_user(init_data)
     assert user["id"] == 1
     assert isinstance(user["id"], int)
 

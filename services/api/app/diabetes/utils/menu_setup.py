@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+from typing import Any, cast
 from urllib.parse import urljoin
 
-from typing import cast
-
-from telegram import Bot, MenuButton, MenuButtonWebApp, WebAppInfo
+from telegram import Bot, MenuButtonWebApp, WebAppInfo
 
 from services.api.app import config
 
@@ -26,20 +26,34 @@ def _build_url(base_url: str, path: str) -> str:
     return urljoin(normalized_base, normalized_path)
 
 
-async def setup_chat_menu(bot: Bot) -> None:
-    """Configure the chat menu with WebApp shortcuts when available."""
+async def setup_chat_menu(bot: Bot) -> bool:
+    """Configure the chat menu with WebApp shortcuts when available.
+
+    Returns ``True`` when a custom menu button was configured, otherwise
+    ``False``. The function safely exits if the bot instance does not expose
+    ``set_chat_menu_button`` (for example when using simplified stubs in tests).
+    """
 
     settings = config.get_settings()
     base_url = settings.webapp_url
     if not base_url:
-        return
+        return False
 
-    buttons = [
-        MenuButtonWebApp(text=label, web_app=WebAppInfo(_build_url(base_url, path)))
-        for label, path in _MENU_ITEMS
-    ]
+    set_chat_menu_button: Callable[..., Awaitable[Any]] | None
+    set_chat_menu_button = getattr(bot, "set_chat_menu_button", None)
+    if not callable(set_chat_menu_button):
+        return False
 
-    await bot.set_chat_menu_button(menu_button=cast(MenuButton, buttons))
+    label, path = _MENU_ITEMS[0]
+    menu_button = MenuButtonWebApp(
+        text=label,
+        web_app=WebAppInfo(_build_url(base_url, path)),
+    )
+
+    await cast(Callable[..., Awaitable[Any]], set_chat_menu_button)(
+        menu_button=menu_button
+    )
+    return True
 
 
 __all__ = ["setup_chat_menu"]
