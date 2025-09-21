@@ -196,8 +196,9 @@ async def parse_command(
     api_timeout:
         Timeout passed to the OpenAI client.
     overall_timeout:
-        Maximum time in seconds to wait for the entire operation. If ``None``,
-        ``api_timeout + 1`` seconds are used.
+        Maximum time in seconds to wait for the entire operation. When
+        provided, this value is used directly. If ``None``, ``api_timeout + 1``
+        seconds are used.
 
     Returns
     -------
@@ -206,9 +207,12 @@ async def parse_command(
         optional ``fields`` describing the command, or ``None`` if parsing fails.
     """
 
-    wait_timeout = (
-        overall_timeout + 1 if overall_timeout is not None else api_timeout + 1
-    )
+    if api_timeout <= 0:
+        raise ValueError("api_timeout must be greater than 0")
+    if overall_timeout is not None and overall_timeout <= 0:
+        raise ValueError("overall_timeout must be greater than 0 when provided")
+
+    wait_timeout = overall_timeout if overall_timeout is not None else api_timeout + 1
     try:
         resp: ChatCompletion | Awaitable[ChatCompletion] = create_chat_completion(
             model=config.get_settings().openai_command_model,

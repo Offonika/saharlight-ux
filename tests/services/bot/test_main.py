@@ -11,7 +11,7 @@ from services.bot import main
 async def test_post_init_without_redis(monkeypatch) -> None:
     original_import = builtins.__import__
 
-    def fake_import(name: str, *args: object, **kwargs: object):
+    def fake_import(name: str, *args: object, **kwargs: object) -> object:
         if name == "redis.asyncio":
             raise ModuleNotFoundError
         return original_import(name, *args, **kwargs)
@@ -43,7 +43,7 @@ async def test_post_init_handles_none_redis_client(
 ) -> None:
     original_import = builtins.__import__
 
-    def fake_import(name: str, *args: object, **kwargs: object):
+    def fake_import(name: str, *args: object, **kwargs: object) -> object:
         if name == "redis.asyncio":
             raise ModuleNotFoundError
         return original_import(name, *args, **kwargs)

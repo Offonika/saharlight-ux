@@ -93,7 +93,6 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return END
     user_data.pop("pending_entry", None)
     user_data.pop("edit_id", None)
-    user_data.pop("dose_method", None)
     await message.reply_text(
         "💉 Как рассчитать дозу? Выберите метод:",
         reply_markup=dose_keyboard,
@@ -117,11 +116,9 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if "назад" in text:
         return await dose_cancel(update, context)
     if "углев" in text:
-        user_data["dose_method"] = "carbs"
         await message.reply_text("Введите количество углеводов (г).")
         return DoseState.CARBS
     if "xe" in text or "хе" in text:
-        user_data["dose_method"] = "xe"
         await message.reply_text("Введите количество ХЕ.")
         return DoseState.XE
     await message.reply_text(
@@ -335,7 +332,6 @@ async def dose_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
         return END
     await message.reply_text("Отменено.", reply_markup=build_main_keyboard())
     user_data.pop("pending_entry", None)
-    user_data.pop("dose_method", None)
     chat_data = getattr(context, "chat_data", None)
     if chat_data is not None:
         chat_data.pop("sugar_active", None)
@@ -402,16 +398,18 @@ dose_conv = ConversationHandler(
         DoseState.METHOD: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
         ],
-        DoseState.XE: [MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_xe)],
+        DoseState.XE: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_xe)
+        ],
         DoseState.CARBS: [
-            MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_carbs)
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_carbs)
         ],
         DoseState.SUGAR: [
-            MessageHandler(filters.Regex(r"^\d+(?:[.,]\d+)?$"), dose_sugar)
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)
         ],
         PHOTO_SUGAR: [
             MessageHandler(
-                filters.Regex(r"^\d+(?:[.,]\d+)?$"),
+                filters.Regex(r"^-?\d+(?:[.,]\d+)?$"),
                 dose_sugar,
             )
         ],

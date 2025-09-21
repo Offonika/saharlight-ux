@@ -53,8 +53,12 @@ from . import curriculum_engine as curriculum_engine
 from .curriculum_engine import LessonNotFoundError, ProgressNotFoundError
 from .prompts import build_system_prompt, build_user_prompt_step, disclaimer
 from .llm_router import LLMTask
-from .services import gpt_client
-from .services.gpt_client import create_learning_chat_completion, format_reply
+from .services.gpt_client import (
+    choose_model,
+    create_learning_chat_completion,
+    format_reply,
+    make_cache_key,
+)
 from services.api.app.assistant.repositories.logs import (
     _PendingLog,
     pending_logs,
@@ -149,12 +153,10 @@ async def _generate_step_text_logged(
 
     system = build_system_prompt(profile, task=LLMTask.EXPLAIN_STEP)
     user_prompt = build_user_prompt_step(topic_slug, step_idx, prev_summary)
-    if debug and logger:
-        model = gpt_client._learning_router.choose_model(LLMTask.EXPLAIN_STEP)
-        old_key = gpt_client._make_cache_key(
-            model, system, user_prompt, "", "", "", None, ""
-        )
-        new_key = gpt_client._make_cache_key(
+    if debug:
+        model = choose_model(LLMTask.EXPLAIN_STEP)
+        old_key = make_cache_key(model, system, user_prompt, "", "", "", None, "")
+        new_key = make_cache_key(
             model,
             system,
             user_prompt,
@@ -179,7 +181,7 @@ async def _generate_step_text_logged(
             },
         )
     text = await generate_step_text(profile, topic_slug, step_idx, prev_summary)
-    if debug and logger:
+    if debug:
         logger.info(
             "learning_debug_after_llm",
             extra={
@@ -572,14 +574,6 @@ async def _dynamic_learn_command(
     )
     text = ensure_single_question(format_reply(plan[0]))
     sent = await message.reply_text(text, reply_markup=build_main_keyboard())
-    await safe_add_lesson_log(
-        user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
     state = LearnState(
         topic=slug,
         step=1,
@@ -591,6 +585,17 @@ async def _dynamic_learn_command(
     )
     set_state(user_data, state)
     await _persist(user.id, user_data, context.bot_data)
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    if plan_id is not None:
+        await safe_add_lesson_log(
+            user.id,
+            plan_id,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
 
 
 async def learn_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -666,14 +671,6 @@ async def _start_lesson(
     )
     text = ensure_single_question(format_reply(plan[0]))
     sent = await message.reply_text(text, reply_markup=build_main_keyboard())
-    await safe_add_lesson_log(
-        from_user.id,
-        0,
-        cast(int, user_data.get("learning_module_idx", 0)),
-        1,
-        "assistant",
-        "",
-    )
     state = LearnState(
         topic=topic_slug,
         step=1,
@@ -685,6 +682,17 @@ async def _start_lesson(
     )
     set_state(user_data, state)
     await _persist(from_user.id, user_data, bot_data)
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    if plan_id is not None:
+        await safe_add_lesson_log(
+            from_user.id,
+            plan_id,
+            cast(int, user_data.get("learning_module_idx", 0)),
+            1,
+            "assistant",
+            "",
+        )
 
 
 async def _static_lesson_command(
@@ -938,24 +946,28 @@ async def lesson_answer_handler(
         log_user_ok = log_feedback_ok = log_next_ok = False
         if telegram_id is not None:
             module_idx = cast(int, user_data.get("learning_module_idx", 0))
+            raw_plan_id = user_data.get("learning_plan_id")
+            plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
 
             async def _record(step_idx: int, role: str) -> bool:
+                if plan_id is None:
+                    return False
                 ok = False
                 try:
                     ok = await safe_add_lesson_log(
                         telegram_id,
-                        0,
+                        plan_id,
                         module_idx,
                         step_idx,
                         role,
                         "",
                     )
-                except Exception as exc:  # pragma: no cover - logging only
+                except (httpx.HTTPError, SQLAlchemyError) as exc:
                     logger.exception("lesson log failed: %s", exc)
                     pending_logs.append(
                         _PendingLog(
                             user_id=telegram_id,
-                            plan_id=0,
+                            plan_id=plan_id,
                             module_idx=module_idx,
                             step_idx=step_idx,
                             role=role,
@@ -963,6 +975,9 @@ async def lesson_answer_handler(
                         )
                     )
                     pending_logs_size.set(len(pending_logs))
+                except Exception as exc:  # pragma: no cover - unexpected
+                    logger.exception("unexpected lesson log error: %s", exc)
+                    raise
                 return ok
 
             log_user_ok = await _record(prev_step, "user")

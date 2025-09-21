@@ -51,11 +51,40 @@ async def test_parse_command_timeout_non_blocking(
     elapsed = time.perf_counter() - start
 
     assert isinstance(results[0], gpt_command_parser.ParserTimeoutError)
-    assert elapsed < overall_timeout + 1.5
+    assert elapsed < overall_timeout + 0.2
     assert started.is_set()
     await asyncio.sleep(0.2)
     assert cancelled.is_set()
     assert captured.get("timeout") == api_timeout
+
+
+@pytest.mark.asyncio
+async def test_parse_command_rejects_non_positive_api_timeout() -> None:
+    with pytest.raises(ValueError, match="api_timeout must be greater than 0"):
+        await gpt_command_parser.parse_command("test", api_timeout=0)
+
+
+@pytest.mark.asyncio
+async def test_parse_command_rejects_non_positive_overall_timeout() -> None:
+    with pytest.raises(ValueError, match="overall_timeout must be greater than 0 when provided"):
+        await gpt_command_parser.parse_command("test", overall_timeout=0)
+
+
+@pytest.mark.asyncio
+async def test_parse_command_respects_overall_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def slow_create(*args: Any, **kwargs: Any) -> Any:
+        await asyncio.sleep(2)
+
+    monkeypatch.setattr(gpt_command_parser, "create_chat_completion", slow_create)
+
+    overall_timeout = 0.1
+    start = time.perf_counter()
+    with pytest.raises(gpt_command_parser.ParserTimeoutError):
+        await gpt_command_parser.parse_command("test", overall_timeout=overall_timeout)
+    elapsed = time.perf_counter() - start
+    assert elapsed < overall_timeout + 0.2
 
 
 @pytest.mark.asyncio

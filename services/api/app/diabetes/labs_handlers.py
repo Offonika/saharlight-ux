@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from typing import Iterable, MutableMapping, cast
 
 from pypdf import PdfReader
+from pypdf.errors import PdfReadError
 from telegram import Message, Update
+from telegram.error import TelegramError
 from telegram.ext import ContextTypes, ConversationHandler
 
 from services.api.app.ui.keyboard import build_main_keyboard
@@ -60,13 +62,31 @@ def _parse_line(line: str) -> LabResult | None:
     if not m:
         return None
     name = m.group(1).strip()
-    value = float(m.group(2).replace(",", "."))
+    value_str = m.group(2).replace(",", ".")
+    try:
+        value = float(value_str)
+    except ValueError:
+        logger.warning(
+            "Skipping lab line due to invalid value '%s': %s", value_str, line
+        )
+        return None
     ref_low: float | None = None
     ref_high: float | None = None
     m_ref = re.search(r"([\d.,]+)\s*[–-]\s*([\d.,]+)", line)
     if m_ref:
-        ref_low = float(m_ref.group(1).replace(",", "."))
-        ref_high = float(m_ref.group(2).replace(",", "."))
+        ref_low_str = m_ref.group(1).replace(",", ".")
+        ref_high_str = m_ref.group(2).replace(",", ".")
+        try:
+            ref_low = float(ref_low_str)
+            ref_high = float(ref_high_str)
+        except ValueError:
+            logger.warning(
+                "Skipping lab line due to invalid reference range '%s'-'%s': %s",
+                ref_low_str,
+                ref_high_str,
+                line,
+            )
+            return None
     else:
         default = DEFAULT_REFS.get(name.lower())
         if default:
@@ -142,7 +162,7 @@ def _extract_text_from_file(file_bytes: bytes, mime: str | None) -> str:
         try:
             reader = PdfReader(io.BytesIO(file_bytes))
             return "\n".join(page.extract_text() or "" for page in reader.pages)
-        except Exception as exc:  # pragma: no cover - best effort
+        except (PdfReadError, OSError) as exc:  # pragma: no cover - best effort
             logger.warning("Failed to read PDF: %s", exc)
     try:
         return file_bytes.decode("utf-8")
@@ -159,7 +179,7 @@ async def _download_file(message: Message, ctx: ContextTypes.DEFAULT_TYPE) -> tu
             file = await ctx.bot.get_file(document.file_id)
             data = bytes(await file.download_as_bytearray())
             return data, document.mime_type
-        except Exception as exc:  # pragma: no cover - network errors
+        except (TelegramError, OSError) as exc:  # pragma: no cover - network errors
             logger.exception("Failed to download document: %s", exc)
             return None
 
@@ -169,7 +189,7 @@ async def _download_file(message: Message, ctx: ContextTypes.DEFAULT_TYPE) -> tu
             file = await ctx.bot.get_file(photo[-1].file_id)
             data = bytes(await file.download_as_bytearray())
             return data, "image/jpeg"
-        except Exception as exc:  # pragma: no cover - network errors
+        except (TelegramError, OSError) as exc:  # pragma: no cover - network errors
             logger.exception("Failed to download photo: %s", exc)
             return None
     return None
@@ -199,6 +219,8 @@ async def labs_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
         if mime and not (mime.lower().startswith(("image/", "text/")) or "pdf" in mime.lower()):
             logger.warning("Unsupported MIME type: %s", mime)
             await message.reply_text("⚠️ Неподдерживаемый тип файла.")
+            user_data.pop("waiting_labs", None)
+            user_data.pop("assistant_last_mode", None)
             return END
         kind = KIND_FILE
         text = _extract_text_from_file(file_bytes, mime)

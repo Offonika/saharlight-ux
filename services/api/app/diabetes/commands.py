@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from typing import cast
 
@@ -55,10 +56,8 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if user_data.pop("_onb_reset_confirm", False):
         if isinstance(task, asyncio.Task):
             task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await task
-            except asyncio.CancelledError:
-                pass
         await _reset_onboarding(update, context)
         return
 
@@ -82,9 +81,6 @@ async def reset_onboarding(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             # Swallow known Telegram/runtime errors: they are logged to avoid double
             # reporting and the task shouldn't fail because of them.
             logger.exception("Reset onboarding timeout task failed: %s", exc)
-        except Exception as exc:
-            logger.exception("Reset onboarding timeout task failed: %s", exc)
-            raise
 
     user_data["_onb_reset_confirm"] = True
     task = asyncio.create_task(_reset_timeout())
@@ -134,11 +130,13 @@ async def reset_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user = getattr(update, "effective_user", None)
     if message is None or not settings.assistant_mode_enabled:
         return
+    if user is None:
+        logger.warning("Reset command invoked without effective user.")
+        return
     user_data = cast(dict[str, object], context.user_data)
     _reset_assistant(user_data)
     user_data.pop(MODE_DISCLAIMED_KEY, None)
-    if user is not None:
-        await _clear_memory(user.id)
+    await _clear_memory(user.id)
     await message.reply_text("История очищена.")
 
 

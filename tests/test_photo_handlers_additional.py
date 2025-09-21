@@ -70,7 +70,7 @@ async def test_photo_handler_commit_failure(
     monkeypatch.setattr(photo_handlers, "commit", fail_commit)
     monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
 
-    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs) -> Any:
         def wrapper() -> Any:
             with sessionmaker() as sess:
                 return fn(sess, *args, **kwargs)
@@ -152,7 +152,7 @@ async def test_photo_handler_commit_failure_resets_waiting_flag(
     monkeypatch.setattr(photo_handlers, "commit", fail_commit)
     monkeypatch.setattr(photo_handlers, "send_message", send_message_mock)
 
-    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs) -> Any:
         def wrapper() -> Any:
             with sessionmaker() as sess:
                 return fn(sess, *args, **kwargs)
@@ -594,7 +594,7 @@ async def test_photo_handler_long_vision_text(
     )
     monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
-    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs) -> Any:
         def wrapper() -> Any:
             with sessionmaker() as sess:
                 return fn(sess, *args, **kwargs)
@@ -706,7 +706,7 @@ async def test_photo_handler_long_vision_text_parse_fail(
     )
     monkeypatch.setattr(photo_handlers, "build_main_keyboard", lambda: None)
 
-    async def run_db_stub(fn, *args, sessionmaker, **kwargs):
+    async def run_db_stub(fn, *args, sessionmaker, **kwargs) -> Any:
         def wrapper() -> Any:
             with sessionmaker() as sess:
                 return fn(sess, *args, **kwargs)

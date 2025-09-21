@@ -1,9 +1,9 @@
-# scripts/diag_reminders.sh
 #!/usr/bin/env bash
+# scripts/diag_reminders.sh
 set -euo pipefail
 
 # Настройки (можешь менять при запуске через аргументы)
-PROJ_DIR="/opt/saharlight-ux"
+PROJ_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 VENV="$PROJ_DIR/venv"
 PY="$VENV/bin/python"
 PIP="$VENV/bin/pip"
@@ -106,8 +106,44 @@ echo "==[8/8] Тест отправки сообщения напрямую бо
 # Если нет .env или переменной, просто пропустим шаг.
 set +e
 if [ -f "$PROJ_DIR/.env" ]; then
-  # shellcheck disable=SC2046
-  export $(grep -E '(^BOT_TOKEN=|^TELEGRAM_BOT_TOKEN=)' "$PROJ_DIR/.env" | xargs) || true
+  while IFS= read -r raw_line; do
+    raw_line="${raw_line%$'\r'}"
+    trimmed="${raw_line#${raw_line%%[![:space:]]*}}"
+    case "$trimmed" in
+      ''|\#*) continue ;;
+      *=*) ;;
+      *) continue ;;
+    esac
+    key="${trimmed%%=*}"
+    value="${trimmed#*=}"
+    case "$key" in
+      export\ *) key="${key#export }" ;;
+    esac
+    key="${key%${key##*[![:space:]]}}"
+    key="${key#${key%%[![:space:]]*}}"
+    if [ -z "$key" ]; then
+      continue
+    fi
+    value="${value#${value%%[![:space:]]*}}"
+    value="${value%${value##*[![:space:]]}}"
+    if [[ $value == \"*\" ]]; then
+      value="${value%\"}"
+      value="${value#\"}"
+    elif [[ $value == \'*\' ]]; then
+      value="${value%\'}"
+      value="${value#\'}"
+    fi
+    value="${value%${value##*[![:space:]]}}"
+    value="${value#${value%%[![:space:]]*}}"
+    case "$value" in
+      \#*) value="" ;;
+    esac
+    case "$key" in
+      BOT_TOKEN|TELEGRAM_BOT_TOKEN)
+        export "$key=$value"
+        ;;
+    esac
+  done < "$PROJ_DIR/.env"
 fi
 BOT_TOKEN="${BOT_TOKEN:-${TELEGRAM_BOT_TOKEN:-}}"
 if [ -n "$BOT_TOKEN" ]; then
@@ -121,7 +157,7 @@ except Exception as e:
 
 token=os.environ.get("BOT_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN")
 chat_id=int("${TG_ID}")
-async def main():
+async def main() -> None:
     bot=Bot(token=token)
     txt=f"Диагностика: бот доступен ✅ (UTC={datetime.now(UTC):%Y-%m-%d %H:%M:%S})"
     await bot.send_message(chat_id=chat_id, text=txt)

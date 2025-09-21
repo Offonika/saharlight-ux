@@ -25,7 +25,7 @@ date2num_typed: Callable[[datetime], float] = date2num
 
 # Регистрация шрифтов для поддержки кириллицы и жирного начертания
 DEFAULT_FONT_DIR = "/usr/share/fonts/truetype/dejavu"
-_fonts_registered = False
+_fonts_registration_result: bool | None = None
 _font_lock = threading.Lock()
 
 
@@ -36,13 +36,13 @@ class SugarEntry(Protocol):
     sugar_before: float | None
 
 
-def _register_font(name: str, filename: str) -> str | None:
+def _register_font(name: str, filename: str) -> tuple[bool, str | None]:
     settings = config.get_settings()
     font_dir = settings.font_dir or DEFAULT_FONT_DIR
     path = os.path.join(font_dir, filename)
     try:
         pdfmetrics.registerFont(TTFont(name, path))
-        return None
+        return True, None
     except (OSError, TTFError) as e:
         if isinstance(e, OSError):
             msg = f"[PDF] Cannot register font {name} at {path}: {e}"
@@ -53,41 +53,50 @@ def _register_font(name: str, filename: str) -> str | None:
             fallback = os.path.join(DEFAULT_FONT_DIR, filename)
             try:
                 pdfmetrics.registerFont(TTFont(name, fallback))
-                return f"Использован запасной шрифт {fallback} для {name}: {e}"
+                return True, (
+                    f"Использован запасной шрифт {fallback} для {name}: {e}"
+                )
             except (OSError, TTFError) as e2:
                 if isinstance(e2, OSError):
                     msg2 = f"[PDF] Failed to register default font {name} at {fallback}: {e2}"
                 else:
                     msg2 = f"[PDF] Invalid default font {name} at {fallback}: {e2}"
                 logger.warning(msg2)
-                return msg2
-        return msg
+                return False, msg2
+        return False, msg
 
 
-def register_fonts() -> list[str]:
+def register_fonts() -> bool:
     """Регистрация используемых шрифтов для отчётов.
 
     Returns:
-        list[str]: Список сообщений об ошибках регистрации. Пустой, если
-        регистрация прошла успешно.
+        bool: ``True`` если все шрифты зарегистрированы и могут быть
+        использованы, ``False`` если регистрация не удалась и следует
+        использовать запасные встроенные шрифты.
     """
 
-    global _fonts_registered
+    global _fonts_registration_result
     with _font_lock:
-        if _fonts_registered:
-            return []
+        if _fonts_registration_result is not None:
+            return _fonts_registration_result
 
         messages: list[str] = []
+        success = True
         for name, filename in (
             ("DejaVuSans", "DejaVuSans.ttf"),
             ("DejaVuSans-Bold", "DejaVuSans-Bold.ttf"),
         ):
-            msg = _register_font(name, filename)
+            ok, msg = _register_font(name, filename)
+            if not ok:
+                success = False
             if msg:
                 messages.append(msg)
 
-        _fonts_registered = True
-        return messages
+        if messages:
+            logger.warning("[PDF] Font registration issues: %s", "; ".join(messages))
+
+        _fonts_registration_result = success
+        return success
 
 
 def make_sugar_plot(entries: Iterable[SugarEntry], period_label: str) -> io.BytesIO:
@@ -190,9 +199,13 @@ def generate_pdf_report(
         Использует библиотеку ``reportlab`` для записи PDF и может
         логировать предупреждения при ошибках чтения изображения.
     """
-    font_errors = register_fonts()
-    if font_errors:
-        logger.warning("[PDF] Font registration issues: %s", "; ".join(font_errors))
+    fonts_available = register_fonts()
+    if fonts_available:
+        regular_font = "DejaVuSans"
+        bold_font = "DejaVuSans-Bold"
+    else:
+        regular_font = "Helvetica"
+        bold_font = "Helvetica-Bold"
 
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -209,45 +222,45 @@ def generate_pdf_report(
     y = height - 30 * mm
 
     # Заголовок
-    c.setFont("DejaVuSans-Bold", 18)
+    c.setFont(bold_font, 18)
     c.drawString(x_margin, y, "Отчёт по дневнику диабета")
     y -= 12 * mm
 
     # Summary
-    c.setFont("DejaVuSans-Bold", 13)
-    y = check_page_break(y, "DejaVuSans-Bold", 13)
+    c.setFont(bold_font, 13)
+    y = check_page_break(y, bold_font, 13)
     c.drawString(x_margin, y, "Сводка:")
     y -= 7 * mm
-    c.setFont("DejaVuSans", 11)
-    y = check_page_break(y, "DejaVuSans", 11)
+    c.setFont(regular_font, 11)
+    y = check_page_break(y, regular_font, 11)
     for line in summary_lines:
         c.drawString(x_margin, y, line)
         y -= 6 * mm
-        y = check_page_break(y, "DejaVuSans", 11)
+        y = check_page_break(y, regular_font, 11)
 
     if errors:
-        c.setFont("DejaVuSans-Bold", 13)
-        y = check_page_break(y, "DejaVuSans-Bold", 13)
+        c.setFont(bold_font, 13)
+        y = check_page_break(y, bold_font, 13)
         c.drawString(x_margin, y, "Ошибки и критические значения:")
         y -= 7 * mm
-        c.setFont("DejaVuSans", 11)
-        y = check_page_break(y, "DejaVuSans", 11)
+        c.setFont(regular_font, 11)
+        y = check_page_break(y, regular_font, 11)
         for err in errors:
             c.drawString(x_margin, y, err)
             y -= 6 * mm
-            y = check_page_break(y, "DejaVuSans", 11)
+            y = check_page_break(y, regular_font, 11)
 
     if day_lines:
-        c.setFont("DejaVuSans-Bold", 13)
-        y = check_page_break(y, "DejaVuSans-Bold", 13)
+        c.setFont(bold_font, 13)
+        y = check_page_break(y, bold_font, 13)
         c.drawString(x_margin, y, "Динамика по дням:")
         y -= 7 * mm
-        c.setFont("DejaVuSans", 11)
-        y = check_page_break(y, "DejaVuSans", 11)
+        c.setFont(regular_font, 11)
+        y = check_page_break(y, regular_font, 11)
         for line in day_lines:
             c.drawString(x_margin, y, line)
             y -= 6 * mm
-            y = check_page_break(y, "DejaVuSans", 11)
+            y = check_page_break(y, regular_font, 11)
 
     # Вставка графика
     if plot_buf:
@@ -271,14 +284,14 @@ def generate_pdf_report(
 
     # Анализ и рекомендации
     y -= 8 * mm
-    c.setFont("DejaVuSans-Bold", 13)
+    c.setFont(bold_font, 13)
     c.drawString(x_margin, y, "Анализ и рекомендации:")
     y -= 7 * mm
-    c.setFont("DejaVuSans", 11)
+    c.setFont(regular_font, 11)
     for line in wrap_text(gpt_text, width=100):
         c.drawString(x_margin, y, line)
         y -= 6 * mm
-        y = check_page_break(y, "DejaVuSans", 11)
+        y = check_page_break(y, regular_font, 11)
     c.save()
     buffer.seek(0)
     return buffer

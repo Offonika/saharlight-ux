@@ -552,6 +552,8 @@ def init_db() -> None:
     with engine_lock:
         if engine is None or engine.url != database_url:
             if engine is not None:
+                close_all_sessions()
+                SessionLocal.configure(bind=None)
                 engine.dispose()
             try:
                 engine = create_engine(database_url)

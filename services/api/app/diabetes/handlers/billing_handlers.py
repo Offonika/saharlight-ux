@@ -100,9 +100,6 @@ async def trial_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         logger.exception("invalid trial end date")
         await message.reply_text("❌ Ошибка сервера: неверный формат даты trial.")
         return
-    except Exception:  # pragma: no cover - unexpected
-        logger.exception("unexpected error parsing trial end date")
-        raise
     end_str = end_dt.strftime("%d.%m.%Y")
     await message.reply_text(f"🎉 Активирован trial до {end_str}")
     kb = subscription_keyboard(False)

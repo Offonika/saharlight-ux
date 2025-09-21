@@ -4,6 +4,7 @@ import logging
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Awaitable, Callable, cast
 
+from sqlalchemy.exc import SQLAlchemyError
 from telegram import (
     CallbackQuery,
     ForceReply,
@@ -90,7 +91,7 @@ async def handle_edit_entry(
     await query.edit_message_text(
         "Отправьте новое сообщение в формате:\n"
         "`сахар=<ммоль/л>  xe=<ХЕ>  carbs=<г>  dose=<ед>`\n"
-        "Можно указывать не все поля (что прописано — то и поменяется).",
+        "Можно указывать не все поля — изменится только то, что вы перечислите.",
         parse_mode="Markdown",
     )
 
@@ -231,22 +232,27 @@ async def handle_profile_timezone(
     user = update.effective_user
     if user is None:
         return
-    with SessionLocal() as session:
-        db_user = session.get(User, user.id)
-        if db_user is None:
-            db_user = User(telegram_id=user.id, thread_id="api")
-            session.add(db_user)
-        profile = session.get(Profile, user.id)
-        if profile is None:
-            profile = Profile(telegram_id=user.id)
-            session.add(profile)
-        profile.timezone = tz
-        profile.timezone_auto = False
-        try:
-            commit(session)
-        except CommitError:
-            await query.edit_message_text("⚠️ Не удалось обновить часовой пояс.")
-            return
+    try:
+        with SessionLocal() as session:
+            db_user = session.get(User, user.id)
+            if db_user is None:
+                db_user = User(telegram_id=user.id, thread_id="api")
+                session.add(db_user)
+            profile = session.get(Profile, user.id)
+            if profile is None:
+                profile = Profile(telegram_id=user.id)
+                session.add(profile)
+            profile.timezone = tz
+            profile.timezone_auto = False
+            try:
+                commit(session)
+            except CommitError:
+                await query.edit_message_text("⚠️ Не удалось обновить часовой пояс.")
+                return
+    except SQLAlchemyError:
+        logger.exception("failed to update timezone for %s", user.id)
+        await query.edit_message_text("⚠️ Не удалось обновить часовой пояс.")
+        return
     await query.edit_message_text("✅ Часовой пояс обновлён.")
 
 

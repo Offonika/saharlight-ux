@@ -36,6 +36,7 @@ async def test_get_openai_client_uses_proxy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     fake_http_client = Mock()
+    fake_http_client.close = Mock()
     http_client_mock = Mock(return_value=fake_http_client)
     openai_mock = Mock()
 
@@ -44,18 +45,20 @@ async def test_get_openai_client_uses_proxy(
     )
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", {})
-    monkeypatch.setattr(httpx, "Client", http_client_mock)
+    monkeypatch.setattr(openai_utils, "_create_http_client", http_client_mock)
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
 
     client = openai_utils.get_openai_client()
 
-    http_client_mock.assert_called_once_with(proxy="http://proxy")
-    fake_http_client.close.assert_not_called()
+    http_client_mock.assert_called_once_with(
+        "http://proxy", openai_utils.DEFAULT_HTTP_TIMEOUT
+    )
+    fake_http_client._openai_utils_original_close.assert_not_called()
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_http_client)
     assert client is openai_mock.return_value
 
     await openai_utils.dispose_http_client()
-    fake_http_client.close.assert_called_once()
+    fake_http_client._openai_utils_original_close.assert_called_once()
 
 
 def test_get_openai_client_logs_assistant(
@@ -85,7 +88,7 @@ def test_get_openai_client_without_proxy(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", {})
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
-    monkeypatch.setattr(httpx, "Client", http_client_mock)
+    monkeypatch.setattr(openai_utils, "_create_http_client", http_client_mock)
 
     client = openai_utils.get_openai_client()
 
@@ -109,6 +112,7 @@ async def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
 
     dummy_lock = DummyLock()
     fake_http_client = Mock()
+    fake_http_client.close = Mock()
     fake_settings = SimpleNamespace(
         openai_api_key="key", openai_proxy="http://proxy", openai_assistant_id=None
     )
@@ -116,7 +120,9 @@ async def test_http_client_lock_used(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client_lock", dummy_lock)
     monkeypatch.setattr(openai_utils, "_http_client", {})
-    monkeypatch.setattr(httpx, "Client", Mock(return_value=fake_http_client))
+    monkeypatch.setattr(
+        openai_utils, "_create_http_client", Mock(return_value=fake_http_client)
+    )
     monkeypatch.setattr(openai_utils, "OpenAI", Mock())
 
     openai_utils.get_openai_client()
@@ -157,18 +163,20 @@ async def test_get_async_openai_client_uses_proxy(
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
 
-    monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
+    monkeypatch.setattr(openai_utils, "_create_async_http_client", async_client_mock)
     monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
     monkeypatch.setattr(openai_utils, "_http_client", {})
 
     client = openai_utils.get_async_openai_client()
 
-    async_client_mock.assert_called_once_with(proxy="http://proxy")
+    async_client_mock.assert_called_once_with(
+        "http://proxy", openai_utils.DEFAULT_HTTP_TIMEOUT
+    )
     openai_mock.assert_called_once_with(api_key="key", http_client=fake_async_client)
     assert client is openai_mock.return_value
 
     await openai_utils.dispose_http_client()
-    fake_async_client.aclose.assert_awaited_once()
+    assert fake_async_client._openai_utils_original_aclose.await_count == 1
     assert openai_utils._async_http_client == {}
 
 
@@ -232,6 +240,7 @@ async def test_dispose_http_client_logs_errors_and_continues(
 @pytest.mark.asyncio
 async def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_http_client = Mock()
+    fake_http_client.close = Mock()
     http_client_mock = Mock(return_value=fake_http_client)
     fake_openai_client = Mock()
     openai_mock = Mock(return_value=fake_openai_client)
@@ -241,13 +250,13 @@ async def test_openai_client_ctx_disposes(monkeypatch: pytest.MonkeyPatch) -> No
     )
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_http_client", {})
-    monkeypatch.setattr(httpx, "Client", http_client_mock)
+    monkeypatch.setattr(openai_utils, "_create_http_client", http_client_mock)
     monkeypatch.setattr(openai_utils, "OpenAI", openai_mock)
 
     async with openai_utils.openai_client_ctx() as client:
         assert client is fake_openai_client
 
-    fake_http_client.close.assert_called_once()
+    fake_http_client._openai_utils_original_close.assert_called_once()
     fake_openai_client.close.assert_called_once()
     assert openai_utils._http_client == {}
 
@@ -290,14 +299,14 @@ async def test_async_openai_client_ctx_disposes(
     monkeypatch.setattr(config, "get_settings", lambda: fake_settings)
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
     monkeypatch.setattr(openai_utils, "_http_client", {})
-    monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
+    monkeypatch.setattr(openai_utils, "_create_async_http_client", async_client_mock)
     monkeypatch.setattr(openai_utils, "AsyncOpenAI", openai_mock)
 
     async with openai_utils.async_openai_client_ctx() as client:
         assert client is fake_async_openai_client
 
     fake_async_openai_client.close.assert_awaited_once()
-    fake_async_http_client.aclose.assert_awaited_once()
+    assert fake_async_http_client._openai_utils_original_aclose.await_count == 1
     assert openai_utils._async_http_client == {}
 
 
@@ -378,9 +387,11 @@ async def test_build_http_client_returns_separate_clients_for_each_proxy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     fake_client1 = Mock()
+    fake_client1.close = Mock()
     fake_client2 = Mock()
+    fake_client2.close = Mock()
     client_mock = Mock(side_effect=[fake_client1, fake_client2])
-    monkeypatch.setattr(httpx, "Client", client_mock)
+    monkeypatch.setattr(openai_utils, "_create_http_client", client_mock)
     monkeypatch.setattr(openai_utils, "_http_client", {})
 
     client_a = openai_utils.build_http_client("http://proxy1")
@@ -391,8 +402,75 @@ async def test_build_http_client_returns_separate_clients_for_each_proxy(
     assert openai_utils.build_http_client("http://proxy1") is client_a
 
     await openai_utils.dispose_http_client()
-    fake_client1.close.assert_called_once()
-    fake_client2.close.assert_called_once()
+    fake_client1._openai_utils_original_close.assert_called_once()
+    fake_client2._openai_utils_original_close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_build_http_client_allows_timeout_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_default_client = Mock()
+    fake_default_client.close = Mock()
+    fake_custom_client = Mock()
+    fake_custom_client.close = Mock()
+    client_mock = Mock(side_effect=[fake_default_client, fake_custom_client])
+    monkeypatch.setattr(openai_utils, "_create_http_client", client_mock)
+    monkeypatch.setattr(openai_utils, "_http_client", {})
+    monkeypatch.setattr(openai_utils, "_async_http_client", {})
+
+    custom_timeout = httpx.Timeout(1.0)
+
+    default_client = openai_utils.build_http_client("http://proxy")
+    override_client = openai_utils.build_http_client(
+        "http://proxy", timeout=custom_timeout
+    )
+
+    assert default_client is fake_default_client
+    assert override_client is fake_custom_client
+
+    default_call_args = client_mock.call_args_list[0].args
+    assert default_call_args == (
+        "http://proxy",
+        openai_utils.DEFAULT_HTTP_TIMEOUT,
+    )
+
+    override_call_args = client_mock.call_args_list[1].args
+    assert override_call_args == ("http://proxy", custom_timeout)
+
+    await openai_utils.dispose_http_client()
+    fake_default_client._openai_utils_original_close.assert_called_once()
+    fake_custom_client._openai_utils_original_close.assert_called_once()
+
+
+def test_build_http_client_recreates_after_close(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_client1 = Mock()
+    fake_client1.close = Mock()
+    fake_client2 = Mock()
+    fake_client2.close = Mock()
+    client_mock = Mock(side_effect=[fake_client1, fake_client2])
+
+    monkeypatch.setattr(openai_utils, "_create_http_client", client_mock)
+    monkeypatch.setattr(openai_utils, "_http_client", {})
+    monkeypatch.setattr(openai_utils, "_async_http_client", {})
+
+    first_client = openai_utils.build_http_client("http://proxy")
+    assert first_client is fake_client1
+
+    first_client.close()
+    fake_client1._openai_utils_original_close.assert_called_once()
+    assert openai_utils._http_client == {}
+
+    second_client = openai_utils.build_http_client("http://proxy")
+    assert second_client is fake_client2
+    assert second_client is not first_client
+    assert client_mock.call_count == 2
+
+    second_client.close()
+    fake_client2._openai_utils_original_close.assert_called_once()
+    assert openai_utils._http_client == {}
 
 
 @pytest.mark.asyncio
@@ -405,7 +483,7 @@ async def test_build_async_http_client_returns_separate_clients_for_each_proxy(
     fake_async_client2.aclose = AsyncMock()
     async_client_mock = Mock(side_effect=[fake_async_client1, fake_async_client2])
 
-    monkeypatch.setattr(httpx, "AsyncClient", async_client_mock)
+    monkeypatch.setattr(openai_utils, "_create_async_http_client", async_client_mock)
     monkeypatch.setattr(openai_utils, "_async_http_client", {})
     monkeypatch.setattr(openai_utils, "_http_client", {})
 
@@ -417,5 +495,76 @@ async def test_build_async_http_client_returns_separate_clients_for_each_proxy(
     assert openai_utils.build_async_http_client("http://proxy1") is client_a
 
     await openai_utils.dispose_http_client()
-    fake_async_client1.aclose.assert_awaited_once()
-    fake_async_client2.aclose.assert_awaited_once()
+    assert fake_async_client1._openai_utils_original_aclose.await_count == 1
+    assert fake_async_client2._openai_utils_original_aclose.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_build_async_http_client_allows_timeout_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_default_async_client = Mock()
+    fake_default_async_client.aclose = AsyncMock()
+    fake_custom_async_client = Mock()
+    fake_custom_async_client.aclose = AsyncMock()
+    async_client_mock = Mock(
+        side_effect=[fake_default_async_client, fake_custom_async_client]
+    )
+
+    monkeypatch.setattr(openai_utils, "_create_async_http_client", async_client_mock)
+    monkeypatch.setattr(openai_utils, "_async_http_client", {})
+    monkeypatch.setattr(openai_utils, "_http_client", {})
+
+    custom_timeout = httpx.Timeout(1.0)
+
+    default_client = openai_utils.build_async_http_client("http://proxy")
+    override_client = openai_utils.build_async_http_client(
+        "http://proxy", timeout=custom_timeout
+    )
+
+    assert default_client is fake_default_async_client
+    assert override_client is fake_custom_async_client
+
+    default_call_args = async_client_mock.call_args_list[0].args
+    assert default_call_args == (
+        "http://proxy",
+        openai_utils.DEFAULT_HTTP_TIMEOUT,
+    )
+
+    override_call_args = async_client_mock.call_args_list[1].args
+    assert override_call_args == ("http://proxy", custom_timeout)
+
+    await openai_utils.dispose_http_client()
+    assert fake_default_async_client._openai_utils_original_aclose.await_count == 1
+    assert fake_custom_async_client._openai_utils_original_aclose.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_build_async_http_client_recreates_after_close(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_async_client1 = Mock()
+    fake_async_client1.aclose = AsyncMock()
+    fake_async_client2 = Mock()
+    fake_async_client2.aclose = AsyncMock()
+    async_client_mock = Mock(side_effect=[fake_async_client1, fake_async_client2])
+
+    monkeypatch.setattr(openai_utils, "_create_async_http_client", async_client_mock)
+    monkeypatch.setattr(openai_utils, "_async_http_client", {})
+    monkeypatch.setattr(openai_utils, "_http_client", {})
+
+    first_client = openai_utils.build_async_http_client("http://proxy")
+    assert first_client is fake_async_client1
+
+    await first_client.aclose()
+    assert fake_async_client1._openai_utils_original_aclose.await_count == 1
+    assert openai_utils._async_http_client == {}
+
+    second_client = openai_utils.build_async_http_client("http://proxy")
+    assert second_client is fake_async_client2
+    assert second_client is not first_client
+    assert async_client_mock.call_count == 2
+
+    await second_client.aclose()
+    assert fake_async_client2._openai_utils_original_aclose.await_count == 1
+    assert openai_utils._async_http_client == {}

@@ -40,7 +40,14 @@ async def test_create_learning_chat_completion_uses_router(
     )
     settings = config.get_settings()
     monkeypatch.setattr(settings, "learning_model_default", "gpt-4o-mini")
-    monkeypatch.setattr(gpt_client, "_learning_router", LLMRouter())
+    router = LLMRouter()
+    observed: list[LLMTask] = []
+
+    def fake_choose_model(task: LLMTask) -> str:
+        observed.append(task)
+        return router.choose_model(task)
+
+    monkeypatch.setattr(gpt_client, "choose_model", fake_choose_model)
 
     await gpt_client.create_learning_chat_completion(
         task=LLMTask.EXPLAIN_STEP,
@@ -48,3 +55,4 @@ async def test_create_learning_chat_completion_uses_router(
     )
 
     assert captured["model"] == "gpt-4o-mini"
+    assert observed == [LLMTask.EXPLAIN_STEP]

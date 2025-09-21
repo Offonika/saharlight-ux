@@ -351,6 +351,14 @@ def test_create_thread_sync_error(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_thread_sync_running_loop_error() -> None:
+    message = r"create_thread_sync\(\) cannot be used when the event loop is running"
+
+    with pytest.raises(RuntimeError, match=message):
+        gpt_client.create_thread_sync()
+
+
+@pytest.mark.asyncio
 async def test_send_message_timeout(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -415,7 +423,7 @@ async def test_upload_image_file(
     img.write_bytes(b"data")
 
     def fake_files_create(file: Any, purpose: str) -> SimpleNamespace:
-        assert purpose == "vision"
+        assert purpose == "assistants"
         assert file.read() == b"data"
         return SimpleNamespace(id="f1")
 
@@ -435,12 +443,17 @@ async def test_upload_image_bytes() -> None:
         name, buffer = file
         captured["name"] = name
         captured["data"] = buffer.read()
+        captured["purpose"] = purpose
         return SimpleNamespace(id="f2")
 
     fake_client = SimpleNamespace(files=SimpleNamespace(create=fake_files_create))
     file = await gpt_client._upload_image_bytes(fake_client, b"payload")
     assert file.id == "f2"
-    assert captured == {"name": "image.jpg", "data": b"payload"}
+    assert captured == {
+        "name": "image.jpg",
+        "data": b"payload",
+        "purpose": "assistants",
+    }
 
 
 @pytest.mark.asyncio

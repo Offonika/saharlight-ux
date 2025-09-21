@@ -55,16 +55,16 @@
 ## 📁 Основные файлы и структура
 
 - **services/api/app/diabetes/** — основной пакет, логика бота
-    - **common_handlers.py** — общие обработчики и роутинг
-    - **onboarding_handlers.py** — сценарий регистрации и стартовые команды
-    - **profile_handlers.py** — управление профилем пользователя
-    - **reporting_handlers.py** — дневник питания и отчётность
-    - **dose_calc.py** — расчёт доз инсулина
-    - **dose_validation.py** — вспомогательные проверки
-    - новые модули `*_handlers.py` — для дополнительных сценариев
-    - **db.py, models.py** — работа с БД
-    - **functions.py** — расчёты и парсинг
-    - **gpt_client.py** — работа с OpenAI
+    - **handlers/common_handlers.py** — общие обработчики и роутинг
+    - **handlers/onboarding_handlers.py** — сценарий регистрации и стартовые команды
+    - **handlers/profile/** — управление профилем пользователя
+    - **handlers/reporting_handlers.py** — дневник питания и отчётность
+    - **handlers/dose_calc.py** — расчёт доз инсулина
+    - **handlers/dose_validation.py** — вспомогательные проверки
+    - новые модули `handlers/*_handlers.py` — для дополнительных сценариев
+    - **services/db.py**, **models.py** — работа с БД
+    - **utils/functions.py** — расчёты и парсинг
+    - **services/gpt_client.py** — работа с OpenAI
 - **services/api/app/requirements.txt** — зависимости Python
 - **setup.sh** — автоматическая установка окружения
 - **infra/docker/Dockerfile.api** — для контейнеризации и Codex
@@ -72,7 +72,7 @@
 - **infra/env/.env.example** — шаблон для переменных окружения
 - **tests/** — директория для автотестов (по мере развития)
   
-Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `services/api/app/diabetes/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
+Все обработчики располагаются в отдельных файлах с суффиксом `_handlers.py` в каталоге `services/api/app/diabetes/handlers/`. Добавляя новый функционал, создавайте новый модуль или дополняйте существующий, придерживаясь тематического разделения.
 
 ---
 
@@ -125,15 +125,15 @@
 ## ⚡ Примеры задач для Codex/разработки
 
 - **Рефакторинг:**
-  _Refactor services/api/app/diabetes/handlers.py, split into smaller modules for readability and maintainability. Add type hints and docstrings._
+  _Refactor modules in services/api/app/diabetes/handlers/, split into smaller components for readability and maintainability. Add type hints and docstrings._
 - **Покрытие тестами:**
-  _Add pytest unit tests for services/api/app/diabetes/functions.py, cover all calculation logic._
+  _Add pytest unit tests for services/api/app/diabetes/utils/functions.py, cover all calculation logic._
 - **CI и линтинг:**
   _Run ruff on services/api/app/ and tests/, fix all style issues. Add a pre-commit hook if needed._
 - **Документация:**
   _Generate and update code documentation. Add docstrings to all public functions._
 - **Безопасность:**
-  _Audit services/api/app/diabetes/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
+  _Audit services/api/app/diabetes/services/db.py for ORM or SQL security issues. Implement parameterized queries if needed._
 - **Docker:**  
   _Check that infra/docker/Dockerfile.api builds and runs with .env, update README.md with Docker instructions._
 
@@ -142,7 +142,7 @@
 ## 📝 Дополнительно
 
 - Если нужно добавить команды для тестирования, линтинга или деплоя — пропишите здесь или в README.md.
-- При отправке PR следуйте структуре: `[module] <описание>`, например `[handlers] Add type hints to handlers.py`
+- При отправке PR следуйте структуре: `[module] <описание>`, например `[handlers] Add type hints to common_handlers.py`
 
 ---
 

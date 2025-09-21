@@ -111,7 +111,6 @@ if TYPE_CHECKING:
     MessageHandlerT: TypeAlias = MessageHandler[ContextTypes.DEFAULT_TYPE, object]
     CallbackQueryHandlerT: TypeAlias = CallbackQueryHandler[ContextTypes.DEFAULT_TYPE, object]
 else:
-    CommandHandlerT = CommandHandler
     MessageHandlerT = MessageHandler
     CallbackQueryHandlerT = CallbackQueryHandler
 
@@ -151,11 +150,11 @@ def register_reminder_handlers(
 
     from . import reminder_handlers
 
-    app.add_handler(CommandHandlerT("reminders", reminder_handlers.reminders_list))
-    app.add_handler(CommandHandlerT("addreminder", reminder_handlers.add_reminder))
+    app.add_handler(CommandHandler("reminders", reminder_handlers.reminders_list))
+    app.add_handler(CommandHandler("addreminder", reminder_handlers.add_reminder))
     app.add_handler(reminder_handlers.reminder_action_handler)
     app.add_handler(reminder_handlers.reminder_webapp_handler)
-    app.add_handler(CommandHandlerT("delreminder", reminder_handlers.delete_reminder))
+    app.add_handler(CommandHandler("delreminder", reminder_handlers.delete_reminder))
     app.add_handler(
         MessageHandlerT(
             filters.Regex(re.escape(REMINDERS_BUTTON_TEXT)),
@@ -220,33 +219,33 @@ def register_handlers(
     settings = reload_settings()
     learning_enabled = settings.learning_mode_enabled
 
-    app.add_handler(CommandHandlerT("menu", learning_handlers.cmd_menu))
-    app.add_handler(CommandHandlerT("assistant", assistant_menu.show_menu))
+    app.add_handler(CommandHandler("menu", learning_handlers.cmd_menu))
+    app.add_handler(CommandHandler("assistant", assistant_menu.show_menu))
     app.add_handler(
         MessageHandlerT(
             filters.TEXT & filters.Regex(ASSISTANT_BUTTON_PATTERN),
             assistant_menu.show_menu,
         )
     )
-    app.add_handler(CommandHandlerT("report", reporting_handlers.report_request))
-    app.add_handler(CommandHandlerT("history", reporting_handlers.history_view))
+    app.add_handler(CommandHandler("report", reporting_handlers.report_request))
+    app.add_handler(CommandHandler("history", reporting_handlers.history_view))
     app.add_handler(dose_calc.dose_conv)
     # Register profile conversation before sugar conversation so that numeric
     # inputs for profile aren't captured by sugar logging
     register_profile_handlers(app)
     app.add_handler(sugar_handlers.sugar_conv)
     app.add_handler(sos_handlers.sos_contact_conv)
-    app.add_handler(CommandHandlerT("cancel", cancel))
-    app.add_handler(CommandHandlerT("help", help_command))
-    app.add_handler(CommandHandlerT("reset_onboarding", bot_commands.reset_onboarding))
-    app.add_handler(CommandHandlerT("gpt", start_gpt_dialog))
-    app.add_handler(CommandHandlerT("reset", bot_commands.reset_command))
-    app.add_handler(CommandHandlerT("trial", billing_handlers.trial_command))
-    app.add_handler(CommandHandlerT("upgrade", billing_handlers.upgrade_command))
+    app.add_handler(CommandHandler("cancel", cancel))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("reset_onboarding", bot_commands.reset_onboarding))
+    app.add_handler(CommandHandler("gpt", start_gpt_dialog))
+    app.add_handler(CommandHandler("reset", bot_commands.reset_command))
+    app.add_handler(CommandHandler("trial", billing_handlers.trial_command))
+    app.add_handler(CommandHandler("upgrade", billing_handlers.upgrade_command))
     app.add_handler(CallbackQueryHandlerT(billing_handlers.trial_command, pattern="^trial$"))
     register_reminder_handlers(app)
-    app.add_handler(CommandHandlerT("alertstats", alert_handlers.alert_stats))
-    app.add_handler(CommandHandlerT("hypoalert", security_handlers.hypo_alert_faq))
+    app.add_handler(CommandHandler("alertstats", alert_handlers.alert_stats))
+    app.add_handler(CommandHandler("hypoalert", security_handlers.hypo_alert_faq))
     app.add_handler(
         MessageHandlerT(
             filters.Regex(re.escape(REPORT_BUTTON_TEXT)),

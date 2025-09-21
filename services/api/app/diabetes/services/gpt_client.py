@@ -56,6 +56,37 @@ _learning_router = LLMRouter()
 
 CacheKey = tuple[str, str, str, str, str, str, str, str]
 
+
+def choose_model(task: LLMTask) -> str:
+    """Return the model name configured for the given learning task."""
+
+    return _learning_router.choose_model(task)
+
+
+def make_cache_key(
+    model: str,
+    system: str,
+    user: str,
+    user_id: str | None,
+    plan_id: str | None,
+    topic_slug: str | None,
+    step_idx: int | None,
+    last_reply_hash: str,
+) -> CacheKey:
+    """Create a cache key for learning prompt completions."""
+
+    return _make_cache_key(
+        model,
+        system,
+        user,
+        user_id,
+        plan_id,
+        topic_slug,
+        step_idx,
+        last_reply_hash,
+    )
+
+
 _learning_cache: OrderedDict[CacheKey, tuple[str, float]] = OrderedDict()
 _learning_cache_lock = threading.Lock()
 
@@ -138,6 +169,9 @@ def format_reply(text: str, *, max_len: int = 800) -> str:
     str
         Formatted text with paragraphs truncated and separated by blank lines.
     """
+    if max_len <= 0:
+        raise ValueError("max_len must be positive")
+
     paragraphs = [part.strip()[:max_len] for part in re.split(r"\n\s*\n", text.strip()) if part.strip()]
     return "\n\n".join(paragraphs)
 
@@ -241,7 +275,7 @@ async def create_learning_chat_completion(
     last_reply: str | None = None,
 ) -> str:
     """Create and format a chat completion for learning tasks."""
-    model = _learning_router.choose_model(task)
+    model = choose_model(task)
     msg_list = list(messages)
     system = ""
     user = ""
@@ -279,7 +313,7 @@ async def create_learning_chat_completion(
         else ""
     )
     settings = config.get_settings()
-    cache_key = _make_cache_key(
+    cache_key = make_cache_key(
         model, system, user, user_id, plan_id, topic_slug, step_idx, last_hash
     )
     if settings.learning_prompt_cache:
@@ -357,25 +391,32 @@ async def create_thread() -> str:
 def create_thread_sync() -> str:
     """Synchronously create an empty thread.
 
-    The function bridges synchronous and asynchronous code.  If no event loop
-    is currently running in the calling thread, the helper coroutine is
-    executed using :func:`asyncio.run`.  When invoked from a thread with an
-    active loop (for example, inside ``pytest.mark.asyncio`` tests), the
-    coroutine is scheduled via :func:`asyncio.create_task` and the loop waits
-    for its completion.
+    The helper bridges synchronous and asynchronous call sites. When no
+    running event loop is detected in the current thread the coroutine is
+    executed via :func:`asyncio.run`. Calling the function while an event loop
+    is already running is unsafe, therefore a clear ``RuntimeError`` is raised
+    instructing the caller to await :func:`create_thread` instead.
 
     Returns
     -------
     str
         Identifier of the created thread.
+
+    Raises
+    ------
+    RuntimeError
+        If called from a thread with an active event loop.
     """
 
     try:
-        loop = asyncio.get_running_loop()
+        asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.run(create_thread())
-    task = asyncio.create_task(create_thread())
-    return loop.run_until_complete(task)
+
+    raise RuntimeError(
+        "create_thread_sync() cannot be used when the event loop is running; "
+        "await create_thread() instead."
+    )
 
 
 def _validate_image_path(image_path: str) -> str:
@@ -423,7 +464,7 @@ async def _upload_image_file(client: OpenAI, image_path: str) -> FileObject:
 
         def _upload() -> FileObject:
             with open(safe_path, "rb") as f:
-                return client.files.create(file=f, purpose="vision")
+                return client.files.create(file=f, purpose="assistants")
 
         file = await asyncio.wait_for(asyncio.to_thread(_upload), timeout=FILE_UPLOAD_TIMEOUT)
     except asyncio.TimeoutError:
@@ -446,7 +487,9 @@ async def _upload_image_bytes(client: OpenAI, image_bytes: bytes) -> FileObject:
 
         def _upload_bytes() -> FileObject:
             with io.BytesIO(image_bytes) as buffer:
-                return client.files.create(file=("image.jpg", buffer), purpose="vision")
+                return client.files.create(
+                    file=("image.jpg", buffer), purpose="assistants"
+                )
 
         file = await asyncio.wait_for(asyncio.to_thread(_upload_bytes), timeout=FILE_UPLOAD_TIMEOUT)
     except asyncio.TimeoutError:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -38,7 +39,12 @@ def make_client(
     session_local: sessionmaker[Session],
     settings: BillingSettings,
 ) -> TestClient:
-    async def run_db(fn, *args, sessionmaker: sessionmaker[Session] = session_local, **kwargs):
+    async def run_db(
+        fn,
+        *args,
+        sessionmaker: sessionmaker[Session] = session_local,
+        **kwargs,
+    ) -> Any:
         with sessionmaker() as session:
             return fn(session, *args, **kwargs)
 

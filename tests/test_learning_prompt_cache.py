@@ -39,12 +39,7 @@ async def test_learning_cache_reuses_response(monkeypatch: pytest.MonkeyPatch) -
             learning_prompt_cache_ttl_sec=1000,
         ),
     )
-    monkeypatch.setattr(
-        gpt_client,
-        "_learning_router",
-        gpt_client.LLMRouter("gpt-4o-mini"),
-        raising=False,
-    )
+    monkeypatch.setattr(gpt_client, "choose_model", lambda task: "gpt-4o-mini")
     monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     messages = [
@@ -82,12 +77,7 @@ async def test_learning_cache_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
             learning_prompt_cache_ttl_sec=1000,
         ),
     )
-    monkeypatch.setattr(
-        gpt_client,
-        "_learning_router",
-        gpt_client.LLMRouter("gpt-4o-mini"),
-        raising=False,
-    )
+    monkeypatch.setattr(gpt_client, "choose_model", lambda task: "gpt-4o-mini")
     monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     messages = [
@@ -120,12 +110,12 @@ async def test_learning_cache_key_components(monkeypatch: pytest.MonkeyPatch) ->
             learning_prompt_cache_ttl_sec=1000,
         ),
     )
-    monkeypatch.setattr(
-        gpt_client,
-        "_learning_router",
-        gpt_client.LLMRouter("m1"),
-        raising=False,
-    )
+    model_name = {"value": "m1"}
+
+    def choose(task: LLMTask) -> str:
+        return model_name["value"]
+
+    monkeypatch.setattr(gpt_client, "choose_model", choose)
     monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     msg_base = [
@@ -185,12 +175,7 @@ async def test_learning_cache_key_components(monkeypatch: pytest.MonkeyPatch) ->
     assert call_count == 3
 
     # different model => miss
-    monkeypatch.setattr(
-        gpt_client,
-        "_learning_router",
-        gpt_client.LLMRouter("m2"),
-        raising=False,
-    )
+    model_name["value"] = "m2"
     await gpt_client.create_learning_chat_completion(
         task=LLMTask.EXPLAIN_STEP, messages=msg_base
     )
@@ -281,12 +266,7 @@ async def test_learning_cache_respects_size(monkeypatch: pytest.MonkeyPatch) -> 
             learning_prompt_cache_ttl_sec=1000,
         ),
     )
-    monkeypatch.setattr(
-        gpt_client,
-        "_learning_router",
-        gpt_client.LLMRouter("m1"),
-        raising=False,
-    )
+    monkeypatch.setattr(gpt_client, "choose_model", lambda task: "m1")
     monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     def make_msgs(i: int) -> list[dict[str, str]]:
@@ -321,12 +301,7 @@ async def test_learning_cache_respects_ttl(monkeypatch: pytest.MonkeyPatch) -> N
             learning_prompt_cache_ttl_sec=1,
         ),
     )
-    monkeypatch.setattr(
-        gpt_client,
-        "_learning_router",
-        gpt_client.LLMRouter("m1"),
-        raising=False,
-    )
+    monkeypatch.setattr(gpt_client, "choose_model", lambda task: "m1")
     monkeypatch.setattr(gpt_client, "_learning_cache", OrderedDict())
 
     start = 100.0

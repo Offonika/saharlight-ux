@@ -12,8 +12,9 @@ import asyncio
 import logging
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone, timedelta
+from typing import Iterable
 
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from services.api.app.config import settings
@@ -61,6 +62,23 @@ def _trim_pending_logs() -> None:
     pending_logs_size.set(len(pending_logs))
 
 
+async def _restore_queued_logs(logs: Iterable[_PendingLog]) -> None:
+    """Return ``logs`` to :data:`pending_logs` and update metrics."""
+
+    async with pending_logs_lock:
+        pending_logs.extend(logs)
+        _trim_pending_logs()
+
+
+async def _ensure_log_queued(log: _PendingLog) -> None:
+    """Ensure ``log`` is present in :data:`pending_logs`."""
+
+    async with pending_logs_lock:
+        if log not in pending_logs:
+            pending_logs.append(log)
+            _trim_pending_logs()
+
+
 async def flush_pending_logs() -> None:
     """Flush accumulated logs to the database."""
     async with pending_logs_lock:
@@ -92,20 +110,27 @@ async def flush_pending_logs() -> None:
             missing = []
         else:  # pragma: no cover - logging only
             lesson_log_failures.inc(len(queued))
-            async with pending_logs_lock:
-                pending_logs.extend(queued)
-                _trim_pending_logs()
+            await _restore_queued_logs(queued)
             if settings.learning_logging_required:
                 raise
             return
-    except Exception:  # pragma: no cover - logging only
+    except (OSError, RuntimeError, SQLAlchemyError) as exc:  # pragma: no cover - logging only
         lesson_log_failures.inc(len(queued))
-        async with pending_logs_lock:
-            pending_logs.extend(queued)
-            _trim_pending_logs()
+        await _restore_queued_logs(queued)
+        logger.exception("flush_pending_logs failed", exc_info=exc)
         if settings.learning_logging_required:
             raise
         return
+    except asyncio.CancelledError:
+        await _restore_queued_logs(queued)
+        raise
+    except Exception as exc:  # pragma: no cover - defensive logging
+        lesson_log_failures.inc(len(queued))
+        await _restore_queued_logs(queued)
+        logger.exception(
+            "Unexpected error while flushing pending logs", exc_info=exc
+        )
+        raise
 
     if missing:
         async with pending_logs_lock:
@@ -171,17 +196,27 @@ async def safe_add_lesson_log(
 
     try:
         await add_lesson_log(user_id, plan_id, module_idx, step_idx, role, content)
-    except Exception as exc:  # pragma: no cover - defensive
-        async with pending_logs_lock:
-            if log not in pending_logs:
-                pending_logs.append(log)
-                _trim_pending_logs()
+    except asyncio.CancelledError:
+        await _ensure_log_queued(log)
+        raise
+    except (CommitError, OSError, RuntimeError, SQLAlchemyError) as exc:  # pragma: no cover - defensive
+        await _ensure_log_queued(log)
         lesson_log_failures.inc()
         logger.warning("Failed to add lesson log: %s", asdict(log), exc_info=exc)
         if settings.learning_logging_required:
             logger.error("Failed to add lesson log", exc_info=exc)
             notify("lesson_log_failure")
         return False
+    except Exception as exc:  # pragma: no cover - defensive logging
+        await _ensure_log_queued(log)
+        lesson_log_failures.inc()
+        logger.exception(
+            "Unexpected error while adding lesson log: %s", asdict(log), exc_info=exc
+        )
+        if settings.learning_logging_required:
+            logger.error("Failed to add lesson log", exc_info=exc)
+            notify("lesson_log_failure")
+        raise
 
     async with pending_logs_lock:
         flushed = log not in pending_logs
@@ -193,8 +228,15 @@ async def _flush_periodically(interval: float) -> None:
         await asyncio.sleep(interval)
         try:
             await flush_pending_logs()
-        except Exception as exc:  # pragma: no cover - logging only
+        except asyncio.CancelledError:
+            raise
+        except (CommitError, OSError, RuntimeError, SQLAlchemyError) as exc:  # pragma: no cover - logging only
             logger.exception("Failed to flush pending logs", exc_info=exc)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception(
+                "Unexpected error while flushing pending logs", exc_info=exc
+            )
+            raise
 
 
 def start_flush_task(interval: float = _FLUSH_INTERVAL) -> None:
