@@ -423,7 +423,7 @@ async def test_upload_image_file(
     img.write_bytes(b"data")
 
     def fake_files_create(file: Any, purpose: str) -> SimpleNamespace:
-        assert purpose == "vision"
+        assert purpose == "assistants"
         assert file.read() == b"data"
         return SimpleNamespace(id="f1")
 
@@ -443,12 +443,17 @@ async def test_upload_image_bytes() -> None:
         name, buffer = file
         captured["name"] = name
         captured["data"] = buffer.read()
+        captured["purpose"] = purpose
         return SimpleNamespace(id="f2")
 
     fake_client = SimpleNamespace(files=SimpleNamespace(create=fake_files_create))
     file = await gpt_client._upload_image_bytes(fake_client, b"payload")
     assert file.id == "f2"
-    assert captured == {"name": "image.jpg", "data": b"payload"}
+    assert captured == {
+        "name": "image.jpg",
+        "data": b"payload",
+        "purpose": "assistants",
+    }
 
 
 @pytest.mark.asyncio
