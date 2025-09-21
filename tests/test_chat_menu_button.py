@@ -8,7 +8,7 @@ from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonDefault
+from telegram import MenuButtonDefault, MenuButtonWebApp
 from telegram.error import NetworkError, RetryAfter
 
 from services.api.app.assistant.services import memory_service
@@ -125,3 +125,58 @@ async def test_post_init_warns_when_retry_fails(
     assert bot.set_my_commands.await_count == 2
     warnings = [r for r in caplog.records if "Flood control" in r.message]
     assert len(warnings) == 2
+
+
+@pytest.mark.asyncio
+async def test_post_init_configures_webapp_menu_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Custom WebApp button is applied once when WEBAPP_URL is set."""
+
+    monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
+    main = _reload_main()
+    bot = SimpleNamespace(
+        set_my_commands=AsyncMock(),
+        set_chat_menu_button=AsyncMock(),
+    )
+    monkeypatch.setattr(memory_service, "get_last_modes", AsyncMock(return_value=[]))
+    import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
+
+    monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
+    monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
+
+    await main.post_init(app)
+
+    bot.set_my_commands.assert_awaited_once_with(main.commands)
+    assert bot.set_chat_menu_button.await_count == 1
+    button = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
+    assert isinstance(button, MenuButtonWebApp)
+    assert button.text == "Profile"
+    assert button.web_app.url == "https://web.example/app/profile"
+    main.menu_button_post_init.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_post_init_skips_menu_setup_without_method(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bot stubs without chat menu support do not trigger configuration."""
+
+    monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
+    main = _reload_main()
+    bot = SimpleNamespace(set_my_commands=AsyncMock())
+    monkeypatch.setattr(memory_service, "get_last_modes", AsyncMock(return_value=[]))
+    import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
+
+    monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
+    monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
+
+    await main.post_init(app)
+
+    bot.set_my_commands.assert_awaited_once_with(main.commands)
+    assert not hasattr(bot, "set_chat_menu_button")
+    main.menu_button_post_init.assert_not_awaited()

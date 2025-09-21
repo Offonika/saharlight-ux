@@ -134,8 +134,15 @@ async def post_init(
         logger.info("Skipping set_my_commands; recently updated")
     if redis_client is not None:
         await redis_client.close()
-    await menu_button_post_init(app)
-    await setup_chat_menu(app.bot)
+
+    menu_configured = False
+    if hasattr(app.bot, "set_chat_menu_button"):
+        menu_configured = await setup_chat_menu(app.bot)
+        if not menu_configured:
+            await menu_button_post_init(app)
+    else:
+        logger.debug("Bot instance lacks set_chat_menu_button; skipping menu setup")
+
     from services.api.app.diabetes.handlers import assistant_menu
 
     await assistant_menu.post_init(app)
