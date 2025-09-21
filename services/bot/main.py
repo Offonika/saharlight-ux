@@ -13,6 +13,7 @@ os.environ.setdefault(
 import asyncio
 import logging
 import sys
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 from zoneinfo import ZoneInfo
@@ -46,6 +47,107 @@ else:
 
 logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
+
+TELEGRAM_TOKEN_PLACEHOLDER = "bot<hidden>"
+HTTP_CLIENT_LOGGER_NAMES: tuple[str, ...] = ("httpx", "httpcore", "telegram")
+
+
+class TokenRedactingFilter(logging.Filter):
+    """Mask Telegram bot tokens in log records."""
+
+    def __init__(self, token: str | None) -> None:
+        super().__init__()
+        normalized = token.strip() if isinstance(token, str) else ""
+        if normalized:
+            self._token_fragment = f"bot{normalized}"
+            self._token_fragment_bytes = self._token_fragment.encode()
+        else:
+            self._token_fragment = ""
+            self._token_fragment_bytes = b""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not self._token_fragment:
+            return True
+
+        rendered = record.getMessage()
+        if self._token_fragment in rendered:
+            sanitized = rendered.replace(
+                self._token_fragment, TELEGRAM_TOKEN_PLACEHOLDER
+            )
+            record.msg = sanitized
+            record.args = ()
+            record.message = sanitized
+            return True
+
+        if isinstance(record.msg, str) and self._token_fragment in record.msg:
+            record.msg = record.msg.replace(
+                self._token_fragment, TELEGRAM_TOKEN_PLACEHOLDER
+            )
+        elif isinstance(record.msg, bytes) and self._token_fragment_bytes in record.msg:
+            record.msg = record.msg.replace(
+                self._token_fragment_bytes, TELEGRAM_TOKEN_PLACEHOLDER.encode()
+            )
+
+        record.args = self._sanitize_args(record.args)
+        return True
+
+    def _sanitize_args(self, args: object) -> object:
+        if isinstance(args, tuple):
+            return tuple(self._sanitize_value(arg) for arg in args)
+        if isinstance(args, list):
+            return [self._sanitize_value(arg) for arg in args]
+        if isinstance(args, Mapping):
+            return {key: self._sanitize_value(value) for key, value in args.items()}
+        return self._sanitize_value(args)
+
+    def _sanitize_value(self, value: object) -> object:
+        if isinstance(value, str) and self._token_fragment in value:
+            return value.replace(self._token_fragment, TELEGRAM_TOKEN_PLACEHOLDER)
+        if isinstance(value, bytes) and self._token_fragment_bytes in value:
+            return value.replace(
+                self._token_fragment_bytes, TELEGRAM_TOKEN_PLACEHOLDER.encode()
+            )
+        if isinstance(value, tuple):
+            return tuple(self._sanitize_value(item) for item in value)
+        if isinstance(value, list):
+            return [self._sanitize_value(item) for item in value]
+        if isinstance(value, Mapping):
+            return {key: self._sanitize_value(val) for key, val in value.items()}
+        return value
+
+
+def _resolve_telegram_token() -> str | None:
+    for candidate in (
+        getattr(settings, "telegram_token", None),
+        TELEGRAM_TOKEN,
+        os.environ.get("TELEGRAM_TOKEN"),
+    ):
+        if isinstance(candidate, str):
+            stripped = candidate.strip()
+            if stripped:
+                return stripped
+    return None
+
+
+def configure_http_client_logging(token: str | None) -> None:
+    """Ensure HTTP client logs do not expose sensitive Telegram credentials."""
+
+    token_filter = TokenRedactingFilter(token)
+    root_logger = logging.getLogger()
+    _install_filter(root_logger, token_filter)
+
+    for name in HTTP_CLIENT_LOGGER_NAMES:
+        logger_instance = logging.getLogger(name)
+        if name in {"httpx", "httpcore"} and logger_instance.level < logging.WARNING:
+            logger_instance.setLevel(logging.WARNING)
+        _install_filter(logger_instance, token_filter)
+
+
+def _install_filter(logger_instance: logging.Logger, token_filter: TokenRedactingFilter) -> None:
+    for existing in list(logger_instance.filters):
+        if isinstance(existing, TokenRedactingFilter):
+            logger_instance.removeFilter(existing)
+    logger_instance.addFilter(token_filter)
 
 redis_stub = SimpleNamespace()
 redis_stub.Redis = SimpleNamespace(from_url=lambda *a, **k: None)
@@ -193,6 +295,7 @@ def main() -> None:  # pragma: no cover
     logging.basicConfig(
         level=level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
+    configure_http_client_logging(_resolve_telegram_token())
     logger.info("=== Bot started ===")
 
     # применяем воркараунд к PTB JobQueue.stop
