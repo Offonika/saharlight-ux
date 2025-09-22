@@ -159,6 +159,47 @@ async def test_post_init_configures_webapp_menu_once(
 
 
 @pytest.mark.asyncio
+async def test_post_init_restores_default_when_webapp_url_removed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Menu button falls back to default after the WebApp URL is cleared."""
+
+    monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
+    main = _reload_main()
+    bot = SimpleNamespace(
+        set_my_commands=AsyncMock(),
+        set_chat_menu_button=AsyncMock(),
+    )
+
+    import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
+
+    monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
+
+    real_menu_post_init = main.menu_button_post_init
+    fallback_mock = AsyncMock(side_effect=real_menu_post_init)
+    monkeypatch.setattr(main, "menu_button_post_init", fallback_mock)
+
+    app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
+    app._user_data = {}
+
+    await main.post_init(app)
+
+    assert bot.set_chat_menu_button.await_count == 1
+    first_button = bot.set_chat_menu_button.await_args_list[0].kwargs["menu_button"]
+    assert isinstance(first_button, MenuButtonWebApp)
+    assert fallback_mock.await_count == 0
+
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
+
+    await main.post_init(app)
+
+    assert fallback_mock.await_count == 1
+    assert bot.set_chat_menu_button.await_count == 2
+    last_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
+    assert isinstance(last_button, MenuButtonDefault)
+
+
+@pytest.mark.asyncio
 async def test_post_init_skips_menu_setup_without_method(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
