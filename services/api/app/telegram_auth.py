@@ -118,12 +118,11 @@ def get_tg_user(init_data: str) -> UserContext:
         if candidate is None:
             continue
         value = getattr(candidate, "telegram_token", None)
-        if isinstance(value, str):
-            if value:
-                token = value
-            else:
-                token = None
-            break
+        if not isinstance(value, str):
+            continue
+        if not value:
+            continue
+        token = value
     if not token:
         logger.error("telegram token not configured")
         raise HTTPException(status_code=503, detail="telegram token not configured")
