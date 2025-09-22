@@ -193,10 +193,14 @@ async def post_init(
                 real_redis.Redis.from_url = patched_from_url
             redis = real_redis
 
+    current_settings = config.reload_settings()
+
     redis_client: Any | None = None
     should_set = True
     try:
-        redis_raw = redis.from_url(settings.redis_url)  # type: ignore[no-untyped-call]
+        redis_raw = redis.from_url(
+            current_settings.redis_url
+        )  # type: ignore[no-untyped-call]
         if redis_raw is None:
             raise ValueError("Redis client is not configured")
         redis_client = cast(Any, redis_raw)
@@ -239,7 +243,9 @@ async def post_init(
 
     menu_configured = False
     if hasattr(app.bot, "set_chat_menu_button"):
-        menu_configured = await setup_chat_menu(app.bot)
+        menu_configured = await setup_chat_menu(
+            app.bot, settings=current_settings
+        )
         if not menu_configured:
             await menu_button_post_init(app)
     else:
