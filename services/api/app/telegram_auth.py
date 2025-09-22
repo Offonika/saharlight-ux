@@ -21,21 +21,32 @@ TG_INIT_DATA_HEADER = "X-Telegram-Init-Data"
 AUTH_DATE_MAX_AGE = 24 * 60 * 60
 
 
-_ORIGINAL_SETTINGS = config.get_settings()
+_SETTINGS_CACHE: list[object] = []
+
+
+def _remember_settings(candidate: object) -> None:
+    for existing in _SETTINGS_CACHE:
+        if existing is candidate:
+            return
+    _SETTINGS_CACHE.append(candidate)
 
 
 def _iter_settings_candidates() -> list[object]:
     """Return unique configuration objects to consult for the Telegram token."""
 
-    candidates: list[object] = []
-    seen_ids: set[int] = set()
+    current_candidates: list[object] = []
     for candidate in (
         config.get_settings(),
         getattr(config, "settings", None),
-        _ORIGINAL_SETTINGS,
     ):
         if candidate is None:
             continue
+        current_candidates.append(candidate)
+        _remember_settings(candidate)
+
+    candidates: list[object] = []
+    seen_ids: set[int] = set()
+    for candidate in current_candidates + _SETTINGS_CACHE:
         candidate_id = id(candidate)
         if candidate_id in seen_ids:
             continue
@@ -107,8 +118,11 @@ def get_tg_user(init_data: str) -> UserContext:
         if candidate is None:
             continue
         value = getattr(candidate, "telegram_token", None)
-        if isinstance(value, str) and value:
-            token = value
+        if isinstance(value, str):
+            if value:
+                token = value
+            else:
+                token = None
             break
     if not token:
         logger.error("telegram token not configured")
