@@ -136,6 +136,25 @@ def test_require_tg_user_after_config_reload(
     assert isinstance(user["id"], int)
 
 
+def test_require_tg_user_cached_token_overrides_reload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    patched_token = "cached-token"
+    monkeypatch.setattr(config.settings, "telegram_token", patched_token)
+    init_data = build_init_data(token=patched_token)
+    # Prime cache so the patched settings instance remains available.
+    user = require_tg_user(init_data)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+    config.reload_settings()
+    monkeypatch.setattr(config.settings, "telegram_token", "")
+
+    user = require_tg_user(init_data)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+
 def test_require_tg_user_invalid_id_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
