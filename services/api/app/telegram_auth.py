@@ -31,6 +31,9 @@ def _remember_settings(candidate: object) -> None:
     _SETTINGS_CACHE.append(candidate)
 
 
+_remember_settings(config.get_settings())
+
+
 def _iter_settings_candidates() -> list[object]:
     """Return unique configuration objects to consult for the Telegram token."""
 
@@ -123,6 +126,7 @@ def get_tg_user(init_data: str) -> UserContext:
         if not value:
             continue
         token = value
+        break
     if not token:
         logger.error("telegram token not configured")
         raise HTTPException(status_code=503, detail="telegram token not configured")
