@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urljoin
 
 from telegram import Bot, MenuButtonWebApp, WebAppInfo
 
 from services.api.app import config
+
+if TYPE_CHECKING:
+    from services.api.app.config import Settings
 
 _MENU_ITEMS: tuple[tuple[str, str], ...] = (
     ("Profile", "profile"),
@@ -26,7 +29,7 @@ def _build_url(base_url: str, path: str) -> str:
     return urljoin(normalized_base, normalized_path)
 
 
-async def setup_chat_menu(bot: Bot) -> bool:
+async def setup_chat_menu(bot: Bot, *, settings: Settings | None = None) -> bool:
     """Configure the chat menu with WebApp shortcuts when available.
 
     Returns ``True`` when a custom menu button was configured, otherwise
@@ -34,8 +37,8 @@ async def setup_chat_menu(bot: Bot) -> bool:
     ``set_chat_menu_button`` (for example when using simplified stubs in tests).
     """
 
-    settings = config.get_settings()
-    base_url = settings.webapp_url
+    active_settings = settings or config.get_settings()
+    base_url = active_settings.webapp_url
     if not base_url:
         return False
 
