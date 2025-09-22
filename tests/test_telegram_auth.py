@@ -10,6 +10,7 @@ import pytest
 from fastapi import HTTPException
 
 from services.api.app import config
+from services.api.app import telegram_auth as telegram_auth_module
 from services.api.app.config import settings
 from services.api.app.schemas.user import UserContext
 from services.api.app.telegram_auth import (
@@ -153,6 +154,30 @@ def test_require_tg_user_cached_token_overrides_reload(
     user = require_tg_user(init_data)
     assert user["id"] == 1
     assert isinstance(user["id"], int)
+
+
+def test_require_tg_user_reload_stub_token_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    original_settings = config.settings
+    stub_token = "stub-token"
+    monkeypatch.setenv("TELEGRAM_TOKEN", stub_token)
+    reloaded_settings = config.reload_settings()
+    try:
+        monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+        patched_token = "patched-after-reload"
+        monkeypatch.setattr(settings, "telegram_token", patched_token)
+        init_data = build_init_data(token=patched_token)
+
+        user = require_tg_user(init_data)
+        assert user["id"] == 1
+        assert isinstance(user["id"], int)
+    finally:
+        config.settings = original_settings
+        telegram_auth_module._SETTINGS_CACHE = [
+            cached for cached in telegram_auth_module._SETTINGS_CACHE
+            if cached is not reloaded_settings
+        ]
 
 
 def test_require_tg_user_invalid_id_type(
