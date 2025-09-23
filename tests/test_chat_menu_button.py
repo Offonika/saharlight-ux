@@ -8,7 +8,7 @@ from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonDefault, MenuButtonWebApp
+from telegram import MenuButtonDefault
 from telegram.error import NetworkError, RetryAfter
 
 from services.api.app.assistant.services import memory_service
@@ -17,10 +17,12 @@ from services.api.app.assistant.services import memory_service
 
 def _reload_main() -> ModuleType:
     import services.api.app.config as config
+    import services.api.app.diabetes.utils.menu_setup as menu_setup
     import services.api.app.menu_button as menu_button
     import services.bot.main as main
 
     importlib.reload(config)
+    importlib.reload(menu_setup)
     importlib.reload(menu_button)
     importlib.reload(main)
     return main
@@ -128,10 +130,12 @@ async def test_post_init_warns_when_retry_fails(
 
 
 @pytest.mark.asyncio
-async def test_post_init_configures_webapp_menu_once(
+async def test_post_init_configures_menu_button_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Custom WebApp button is applied once when WEBAPP_URL is set."""
+
+    """Custom WebApp button is refreshed only when the URL changes."""
+
 
     monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
     main = _reload_main()
@@ -148,13 +152,26 @@ async def test_post_init_configures_webapp_menu_once(
     app._user_data = {}
 
     await main.post_init(app)
-
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     assert bot.set_chat_menu_button.await_count == 1
     button = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
+
     assert isinstance(button, MenuButtonWebApp)
     assert button.text == "Profile"
     assert button.web_app.url == "https://web.example/app/profile"
+
+    await main.post_init(app)
+    assert bot.set_chat_menu_button.await_count == 1
+    main.menu_button_post_init.assert_not_awaited()
+
+    monkeypatch.setenv("WEBAPP_URL", "https://web.example/alt")
+
+    await main.post_init(app)
+    assert bot.set_chat_menu_button.await_count == 2
+    new_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
+    assert isinstance(new_button, MenuButtonWebApp)
+    assert new_button.web_app.url == "https://web.example/alt/profile"
+
     main.menu_button_post_init.assert_not_awaited()
 
 
@@ -186,7 +203,7 @@ async def test_post_init_restores_default_when_webapp_url_removed(
 
     assert bot.set_chat_menu_button.await_count == 1
     first_button = bot.set_chat_menu_button.await_args_list[0].kwargs["menu_button"]
-    assert isinstance(first_button, MenuButtonWebApp)
+    assert isinstance(first_button, MenuButtonDefault)
     assert fallback_mock.await_count == 0
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
@@ -203,7 +220,7 @@ async def test_post_init_restores_default_when_webapp_url_removed(
 async def test_post_init_skips_menu_setup_without_method(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Bot stubs without chat menu support do not trigger configuration."""
+    """Bot stubs without chat menu support fall back to the default button."""
 
     monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
     main = _reload_main()
@@ -220,4 +237,4 @@ async def test_post_init_skips_menu_setup_without_method(
 
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     assert not hasattr(bot, "set_chat_menu_button")
-    main.menu_button_post_init.assert_not_awaited()
+    main.menu_button_post_init.assert_awaited_once()

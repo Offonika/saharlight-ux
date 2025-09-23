@@ -6,6 +6,8 @@ import time
 import urllib.parse
 from typing import Any
 
+import sys
+
 import pytest
 from fastapi import HTTPException
 
@@ -124,8 +126,10 @@ def test_require_tg_user_prefers_runtime_settings(
 def test_require_tg_user_token_cleared_returns_503(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+
     patched_token = "cached-token"
     monkeypatch.setattr(config.settings, "telegram_token", patched_token)
+
     init_data = build_init_data(token=patched_token)
     user = require_tg_user(init_data)
     assert user["id"] == 1
