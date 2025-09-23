@@ -38,6 +38,12 @@ if [[ ! -w "$STATE_DIRECTORY" ]]; then
   exit 1
 fi
 
+# Проверяем, не запущен ли уже Telegram-бот
+if pgrep -f 'services\.bot\.main' > /dev/null; then
+  echo "Another Telegram-bot instance is already running. Abort." >&2
+  exit 1
+fi
+
 # Запускаем API с авто-reload (1 процесс)
 uvicorn services.api.app.main:app \
         --reload --host 0.0.0.0 --port 8000 &
