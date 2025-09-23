@@ -20,11 +20,19 @@ _MENU_ITEMS: tuple[tuple[str, str], ...] = (
     ("Analytics", "analytics"),
 )
 
+_LAST_CONFIGURED_BASE_URL: str | None = None
+
+
+def _normalize_base_url(base_url: str) -> str:
+    """Normalize ``base_url`` to make change detection stable."""
+
+    return base_url.strip().rstrip("/")
+
 
 def _build_url(base_url: str, path: str) -> str:
     """Join ``base_url`` with ``path`` ensuring a single slash separator."""
 
-    normalized_base = base_url.rstrip("/") + "/"
+    normalized_base = _normalize_base_url(base_url) + "/"
     normalized_path = path.lstrip("/")
     return urljoin(normalized_base, normalized_path)
 
@@ -40,11 +48,18 @@ async def setup_chat_menu(bot: Bot, *, settings: Settings | None = None) -> bool
     active_settings = settings or config.get_settings()
     base_url = active_settings.webapp_url
     if not base_url:
+        _reset_last_configured()
         return False
+
+    normalized_base = _normalize_base_url(base_url)
 
     set_chat_menu_button: Callable[..., Awaitable[Any]] | None
     set_chat_menu_button = getattr(bot, "set_chat_menu_button", None)
     if not callable(set_chat_menu_button):
+        _reset_last_configured()
+        return False
+
+    if _LAST_CONFIGURED_BASE_URL == normalized_base:
         return False
 
     label, path = _MENU_ITEMS[0]
@@ -56,7 +71,32 @@ async def setup_chat_menu(bot: Bot, *, settings: Settings | None = None) -> bool
     await cast(Callable[..., Awaitable[Any]], set_chat_menu_button)(
         menu_button=menu_button
     )
+    _set_last_configured(normalized_base)
     return True
 
 
-__all__ = ["setup_chat_menu"]
+def _reset_last_configured() -> None:
+    global _LAST_CONFIGURED_BASE_URL
+    _LAST_CONFIGURED_BASE_URL = None
+
+
+def _set_last_configured(base_url: str) -> None:
+    global _LAST_CONFIGURED_BASE_URL
+    _LAST_CONFIGURED_BASE_URL = base_url
+
+
+def is_webapp_menu_active(*, settings: Settings | None = None) -> bool:
+    """Return ``True`` when the WebApp menu button matches current settings."""
+
+    if _LAST_CONFIGURED_BASE_URL is None:
+        return False
+
+    active_settings = settings or config.get_settings()
+    base_url = active_settings.webapp_url
+    if not base_url:
+        return False
+
+    return _LAST_CONFIGURED_BASE_URL == _normalize_base_url(base_url)
+
+
+__all__ = ["is_webapp_menu_active", "setup_chat_menu"]

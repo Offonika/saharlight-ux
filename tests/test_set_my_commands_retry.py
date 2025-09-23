@@ -14,7 +14,9 @@ from telegram.error import NetworkError, RetryAfter
 
 def _reload_main() -> ModuleType:
     import services.bot.main as main
+    import services.api.app.diabetes.utils.menu_setup as menu_setup
 
+    importlib.reload(menu_setup)
     importlib.reload(main)
     return main
 
@@ -149,7 +151,7 @@ async def test_post_init_with_webapp_url_and_stub_bot(
 
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     assert not hasattr(bot, "set_chat_menu_button")
-    main.menu_button_post_init.assert_not_awaited()
+    main.menu_button_post_init.assert_awaited_once()
 
 
 @pytest.mark.asyncio
