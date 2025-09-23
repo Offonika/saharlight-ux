@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from telegram import MenuButton, MenuButtonDefault
+from telegram import MenuButton, MenuButtonWebApp
 from telegram.ext import Application, ExtBot
 
 import services.api.app.config as config
@@ -13,7 +13,7 @@ import services.api.app.config as config
 async def test_setup_chat_menu_configures_webapp_buttons(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Chat menu falls back to Telegram's default button even with ``WEBAPP_URL``."""
+    """Chat menu installs the configured WebApp button when ``WEBAPP_URL`` set."""
 
     monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
     config.reload_settings()
@@ -43,7 +43,9 @@ async def test_setup_chat_menu_configures_webapp_buttons(
     menu = await app.bot.get_chat_menu_button()
     assert stored_menu is not None
     assert isinstance(stored_menu, MenuButton)
-    assert isinstance(stored_menu, MenuButtonDefault)
+    assert isinstance(stored_menu, MenuButtonWebApp)
+    assert stored_menu.text == "Profile"
+    assert stored_menu.web_app.url == "https://web.example/app/profile"
     assert menu is not None
-    assert isinstance(menu, MenuButtonDefault)
+    assert isinstance(menu, MenuButtonWebApp)
     assert menu is stored_menu

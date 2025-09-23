@@ -1,16 +1,24 @@
 """Configure Telegram chat menu button.
 
-The bot previously replaced Telegram's default menu button with a WebApp link
-which hid the built-in command list. To keep the standard menu available we
-always reset the button to :class:`telegram.MenuButtonDefault`.
+Whenever a WebApp URL is configured the bot installs a
+``MenuButtonWebApp`` pointing to the profile section. Otherwise the standard
+Telegram menu button is restored. The helper is idempotent and safely skips
+bots that do not expose ``set_chat_menu_button``.
 """
 
 from __future__ import annotations
 
-from telegram import MenuButtonDefault
+from collections.abc import Awaitable, Callable
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
+from telegram import MenuButtonDefault
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
-from typing import TYPE_CHECKING, TypeAlias
+
+from services.api.app import config
+from services.api.app.diabetes.utils.menu_setup import (
+    is_webapp_menu_active,
+    setup_chat_menu,
+)
 
 if TYPE_CHECKING:
     DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
@@ -28,9 +36,22 @@ async def post_init(
         DefaultJobQueue,
     ],
 ) -> None:
-    """Always restore the default Telegram menu button."""
+    """Configure the chat menu, falling back to Telegram's default button."""
 
-    await app.bot.set_chat_menu_button(menu_button=MenuButtonDefault())
+    active_settings = config.get_settings()
+    if await setup_chat_menu(app.bot, settings=active_settings):
+        return
+    if is_webapp_menu_active(settings=active_settings):
+        return
+
+    set_chat_menu_button: Callable[..., Awaitable[Any]] | None
+    set_chat_menu_button = getattr(app.bot, "set_chat_menu_button", None)
+    if not callable(set_chat_menu_button):
+        return
+
+    await cast(Callable[..., Awaitable[Any]], set_chat_menu_button)(
+        menu_button=MenuButtonDefault()
+    )
 
 
 __all__ = ["post_init"]

@@ -8,7 +8,7 @@ from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonDefault
+from telegram import MenuButtonDefault, MenuButtonWebApp
 from telegram.error import NetworkError, RetryAfter
 
 
@@ -32,7 +32,8 @@ async def test_post_init_retries_on_retry_after(
     )
     app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
     app._user_data = {}
-    monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
+    fallback_mock = AsyncMock()
+    monkeypatch.setattr(main, "menu_button_post_init", fallback_mock)
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 
     monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
@@ -42,7 +43,7 @@ async def test_post_init_retries_on_retry_after(
 
     assert bot.set_my_commands.await_count == 2
     main.asyncio.sleep.assert_awaited_once_with(1)
-    main.menu_button_post_init.assert_awaited_once()
+    fallback_mock.assert_not_awaited()
     assistant_menu.post_init.assert_awaited_once()
 
 
@@ -57,7 +58,8 @@ async def test_post_init_handles_retry_after_and_network_error(
     )
     app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
     app._user_data = {}
-    monkeypatch.setattr(main, "menu_button_post_init", AsyncMock())
+    fallback_mock = AsyncMock()
+    monkeypatch.setattr(main, "menu_button_post_init", fallback_mock)
     import services.api.app.diabetes.handlers.assistant_menu as assistant_menu
 
     monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
@@ -66,7 +68,7 @@ async def test_post_init_handles_retry_after_and_network_error(
     await main.post_init(app)
 
     assert bot.set_my_commands.await_count == 2
-    main.menu_button_post_init.assert_awaited_once()
+    fallback_mock.assert_not_awaited()
     assistant_menu.post_init.assert_awaited_once()
 
 
@@ -173,18 +175,19 @@ async def test_post_init_reloads_settings_for_chat_menu(
 
     monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
 
-    real_menu_post_init = main.menu_button_post_init
-    fallback_mock = AsyncMock(side_effect=real_menu_post_init)
+    fallback_mock = AsyncMock()
     monkeypatch.setattr(main, "menu_button_post_init", fallback_mock)
 
     await main.post_init(app)
     assert fallback_mock.await_count == 0
+    first_button = bot.set_chat_menu_button.await_args_list[0].kwargs["menu_button"]
+    assert isinstance(first_button, MenuButtonWebApp)
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
 
     await main.post_init(app)
 
-    fallback_mock.assert_awaited_once()
+    fallback_mock.assert_not_awaited()
     assert bot.set_chat_menu_button.await_count == 2
     last_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
 
