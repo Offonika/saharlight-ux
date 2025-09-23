@@ -6,8 +6,6 @@ import time
 import urllib.parse
 from typing import Any
 
-import sys
-
 import pytest
 from fastapi import HTTPException
 
@@ -147,24 +145,33 @@ def test_require_tg_user_after_config_reload(
 ) -> None:
     monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
     monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
-    init_data = build_init_data()
-    user = require_tg_user(init_data)
+    initial_init_data = build_init_data()
+    user = require_tg_user(initial_init_data)
     assert user["id"] == 1
     assert isinstance(user["id"], int)
 
-    importlib.reload(config)
-    new_settings = config.get_settings()
-    with pytest.raises(HTTPException) as exc:
-        require_tg_user(init_data)
-    assert exc.value.status_code == 503
-    assert exc.value.detail == "telegram token not configured"
+    original_settings = config.settings
+    try:
+        importlib.reload(config)
+        new_settings = config.get_settings()
+        with pytest.raises(HTTPException) as exc:
+            require_tg_user(initial_init_data)
+        assert exc.value.status_code == 503
+        assert exc.value.detail == "telegram token not configured"
 
-    patched_token = "reloaded-token"
-    monkeypatch.setattr(new_settings, "telegram_token", patched_token)
-    init_data = build_init_data(token=patched_token)
-    user = require_tg_user(init_data)
-    assert user["id"] == 1
-    assert isinstance(user["id"], int)
+        patched_token = "reloaded-token"
+        monkeypatch.setattr(new_settings, "telegram_token", patched_token)
+        patched_init_data = build_init_data(token=patched_token)
+        user = require_tg_user(patched_init_data)
+        assert user["id"] == 1
+        assert isinstance(user["id"], int)
+
+        with pytest.raises(HTTPException) as exc_old:
+            require_tg_user(initial_init_data)
+        assert exc_old.value.status_code == 401
+        assert exc_old.value.detail == "invalid hash"
+    finally:
+        config.settings = original_settings
 
 
 def test_require_tg_user_config_reload_requires_new_token(
@@ -173,8 +180,8 @@ def test_require_tg_user_config_reload_requires_new_token(
     monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
     patched_token = "reload-token"
     monkeypatch.setattr(config.settings, "telegram_token", patched_token)
-    init_data = build_init_data(token=patched_token)
-    user = require_tg_user(init_data)
+    initial_init_data = build_init_data(token=patched_token)
+    user = require_tg_user(initial_init_data)
     assert user["id"] == 1
     assert isinstance(user["id"], int)
 
@@ -182,16 +189,21 @@ def test_require_tg_user_config_reload_requires_new_token(
     reloaded_settings = config.reload_settings()
     try:
         with pytest.raises(HTTPException) as exc:
-            require_tg_user(init_data)
+            require_tg_user(initial_init_data)
         assert exc.value.status_code == 503
         assert exc.value.detail == "telegram token not configured"
 
         replacement_token = "replacement-token"
         monkeypatch.setattr(reloaded_settings, "telegram_token", replacement_token)
-        init_data = build_init_data(token=replacement_token)
-        user = require_tg_user(init_data)
+        patched_init_data = build_init_data(token=replacement_token)
+        user = require_tg_user(patched_init_data)
         assert user["id"] == 1
         assert isinstance(user["id"], int)
+
+        with pytest.raises(HTTPException) as exc_old:
+            require_tg_user(initial_init_data)
+        assert exc_old.value.status_code == 401
+        assert exc_old.value.detail == "invalid hash"
     finally:
         config.settings = original_settings
 

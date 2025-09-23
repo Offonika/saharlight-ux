@@ -192,8 +192,7 @@ async def test_post_init_restores_default_when_webapp_url_removed(
 
     monkeypatch.setattr(assistant_menu, "post_init", AsyncMock())
 
-    real_menu_post_init = main.menu_button_post_init
-    fallback_mock = AsyncMock(side_effect=real_menu_post_init)
+    fallback_mock = AsyncMock()
     monkeypatch.setattr(main, "menu_button_post_init", fallback_mock)
 
     app = SimpleNamespace(bot=bot, job_queue=None, user_data=MappingProxyType({}))
@@ -203,14 +202,14 @@ async def test_post_init_restores_default_when_webapp_url_removed(
 
     assert bot.set_chat_menu_button.await_count == 1
     first_button = bot.set_chat_menu_button.await_args_list[0].kwargs["menu_button"]
-    assert isinstance(first_button, MenuButtonDefault)
+    assert isinstance(first_button, MenuButtonWebApp)
     assert fallback_mock.await_count == 0
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
 
     await main.post_init(app)
 
-    assert fallback_mock.await_count == 1
+    assert fallback_mock.await_count == 0
     assert bot.set_chat_menu_button.await_count == 2
     last_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
     assert isinstance(last_button, MenuButtonDefault)

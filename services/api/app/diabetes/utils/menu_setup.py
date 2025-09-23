@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urljoin
 
-from telegram import Bot, MenuButtonDefault
+from telegram import Bot, MenuButtonDefault, MenuButtonWebApp, WebAppInfo
 
 from services.api.app import config
 
@@ -22,6 +22,13 @@ _MENU_ITEMS: tuple[tuple[str, str], ...] = (
 )
 
 _LAST_CONFIGURED_BASE_URL: str | None = None
+
+
+def _build_menu_button(base_url: str) -> MenuButtonWebApp:
+    """Return the primary WebApp menu button for ``base_url``."""
+
+    text, path = _MENU_ITEMS[0]
+    return MenuButtonWebApp(text=text, web_app=WebAppInfo(url=_build_url(base_url, path)))
 
 
 def _normalize_base_url(base_url: str) -> str:
@@ -40,33 +47,38 @@ def _build_url(base_url: str, path: str) -> str:
 
 
 async def setup_chat_menu(bot: Bot, *, settings: Settings | None = None) -> bool:
-    """Keep Telegram's default menu button when a WebApp URL is configured.
+    """Configure Telegram's chat menu for the diabetes WebApp.
 
-    Returns ``True`` when a menu button was configured, otherwise ``False``.
-    The function safely exits if the bot instance does not expose
-    ``set_chat_menu_button`` (for example when using simplified stubs in
-    tests).
+    When ``webapp_url`` is configured a :class:`telegram.MenuButtonWebApp`
+    pointing to the "Profile" section is installed. Otherwise the default
+    Telegram menu is restored. The function returns ``True`` if a menu button
+    was configured (either WebApp or default) and ``False`` if no action was
+    taken. Bots without ``set_chat_menu_button`` support are ignored
+    gracefully.
     """
 
     active_settings = settings or config.get_settings()
     base_url = active_settings.webapp_url
-    if not base_url:
-        _reset_last_configured()
-        return False
-
-    normalized_base = _normalize_base_url(base_url)
-
     set_chat_menu_button: Callable[..., Awaitable[Any]] | None
     set_chat_menu_button = getattr(bot, "set_chat_menu_button", None)
     if not callable(set_chat_menu_button):
         _reset_last_configured()
         return False
 
+    if not base_url:
+        await cast(Callable[..., Awaitable[Any]], set_chat_menu_button)(
+            menu_button=MenuButtonDefault()
+        )
+        _reset_last_configured()
+        return True
+
+    normalized_base = _normalize_base_url(base_url)
+
     if _LAST_CONFIGURED_BASE_URL == normalized_base:
         return False
 
     await cast(Callable[..., Awaitable[Any]], set_chat_menu_button)(
-        menu_button=MenuButtonDefault()
+        menu_button=_build_menu_button(normalized_base)
     )
     _set_last_configured(normalized_base)
     return True

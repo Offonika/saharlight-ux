@@ -126,6 +126,50 @@ async def test_logs_are_stored_with_plan_id(
 
     assert len(rows) >= 3
     assert {row.plan_id for row in rows} == {plan_id}
+    assert not logs.pending_logs
+    unique_steps = {
+        (row.module_idx, row.step_idx, row.role)
+        for row in rows
+    }
+    assert len(unique_steps) == len(rows)
+
+    logs.pending_logs.clear()
+
+
+@pytest.mark.asyncio()
+async def test_safe_add_lesson_log_handles_duplicates(
+    session_factory: sessionmaker[Session],
+) -> None:
+    """Sequential duplicate calls should be idempotent for a plan."""
+
+    logs.pending_logs.clear()
+
+    with session_factory() as session:
+        user = User(telegram_id=1, thread_id="thread")
+        session.add(user)
+        plan = LearningPlan(user_id=1, plan_json=["step"])
+        session.add(plan)
+        session.commit()
+        plan_id = plan.id
+
+    assert await logs.safe_add_lesson_log(1, plan_id, 0, 0, "assistant", "hello") is True
+    assert await logs.safe_add_lesson_log(1, plan_id, 0, 0, "assistant", "hello") is True
+    assert await logs.safe_add_lesson_log(1, plan_id, 0, 1, "user", "hi") is True
+
+    with session_factory() as session:
+        rows = (
+            session.query(LessonLog)
+            .filter(LessonLog.plan_id == plan_id)
+            .order_by(LessonLog.id)
+            .all()
+        )
+
+    assert {(row.module_idx, row.step_idx, row.role) for row in rows} == {
+        (0, 0, "assistant"),
+        (0, 1, "user"),
+    }
+    assert len(rows) == 2
+    assert not logs.pending_logs
 
     logs.pending_logs.clear()
 

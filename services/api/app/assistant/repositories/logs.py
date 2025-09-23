@@ -63,10 +63,12 @@ def _trim_pending_logs() -> None:
 
 
 async def _restore_queued_logs(logs: Iterable[_PendingLog]) -> None:
-    """Return ``logs`` to :data:`pending_logs` and update metrics."""
+    """Return ``logs`` to :data:`pending_logs` without creating duplicates."""
 
     async with pending_logs_lock:
-        pending_logs.extend(logs)
+        for log in logs:
+            if log not in pending_logs:
+                pending_logs.append(log)
         _trim_pending_logs()
 
 
@@ -93,11 +95,54 @@ async def flush_pending_logs() -> None:
     def _flush(session: Session) -> list[_PendingLog]:
         missing: list[_PendingLog] = []
         to_insert: list[LessonLog] = []
+        user_cache: dict[int, bool] = {}
+        existing: dict[
+            tuple[int, int], set[tuple[int, int, str]]
+        ] = {}
+
+        def _user_exists(user_id: int) -> bool:
+            cached = user_cache.get(user_id)
+            if cached is not None:
+                return cached
+            present = session.get(User, user_id) is not None
+            user_cache[user_id] = present
+            return present
+
+        def _known_keys(user_id: int, plan_id: int) -> set[tuple[int, int, str]]:
+            key = (user_id, plan_id)
+            known = existing.get(key)
+            if known is None:
+                rows = (
+                    session.query(
+                        LessonLog.module_idx,
+                        LessonLog.step_idx,
+                        LessonLog.role,
+                    )
+                    .filter(
+                        LessonLog.user_id == user_id,
+                        LessonLog.plan_id == plan_id,
+                    )
+                    .all()
+                )
+                known = {
+                    (module_idx, step_idx, role)
+                    for module_idx, step_idx, role in rows
+                }
+                existing[key] = known
+            return known
+
         for log in queued:
-            if session.get(User, log.user_id) is None:
+            if not _user_exists(log.user_id):
                 missing.append(log)
                 continue
+
+            known = _known_keys(log.user_id, log.plan_id)
+            unique = (log.module_idx, log.step_idx, log.role)
+            if unique in known:
+                continue
+            known.add(unique)
             to_insert.append(LessonLog(**asdict(log)))
+
         if to_insert:
             session.add_all(to_insert)
             commit(session)
