@@ -12,8 +12,6 @@ import pytest
 from fastapi import HTTPException
 
 from services.api.app import config
-from services.api.app import telegram_auth as telegram_auth_module
-from services.api.app.config import settings
 from services.api.app.schemas.user import UserContext
 from services.api.app.telegram_auth import (
     AUTH_DATE_MAX_AGE,
@@ -93,7 +91,7 @@ def test_parse_and_verify_init_data_too_long() -> None:
 
 
 def test_require_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
     user: UserContext = require_tg_user(init_data)
     assert user["id"] == 1
@@ -125,68 +123,83 @@ def test_require_tg_user_prefers_runtime_settings(
     assert isinstance(user["id"], int)
 
 
+def test_require_tg_user_token_cleared_returns_503(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+
+    patched_token = "cached-token"
+    monkeypatch.setattr(config.settings, "telegram_token", patched_token)
+
+    init_data = build_init_data(token=patched_token)
+    user = require_tg_user(init_data)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
+    config.settings.telegram_token = ""
+    with pytest.raises(HTTPException) as exc:
+        require_tg_user(init_data)
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "telegram token not configured"
+
+
 def test_require_tg_user_after_config_reload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    sys.modules["services.api.app.config"] = config
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
+    init_data = build_init_data()
+    user = require_tg_user(init_data)
+    assert user["id"] == 1
+    assert isinstance(user["id"], int)
+
     importlib.reload(config)
-    global settings
-    settings = config.get_settings()
+    new_settings = config.get_settings()
+    with pytest.raises(HTTPException) as exc:
+        require_tg_user(init_data)
+    assert exc.value.status_code == 503
+    assert exc.value.detail == "telegram token not configured"
+
     patched_token = "reloaded-token"
-    monkeypatch.setattr(settings, "telegram_token", patched_token)
+    monkeypatch.setattr(new_settings, "telegram_token", patched_token)
     init_data = build_init_data(token=patched_token)
     user = require_tg_user(init_data)
     assert user["id"] == 1
     assert isinstance(user["id"], int)
 
 
-def test_require_tg_user_cached_token_overrides_reload(
+def test_require_tg_user_config_reload_requires_new_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    patched_token = "cached-token"
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+    patched_token = "reload-token"
     monkeypatch.setattr(config.settings, "telegram_token", patched_token)
     init_data = build_init_data(token=patched_token)
-    # Prime cache so the patched settings instance remains available.
     user = require_tg_user(init_data)
     assert user["id"] == 1
     assert isinstance(user["id"], int)
 
-    config.reload_settings()
-    monkeypatch.setattr(config.settings, "telegram_token", "")
-
-    user = require_tg_user(init_data)
-    assert user["id"] == 1
-    assert isinstance(user["id"], int)
-
-
-def test_require_tg_user_reload_stub_token_fallback(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
     original_settings = config.settings
-    stub_token = "stub-token"
-    monkeypatch.setenv("TELEGRAM_TOKEN", stub_token)
     reloaded_settings = config.reload_settings()
     try:
-        monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
-        patched_token = "patched-after-reload"
-        monkeypatch.setattr(settings, "telegram_token", patched_token)
-        init_data = build_init_data(token=patched_token)
+        with pytest.raises(HTTPException) as exc:
+            require_tg_user(init_data)
+        assert exc.value.status_code == 503
+        assert exc.value.detail == "telegram token not configured"
 
+        replacement_token = "replacement-token"
+        monkeypatch.setattr(reloaded_settings, "telegram_token", replacement_token)
+        init_data = build_init_data(token=replacement_token)
         user = require_tg_user(init_data)
         assert user["id"] == 1
         assert isinstance(user["id"], int)
     finally:
         config.settings = original_settings
-        telegram_auth_module._SETTINGS_CACHE = [
-            cached for cached in telegram_auth_module._SETTINGS_CACHE
-            if cached is not reloaded_settings
-        ]
 
 
 def test_require_tg_user_invalid_id_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     init_data: str = build_init_data(user_id="bad")
     with pytest.raises(HTTPException) as exc:
         require_tg_user(init_data)
@@ -202,7 +215,7 @@ def test_require_tg_user_missing() -> None:
 
 
 def test_require_tg_user_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     with pytest.raises(HTTPException):
         require_tg_user("bad")
 
@@ -210,7 +223,7 @@ def test_require_tg_user_invalid(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_require_tg_user_authorization_header(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
     header = f"tg {init_data}"
     user: UserContext = require_tg_user(None, header)
@@ -227,7 +240,7 @@ def test_require_tg_user_empty_authorization() -> None:
 
 def test_require_tg_user_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Requests fail with a clear error if the bot token is not configured."""
-    monkeypatch.setattr(settings, "telegram_token", "")
+    monkeypatch.setattr(config.settings, "telegram_token", "")
     with pytest.raises(HTTPException) as exc:
         require_tg_user("whatever")
     assert exc.value.status_code == 503
@@ -252,7 +265,7 @@ def test_parse_and_verify_init_data_future() -> None:
 
 
 def test_require_tg_user_expired(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     past = int(time.time()) - (AUTH_DATE_MAX_AGE + 1)
     init_data = build_init_data(auth_date=past)
     with pytest.raises(HTTPException) as exc:
@@ -262,7 +275,7 @@ def test_require_tg_user_expired(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_require_tg_user_future(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     future = int(time.time()) + 61
     init_data = build_init_data(auth_date=future)
     with pytest.raises(HTTPException) as exc:
@@ -272,7 +285,7 @@ def test_require_tg_user_future(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_get_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
     user: UserContext = get_tg_user(init_data)
     assert user["id"] == 1
@@ -280,7 +293,7 @@ def test_get_tg_user_valid(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_check_token_valid(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     init_data: str = build_init_data()
     header = f"tg {init_data}"
     user: UserContext = check_token(header)
@@ -296,7 +309,7 @@ def test_check_token_invalid_prefix() -> None:
 
 
 def test_check_token_invalid_user(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", TOKEN)
+    monkeypatch.setattr(config.settings, "telegram_token", TOKEN)
     init_data: str = build_init_data(user_id="bad")
     header = f"tg {init_data}"
     with pytest.raises(HTTPException) as exc:
@@ -306,7 +319,7 @@ def test_check_token_invalid_user(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_check_token_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "telegram_token", "")
+    monkeypatch.setattr(config.settings, "telegram_token", "")
     with pytest.raises(HTTPException) as exc:
         check_token("tg whatever")
     assert exc.value.status_code == 503
