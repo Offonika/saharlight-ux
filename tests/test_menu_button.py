@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import importlib
+
 import pytest
-from telegram import MenuButtonDefault
+from telegram import MenuButtonWebApp
 from telegram.error import BadRequest
 from telegram.ext import ApplicationBuilder, ExtBot
 
@@ -12,10 +15,11 @@ def _reload_config() -> None:
 
 
 @pytest.mark.asyncio
-async def test_post_init_sets_default_menu(monkeypatch: pytest.MonkeyPatch) -> None:
-    base_url = "https://example.com"
-    monkeypatch.setenv("PUBLIC_ORIGIN", base_url)
-    monkeypatch.setenv("UI_BASE_URL", "/ui")
+async def test_post_init_configures_webapp_menu(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    base_url = "https://web.example/app"
+    monkeypatch.setenv("WEBAPP_URL", base_url)
     _reload_config()
     import services.api.app.menu_button as menu_button
 
@@ -38,4 +42,6 @@ async def test_post_init_sets_default_menu(monkeypatch: pytest.MonkeyPatch) -> N
     assert len(calls) == 1
     _, kwargs = calls[0]
     button = kwargs["menu_button"]
-    assert isinstance(button, MenuButtonDefault)
+    assert isinstance(button, MenuButtonWebApp)
+    assert button.text == "Profile"
+    assert button.web_app.url == "https://web.example/app/profile"
