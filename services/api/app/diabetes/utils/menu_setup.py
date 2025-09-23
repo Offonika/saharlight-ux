@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Any, cast
+from urllib.parse import urljoin
+
 from telegram import Bot, MenuButtonDefault
 
 from services.api.app import config
