@@ -11,9 +11,12 @@ from services.api.app.assistant.repositories.logs import (
     add_lesson_log,
     safe_add_lesson_log,
 )
+from sqlalchemy.exc import IntegrityError
+
 from services.api.app.diabetes.metrics import lesson_log_failures
 from services.api.app.assistant.models import LessonLog
 from services.api.app.config import settings
+from services.api.app.diabetes.services.repository import CommitError
 
 
 @pytest.mark.asyncio
@@ -111,6 +114,38 @@ async def test_safe_add_lesson_log_logs_when_required(
     assert ok is False
     assert called is True
     assert "Failed to add lesson log" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_safe_add_lesson_log_requeues_on_commit_integrity_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Commit failures should keep logs queued for future retries."""
+
+    monkeypatch.setattr(settings, "learning_logging_required", False)
+
+    async def fail_run_db(*_: object, **__: object) -> None:
+        integrity_exc = IntegrityError("stmt", {}, Exception("boom"))
+        raise CommitError() from integrity_exc
+
+    monkeypatch.setattr(logs, "run_db", fail_run_db)
+
+    logs.pending_logs.clear()
+    lesson_log_failures._value.set(0)  # type: ignore[attr-defined] # noqa: SLF001
+
+    try:
+        results = []
+        for step_idx in range(3):
+            ok = await safe_add_lesson_log(1, 1, 0, step_idx, "assistant", f"hi-{step_idx}")
+            results.append(ok)
+
+        assert results == [False, False, False]
+        assert len(logs.pending_logs) == 3
+        assert {log.step_idx for log in logs.pending_logs} == {0, 1, 2}
+        assert lesson_log_failures._value.get() == 6  # type: ignore[attr-defined]
+    finally:
+        logs.pending_logs.clear()
+        lesson_log_failures._value.set(0)  # type: ignore[attr-defined]
 
 
 @pytest.mark.asyncio
