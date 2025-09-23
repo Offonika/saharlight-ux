@@ -94,49 +94,56 @@ def _purge_obsolete_settings(current_settings: object | None) -> None:
 _remember_settings(config.get_settings())
 
 
-def _iter_settings_candidates() -> list[object]:
-    """Return unique configuration objects to consult for the Telegram token."""
+def _iter_settings_candidates() -> list[tuple[object, bool]]:
+    """Return configuration objects to consult for the Telegram token.
+
+    The returned list preserves the order in which candidates should be
+    consulted. Each tuple contains the candidate object and a flag signalling
+    whether it represents the *current* settings instance (``True``) or a
+    cached historical one (``False``).
+    """
 
     module_settings = getattr(config, "settings", None)
     _purge_obsolete_settings(module_settings)
 
-    current_candidates: list[object] = []
-    for candidate in (config.get_settings(), module_settings):
-        if candidate is None:
-            continue
-        current_candidates.append(candidate)
-        _remember_settings(candidate)
-
-    candidates: list[object] = []
+    candidates: list[tuple[object, bool]] = []
     seen_ids: set[int] = set()
+    settings_cls = _settings_type()
+    active_settings = config.get_settings()
 
-    def consider(candidate: object) -> None:
+    def consider(candidate: object | None, is_current_hint: bool) -> None:
         if candidate is None:
             return
         candidate_id = id(candidate)
         if candidate_id in seen_ids:
             return
+
+        if candidate is module_settings:
+            is_current = True
+        elif settings_cls is not None and isinstance(candidate, settings_cls):
+            is_current = is_current_hint
+        elif candidate is active_settings:
+            is_current = is_current_hint
+        elif hasattr(candidate, "telegram_token"):
+            is_current = False
+        else:
+            return
+
         seen_ids.add(candidate_id)
-        candidates.append(candidate)
+        candidates.append((candidate, is_current))
         _remember_settings(candidate)
 
-    for candidate in current_candidates:
-        consider(candidate)
+    consider(module_settings, True)
+    consider(active_settings, True)
 
     for ref in list(_SETTINGS_CACHE):
         cached = ref()
         if cached is None:
             _SETTINGS_CACHE.remove(ref)
             continue
-        consider(cached)
+        consider(cached, False)
 
-    filtered: list[object] = []
-    for candidate in candidates:
-        token = getattr(candidate, "telegram_token", None)
-        if isinstance(token, str) and token:
-            filtered.append(candidate)
-
-    return filtered
+    return candidates
 
 
 def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
@@ -198,16 +205,18 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
 def get_tg_user(init_data: str) -> UserContext:
     """Validate ``init_data`` and return Telegram ``user`` info."""
 
-    tokens: list[str] = []
-    for candidate in _iter_settings_candidates():
-        if candidate is None:
-            continue
+    primary_tokens: list[str] = []
+    cached_tokens: list[str] = []
+    for candidate, is_current in _iter_settings_candidates():
         value = getattr(candidate, "telegram_token", None)
-        if not isinstance(value, str):
+        if not isinstance(value, str) or not value:
             continue
-        if not value:
-            continue
-        tokens.append(value)
+        if is_current:
+            primary_tokens.append(value)
+        else:
+            cached_tokens.append(value)
+
+    tokens: list[str] = [*primary_tokens, *cached_tokens]
     if not tokens:
         logger.error("telegram token not configured")
         raise HTTPException(status_code=503, detail="telegram token not configured")
