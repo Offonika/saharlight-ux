@@ -40,6 +40,12 @@ if [[ ! -w "$STATE_DIRECTORY" ]]; then
   exit 1
 fi
 
+# Проверяем, не запущен ли уже Telegram-бот
+if pgrep -f 'services\.bot\.main' > /dev/null; then
+  echo "Another Telegram-bot instance is already running. Abort." >&2
+  exit 1
+fi
+
 # Запускаем API с авто-reload (1 процесс)
 if lsof -iTCP:"$DEV_PORT" -sTCP:LISTEN >/dev/null; then
   echo "Port $DEV_PORT is already in use. Set DEV_PORT to use a different port." >&2
