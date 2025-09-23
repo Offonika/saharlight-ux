@@ -162,7 +162,8 @@ async def test_post_init_reloads_settings_for_chat_menu(
 ) -> None:
     """Removing WEBAPP_URL triggers the default menu button configuration."""
 
-    monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
+    base_url = "https://web.example/app"
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
     main = _reload_main()
     bot = SimpleNamespace(
         set_my_commands=AsyncMock(),
@@ -179,16 +180,28 @@ async def test_post_init_reloads_settings_for_chat_menu(
     monkeypatch.setattr(main, "menu_button_post_init", fallback_mock)
 
     await main.post_init(app)
-    assert fallback_mock.await_count == 0
+
+    fallback_mock.assert_not_awaited()
+    assert bot.set_chat_menu_button.await_count == 1
     first_button = bot.set_chat_menu_button.await_args_list[0].kwargs["menu_button"]
-    assert isinstance(first_button, MenuButtonWebApp)
+    assert isinstance(first_button, MenuButtonDefault)
+
+    monkeypatch.setenv("WEBAPP_URL", base_url)
+
+    await main.post_init(app)
+
+    fallback_mock.assert_not_awaited()
+    assert bot.set_chat_menu_button.await_count == 2
+    webapp_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
+    assert isinstance(webapp_button, MenuButtonWebApp)
+    assert webapp_button.web_app.url == f"{base_url}/profile"
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
 
     await main.post_init(app)
 
     fallback_mock.assert_not_awaited()
-    assert bot.set_chat_menu_button.await_count == 2
+    assert bot.set_chat_menu_button.await_count == 3
     last_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
 
     assert isinstance(last_button, MenuButtonDefault)

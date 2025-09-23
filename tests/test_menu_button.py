@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 
 import pytest
-from telegram import MenuButtonWebApp
+from telegram import MenuButtonDefault, MenuButtonWebApp
 from telegram.error import BadRequest
 from telegram.ext import ApplicationBuilder, ExtBot
 
@@ -18,8 +18,7 @@ def _reload_config() -> None:
 async def test_post_init_configures_webapp_menu(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    base_url = "https://web.example/app"
-    monkeypatch.setenv("WEBAPP_URL", base_url)
+    monkeypatch.delenv("WEBAPP_URL", raising=False)
     _reload_config()
     import services.api.app.menu_button as menu_button
 
@@ -37,11 +36,20 @@ async def test_post_init_configures_webapp_menu(
     monkeypatch.setattr(ExtBot, "set_chat_menu_button", fake_set_chat_menu_button)
 
     app = ApplicationBuilder().token("TEST").post_init(menu_button.post_init).build()
+
     await app.post_init(app)
 
     assert len(calls) == 1
-    _, kwargs = calls[0]
-    button = kwargs["menu_button"]
+    first_button = calls[0][1]["menu_button"]
+    assert isinstance(first_button, MenuButtonDefault)
+
+    base_url = "https://web.example/app"
+    monkeypatch.setenv("WEBAPP_URL", base_url)
+
+    await app.post_init(app)
+
+    assert len(calls) == 2
+    button = calls[-1][1]["menu_button"]
     assert isinstance(button, MenuButtonWebApp)
     assert button.text == "Profile"
     assert button.web_app.url == "https://web.example/app/profile"
