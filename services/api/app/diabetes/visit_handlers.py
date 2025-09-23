@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from typing import cast
 
+from fastapi import HTTPException
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
@@ -23,7 +24,16 @@ async def send_checklist(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None
     message = update.effective_message
     if user is None or message is None:
         return
-    profile = await profile_service.get_profile(user.id)
+    try:
+        profile = await profile_service.get_profile(user.id)
+    except HTTPException as exc:
+        if exc.status_code == 404:
+            await message.reply_text(
+                "Заполните, пожалуйста, профиль, чтобы мы могли подготовить чек-лист."
+            )
+            return
+        logger.exception("Failed to fetch profile for user %s", user.id)
+        raise
     await memory_service.get_memory(user.id)  # placeholder usage
     questions = [
         "Как вы себя чувствуете?",
