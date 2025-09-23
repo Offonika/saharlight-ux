@@ -15,10 +15,7 @@ from telegram import MenuButtonDefault
 from telegram.ext import Application, ContextTypes, ExtBot, JobQueue
 
 from services.api.app import config
-from services.api.app.diabetes.utils.menu_setup import (
-    is_webapp_menu_active,
-    setup_chat_menu,
-)
+from services.api.app.diabetes.utils import menu_setup
 
 if TYPE_CHECKING:
     DefaultJobQueue: TypeAlias = JobQueue[ContextTypes.DEFAULT_TYPE]
@@ -38,10 +35,15 @@ async def post_init(
 ) -> None:
     """Configure the chat menu, falling back to Telegram's default button."""
 
-    active_settings = config.get_settings()
-    if await setup_chat_menu(app.bot, settings=active_settings):
+    previous_settings = config.get_settings()
+    active_settings = config.reload_settings()
+
+    if active_settings.webapp_url != previous_settings.webapp_url:
+        menu_setup._reset_last_configured()  # noqa: SLF001
+
+    if await menu_setup.setup_chat_menu(app.bot, settings=active_settings):
         return
-    if is_webapp_menu_active(settings=active_settings):
+    if menu_setup.is_webapp_menu_active(settings=active_settings):
         return
 
     set_chat_menu_button: Callable[..., Awaitable[Any]] | None
