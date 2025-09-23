@@ -14,7 +14,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timezone, timedelta
 from typing import Iterable
 
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from services.api.app.config import settings
@@ -105,15 +105,12 @@ async def flush_pending_logs() -> None:
 
     try:
         missing = await run_db(_flush, sessionmaker=SessionLocal)
-    except CommitError as exc:
-        if isinstance(exc.__cause__, IntegrityError):
-            missing = []
-        else:  # pragma: no cover - logging only
-            lesson_log_failures.inc(len(queued))
-            await _restore_queued_logs(queued)
-            if settings.learning_logging_required:
-                raise
-            return
+    except CommitError:
+        lesson_log_failures.inc(len(queued))
+        await _restore_queued_logs(queued)
+        if settings.learning_logging_required:
+            raise
+        return
     except (OSError, RuntimeError, SQLAlchemyError) as exc:  # pragma: no cover - logging only
         lesson_log_failures.inc(len(queued))
         await _restore_queued_logs(queued)
@@ -133,9 +130,7 @@ async def flush_pending_logs() -> None:
         raise
 
     if missing:
-        async with pending_logs_lock:
-            pending_logs.extend(missing)
-            _trim_pending_logs()
+        await _restore_queued_logs(missing)
 
 
 async def add_lesson_log(
