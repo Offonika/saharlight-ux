@@ -116,7 +116,8 @@ def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
 
 def get_tg_user(init_data: str) -> UserContext:
     """Validate ``init_data`` and return Telegram ``user`` info."""
-    token: str | None = None
+
+    tokens: list[str] = []
     for candidate in _iter_settings_candidates():
         if candidate is None:
             continue
@@ -125,12 +126,29 @@ def get_tg_user(init_data: str) -> UserContext:
             continue
         if not value:
             continue
-        token = value
-        break
-    if not token:
+        tokens.append(value)
+    if not tokens:
         logger.error("telegram token not configured")
         raise HTTPException(status_code=503, detail="telegram token not configured")
-    data: dict[str, object] = parse_and_verify_init_data(init_data, token)
+
+    last_invalid_hash_error: HTTPException | None = None
+    data: dict[str, object] | None = None
+    for token in tokens:
+        try:
+            data = parse_and_verify_init_data(init_data, token)
+        except HTTPException as exc:
+            if exc.status_code == 401 and exc.detail == "invalid hash":
+                last_invalid_hash_error = exc
+                continue
+            raise
+        else:
+            break
+
+    if data is None:
+        if last_invalid_hash_error is not None:
+            raise last_invalid_hash_error
+        raise HTTPException(status_code=401, detail="invalid init data")
+
     user_raw = data.get("user")
     user = user_raw if isinstance(user_raw, dict) else None
     if user is None or not isinstance(user.get("id"), int):
