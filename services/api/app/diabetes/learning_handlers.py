@@ -60,11 +60,10 @@ from .services.gpt_client import (
     make_cache_key,
 )
 from services.api.app.assistant.repositories.logs import (
-    _PendingLog,
     pending_logs,
     safe_add_lesson_log,
 )
-from services.api.app.diabetes.metrics import pending_logs_size, step_advance_total
+from services.api.app.diabetes.metrics import step_advance_total
 from services.api.app.assistant.repositories import plans as plans_repo
 from services.api.app.assistant.repositories.learning_profile import (
     get_learning_profile,
@@ -202,7 +201,7 @@ async def _persist(
     raw_plan = user_data.get("learning_plan")
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
     raw_plan_id = user_data.get("learning_plan_id")
-    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
     if plan is not None:
         plans[user_id] = plan
         try:
@@ -315,7 +314,7 @@ async def _hydrate(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     raw_plan = plans_map.get(user.id)
     plan: list[str] | None = raw_plan if isinstance(raw_plan, list) else None
     raw_plan_id = user_data.get("learning_plan_id")
-    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
     if data is None or plan is None or plan_id is None:
         try:
             db_plan = await plans_repo.get_active_plan(user.id)
@@ -507,7 +506,7 @@ async def _dynamic_learn_command(
         state.last_sent_step_id = getattr(sent, "message_id", None)
         set_state(user_data, state)
         raw_plan_id = user_data.get("learning_plan_id")
-        plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+        plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
         if plan_id is not None:
             progress_map = cast(
                 dict[int, ProgressData], context.bot_data.setdefault(PROGRESS_KEY, {})
@@ -586,7 +585,7 @@ async def _dynamic_learn_command(
     set_state(user_data, state)
     await _persist(user.id, user_data, context.bot_data)
     raw_plan_id = user_data.get("learning_plan_id")
-    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
     if plan_id is not None:
         await safe_add_lesson_log(
             user.id,
@@ -683,7 +682,7 @@ async def _start_lesson(
     set_state(user_data, state)
     await _persist(from_user.id, user_data, bot_data)
     raw_plan_id = user_data.get("learning_plan_id")
-    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+    plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
     if plan_id is not None:
         await safe_add_lesson_log(
             from_user.id,
@@ -924,7 +923,7 @@ async def lesson_answer_handler(
         set_state(user_data, state)
         if telegram_id is not None:
             raw_plan_id = user_data.get("learning_plan_id")
-            plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+            plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
             if plan_id is not None:
                 data: ProgressData = {
                     "topic": state.topic,
@@ -943,46 +942,32 @@ async def lesson_answer_handler(
                     await progress_repo.upsert_progress(telegram_id, plan_id, data)
                 except (SQLAlchemyError, RuntimeError) as exc:
                     logger.exception("persist progress failed: %s", exc)
-        log_user_ok = log_feedback_ok = log_next_ok = False
+        log_user_ok: bool | None = None
+        log_feedback_ok: bool | None = None
+        log_next_ok: bool | None = None
         if telegram_id is not None:
             module_idx = cast(int, user_data.get("learning_module_idx", 0))
             raw_plan_id = user_data.get("learning_plan_id")
-            plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
+            plan_id_for_logging = (
+                raw_plan_id if isinstance(raw_plan_id, int) else None
+            )
 
             async def _record(step_idx: int, role: str) -> bool:
-                if plan_id is None:
-                    return False
-                ok = False
-                try:
-                    ok = await safe_add_lesson_log(
-                        telegram_id,
-                        plan_id,
-                        module_idx,
-                        step_idx,
-                        role,
-                        "",
-                    )
-                except (httpx.HTTPError, SQLAlchemyError) as exc:
-                    logger.exception("lesson log failed: %s", exc)
-                    pending_logs.append(
-                        _PendingLog(
-                            user_id=telegram_id,
-                            plan_id=plan_id,
-                            module_idx=module_idx,
-                            step_idx=step_idx,
-                            role=role,
-                            content="",
-                        )
-                    )
-                    pending_logs_size.set(len(pending_logs))
-                except Exception as exc:  # pragma: no cover - unexpected
-                    logger.exception("unexpected lesson log error: %s", exc)
-                    raise
-                return ok
+                if plan_id_for_logging is None:
+                    raise RuntimeError("lesson logging requires an active plan")
+                return await safe_add_lesson_log(
+                    telegram_id,
+                    plan_id_for_logging,
+                    module_idx,
+                    step_idx,
+                    role,
+                    "",
+                )
 
-            log_user_ok = await _record(prev_step, "user")
-            log_feedback_ok = await _record(prev_step, "assistant")
-            log_next_ok = await _record(state.step, "assistant")
+            if plan_id_for_logging is not None:
+                log_user_ok = await _record(prev_step, "user")
+                log_feedback_ok = await _record(prev_step, "assistant")
+                log_next_ok = await _record(state.step, "assistant")
 
         pending_count = len(pending_logs)
         logger.info(

@@ -6,6 +6,8 @@ import time
 import urllib.parse
 from typing import Any
 
+import sys
+
 import pytest
 from fastapi import HTTPException
 
@@ -126,6 +128,7 @@ def test_require_tg_user_prefers_runtime_settings(
 def test_require_tg_user_after_config_reload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    sys.modules["services.api.app.config"] = config
     importlib.reload(config)
     global settings
     settings = config.get_settings()
