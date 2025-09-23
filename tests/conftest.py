@@ -321,6 +321,14 @@ def _dispose_engine_after_tests() -> Iterator[None]:
     dispose_engine()
 
 
+@pytest.fixture(autouse=True)
+def _ensure_config_module() -> Iterator[None]:
+    import services.api.app.config as config_module
+
+    sys.modules["services.api.app.config"] = config_module
+    yield
+
+
 @pytest.fixture(autouse=True, scope="module")
 def _dispose_engine_per_module() -> Iterator[None]:
     """Dispose the global database engine after each test module."""

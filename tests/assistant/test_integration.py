@@ -22,7 +22,9 @@ class DummyMessage:
 
 
 @pytest.mark.asyncio
-async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_flow_idk_with_log_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Simulate start→next→answer('Не знаю')→next flow with log failures."""
 
     monkeypatch.setattr(settings, "learning_mode_enabled", True)
@@ -68,6 +70,45 @@ async def test_flow_idk_with_log_error(monkeypatch: pytest.MonkeyPatch) -> None:
         return True, "fb"
 
     monkeypatch.setattr(learning_handlers, "check_user_answer", fake_check_user_answer)
+
+    async def fake_create_plan(
+        user_id: int,
+        version: int,
+        plan_json: list[str],
+        *,
+        is_active: bool = True,
+    ) -> int:
+        return 1
+
+    async def fake_get_active_plan(user_id: int) -> None:
+        return None
+
+    async def fake_upsert_progress(*_: object, **__: object) -> None:
+        return None
+
+    async def fake_update_plan(*_: object, **__: object) -> None:
+        return None
+
+    monkeypatch.setattr(
+        learning_handlers.plans_repo,
+        "create_plan",
+        fake_create_plan,
+    )
+    monkeypatch.setattr(
+        learning_handlers.plans_repo,
+        "get_active_plan",
+        fake_get_active_plan,
+    )
+    monkeypatch.setattr(
+        learning_handlers.plans_repo,
+        "update_plan",
+        fake_update_plan,
+    )
+    monkeypatch.setattr(
+        learning_handlers.progress_repo,
+        "upsert_progress",
+        fake_upsert_progress,
+    )
 
     async def fake_assistant_chat(*_: object) -> str:
         return "fb"
