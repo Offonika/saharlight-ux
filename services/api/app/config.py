@@ -6,7 +6,7 @@ import logging
 import os
 import posixpath
 import threading
-from typing import Literal, Optional
+from typing import Any, Literal, Optional, cast
 from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator
@@ -208,14 +208,45 @@ class Settings(BaseSettings):
         return self.learning_mode_enabled
 
 
+
+
+class _SettingsProxy:
+    """A proxy that forwards attribute access to the active settings object."""
+
+    __slots__ = ("_instance",)
+
+    def __init__(self, instance: Settings) -> None:
+        object.__setattr__(self, "_instance", instance)
+
+    def _get_instance(self) -> Settings:
+        return cast(Settings, object.__getattribute__(self, "_instance"))
+
+    def _set_instance(self, instance: Settings) -> None:
+        object.__setattr__(self, "_instance", instance)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._get_instance(), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        setattr(self._get_instance(), name, value)
+
+    def __repr__(self) -> str:
+        return f"SettingsProxy({self._get_instance()!r})"
+
+    def __dir__(self) -> list[str]:
+        return sorted(set(dir(self._get_instance())))
+
+
+_settings_proxy = _SettingsProxy(Settings())
+
 # Instantiate settings for external use
-settings = Settings()
+settings = cast(Settings, _settings_proxy)
 
 
 def get_settings() -> Settings:
     """Return the current application settings."""
 
-    return settings
+    return _settings_proxy._get_instance()
 
 
 def reload_settings() -> Settings:
@@ -224,10 +255,10 @@ def reload_settings() -> Settings:
     Thread-safe: a module-level lock guards reinitialization of ``settings``.
     """
 
-    global settings
     with _settings_lock:
-        settings = Settings()
-        return settings
+        new_settings = Settings()
+        _settings_proxy._set_instance(new_settings)
+        return new_settings
 
 
 def get_db_password() -> Optional[str]:
