@@ -8,7 +8,7 @@ from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonDefault
+from telegram import MenuButtonDefault, MenuButtonWebApp
 from telegram.error import NetworkError, RetryAfter
 
 from services.api.app.assistant.services import memory_service
