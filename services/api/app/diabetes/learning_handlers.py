@@ -467,6 +467,8 @@ async def _dynamic_learn_command(
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
     try:
         profile_db = await profiles.get_profile_for_user(user.id, context)
     except AuthRequiredError as exc:
@@ -505,8 +507,6 @@ async def _dynamic_learn_command(
         state.last_step_at = time.monotonic()
         state.last_sent_step_id = getattr(sent, "message_id", None)
         set_state(user_data, state)
-        raw_plan_id = user_data.get("learning_plan_id")
-        plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
         if plan_id is not None:
             progress_map = cast(
                 dict[int, ProgressData], context.bot_data.setdefault(PROGRESS_KEY, {})
@@ -854,6 +854,8 @@ async def lesson_answer_handler(
         await message.reply_text(RATE_LIMIT_MESSAGE)
         return
     profile = _get_profile(user_data)
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
     telegram_id = from_user.id if from_user else None
     user_text = message.text.strip()
     state.awaiting = False
@@ -887,15 +889,13 @@ async def lesson_answer_handler(
                     sanitized_feedback,
                 )
             else:
-                raw_plan_id = user_data.get("learning_plan_id")
-                plan_id_val = raw_plan_id if isinstance(raw_plan_id, int) else None
                 next_text = await _generate_step_text_logged(
                     profile,
                     state.topic,
                     prev_step + 1,
                     sanitized_feedback,
                     user_id=telegram_id,
-                    plan_id=plan_id_val,
+                    plan_id=plan_id,
                     last_sent_step_id=state.last_sent_step_id,
                 )
         except (
@@ -921,50 +921,43 @@ async def lesson_answer_handler(
         state.prev_summary = sanitized_feedback
         state.last_sent_step_id = getattr(sent, "message_id", None)
         set_state(user_data, state)
-        if telegram_id is not None:
-            raw_plan_id = user_data.get("learning_plan_id")
-            plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
-            if plan_id is not None:
-                data: ProgressData = {
-                    "topic": state.topic,
-                    "module_idx": cast(int, user_data.get("learning_module_idx", 0)),
-                    "step_idx": state.step,
-                    "snapshot": state.last_step_text,
-                    "prev_summary": state.prev_summary,
-                    "last_sent_step_id": state.last_sent_step_id,
-                }
-                progress_map = cast(
-                    dict[int, ProgressData],
-                    context.bot_data.setdefault(PROGRESS_KEY, {}),
-                )
-                progress_map[telegram_id] = data
-                try:
-                    await progress_repo.upsert_progress(telegram_id, plan_id, data)
-                except (SQLAlchemyError, RuntimeError) as exc:
-                    logger.exception("persist progress failed: %s", exc)
+        if telegram_id is not None and plan_id is not None:
+            data: ProgressData = {
+                "topic": state.topic,
+                "module_idx": cast(int, user_data.get("learning_module_idx", 0)),
+                "step_idx": state.step,
+                "snapshot": state.last_step_text,
+                "prev_summary": state.prev_summary,
+                "last_sent_step_id": state.last_sent_step_id,
+            }
+            progress_map = cast(
+                dict[int, ProgressData],
+                context.bot_data.setdefault(PROGRESS_KEY, {}),
+            )
+            progress_map[telegram_id] = data
+            try:
+                await progress_repo.upsert_progress(telegram_id, plan_id, data)
+            except (SQLAlchemyError, RuntimeError) as exc:
+                logger.exception("persist progress failed: %s", exc)
         log_user_ok: bool | None = None
         log_feedback_ok: bool | None = None
         log_next_ok: bool | None = None
         if telegram_id is not None:
             module_idx = cast(int, user_data.get("learning_module_idx", 0))
-            raw_plan_id = user_data.get("learning_plan_id")
-            plan_id_for_logging = (
-                raw_plan_id if isinstance(raw_plan_id, int) else None
-            )
 
             async def _record(step_idx: int, role: str) -> bool:
-                if plan_id_for_logging is None:
+                if plan_id is None:
                     raise RuntimeError("lesson logging requires an active plan")
                 return await safe_add_lesson_log(
                     telegram_id,
-                    plan_id_for_logging,
+                    plan_id,
                     module_idx,
                     step_idx,
                     role,
                     "",
                 )
 
-            if plan_id_for_logging is not None:
+            if plan_id is not None:
                 log_user_ok = await _record(prev_step, "user")
                 log_feedback_ok = await _record(prev_step, "assistant")
                 log_next_ok = await _record(state.step, "assistant")
