@@ -24,6 +24,7 @@ AUTH_DATE_MAX_AGE = 24 * 60 * 60
 _SETTINGS_CACHE: list[weakref.ReferenceType[object]] = []
 _LAST_SEEN_SETTINGS_ID: int | None = None
 _LAST_SEEN_SETTINGS_TYPE: type[object] | None = None
+_LAST_SEEN_ACTIVE_SETTINGS_TOKEN: tuple[int, str | None] | None = None
 
 
 def _settings_type() -> type[object] | None:
@@ -58,8 +59,11 @@ def _remember_settings(candidate: object) -> None:
         return
 
 
-def _purge_obsolete_settings(current_settings: object | None) -> None:
+def _purge_obsolete_settings(
+    module_settings: object | None, active_settings: object | None
+) -> None:
     global _LAST_SEEN_SETTINGS_ID, _LAST_SEEN_SETTINGS_TYPE
+    global _LAST_SEEN_ACTIVE_SETTINGS_TOKEN
 
     settings_cls = _settings_type()
 
@@ -71,7 +75,7 @@ def _purge_obsolete_settings(current_settings: object | None) -> None:
         if settings_cls is not None and not isinstance(target, settings_cls):
             _SETTINGS_CACHE.remove(ref)
 
-    module_settings_id = id(current_settings) if current_settings is not None else None
+    module_settings_id = id(module_settings) if module_settings is not None else None
 
     type_changed = (
         _LAST_SEEN_SETTINGS_TYPE is not None
@@ -86,6 +90,21 @@ def _purge_obsolete_settings(current_settings: object | None) -> None:
 
     if type_changed or instance_changed:
         _SETTINGS_CACHE.clear()
+        _LAST_SEEN_ACTIVE_SETTINGS_TOKEN = None
+
+    if active_settings is not None and _is_settings_instance(active_settings):
+        token_value_obj = getattr(active_settings, "telegram_token", None)
+        token_value = token_value_obj if isinstance(token_value_obj, str) else None
+        active_id = id(active_settings)
+        if (
+            _LAST_SEEN_ACTIVE_SETTINGS_TOKEN is not None
+            and _LAST_SEEN_ACTIVE_SETTINGS_TOKEN[0] == active_id
+            and _LAST_SEEN_ACTIVE_SETTINGS_TOKEN[1] != token_value
+        ):
+            _SETTINGS_CACHE.clear()
+        _LAST_SEEN_ACTIVE_SETTINGS_TOKEN = (active_id, token_value)
+    else:
+        _LAST_SEEN_ACTIVE_SETTINGS_TOKEN = None
 
     _LAST_SEEN_SETTINGS_TYPE = settings_cls
     _LAST_SEEN_SETTINGS_ID = module_settings_id
@@ -94,7 +113,9 @@ def _purge_obsolete_settings(current_settings: object | None) -> None:
 _remember_settings(config.get_settings())
 
 
-def _iter_settings_candidates() -> list[tuple[object, bool]]:
+def _iter_settings_candidates(
+    module_settings: object | None, active_settings: object | None
+) -> list[tuple[object, bool]]:
     """Return configuration objects to consult for the Telegram token.
 
     The returned list preserves the order in which candidates should be
@@ -103,13 +124,11 @@ def _iter_settings_candidates() -> list[tuple[object, bool]]:
     cached historical one (``False``).
     """
 
-    module_settings = getattr(config, "settings", None)
-    _purge_obsolete_settings(module_settings)
+    _purge_obsolete_settings(module_settings, active_settings)
 
     candidates: list[tuple[object, bool]] = []
     seen_ids: set[int] = set()
     settings_cls = _settings_type()
-    active_settings = config.get_settings()
 
     def consider(candidate: object | None, is_current_hint: bool) -> None:
         if candidate is None:
@@ -207,7 +226,9 @@ def get_tg_user(init_data: str) -> UserContext:
 
     primary_tokens: list[str] = []
     cached_tokens: list[str] = []
-    for candidate, is_current in _iter_settings_candidates():
+    module_settings = getattr(config, "settings", None)
+    active_settings = config.get_settings()
+    for candidate, is_current in _iter_settings_candidates(module_settings, active_settings):
         value = getattr(candidate, "telegram_token", None)
         if not isinstance(value, str) or not value:
             continue
