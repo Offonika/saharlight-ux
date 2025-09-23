@@ -6,8 +6,6 @@ import time
 import urllib.parse
 from typing import Any
 
-import sys
-
 import pytest
 from fastapi import HTTPException
 
