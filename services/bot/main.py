@@ -34,7 +34,10 @@ from services.api.app.billing.jobs import schedule_subscription_expiration
 from services.api.app.config import settings
 from services.api.app.diabetes.handlers.registration import register_handlers
 from services.api.app.diabetes.services.db import init_db
-from services.api.app.diabetes.utils.menu_setup import setup_chat_menu
+from services.api.app.diabetes.utils.menu_setup import (
+    is_webapp_menu_active,
+    setup_chat_menu,
+)
 from services.api.app.menu_button import post_init as menu_button_post_init
 from services.bot.handlers.start_webapp import build_start_handler
 from services.bot.ptb_patches import apply_jobqueue_stop_workaround  # 👈 добавили
@@ -241,14 +244,15 @@ async def post_init(
     if redis_client is not None:
         await redis_client.close()
 
-    menu_configured = False
-    if hasattr(app.bot, "set_chat_menu_button"):
-        menu_configured = await setup_chat_menu(
-            app.bot, settings=current_settings
-        )
-        if not menu_configured:
-            await menu_button_post_init(app)
-    else:
+    has_menu_button = hasattr(app.bot, "set_chat_menu_button")
+    menu_configured = await setup_chat_menu(
+        app.bot, settings=current_settings
+    )
+    if not menu_configured and not is_webapp_menu_active(
+        settings=current_settings
+    ):
+        await menu_button_post_init(app)
+    if not has_menu_button:
         logger.debug("Bot instance lacks set_chat_menu_button; skipping menu setup")
 
     from services.api.app.diabetes.handlers import assistant_menu
