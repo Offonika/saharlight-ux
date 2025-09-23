@@ -161,4 +161,17 @@ async def test_flow_idk_with_log_error(
     assert state is not None and state.step == 4 and state.awaiting
     assert msg_next2.replies == ["fb\n\n—\n\nstep4?"]
 
-    assert len(lesson_log.pending_logs) == 10
+    expected_keys = {
+        (0, 1, "assistant"),
+        (0, 1, "user"),
+        (0, 2, "assistant"),
+        (0, 2, "user"),
+        (0, 3, "assistant"),
+        (0, 3, "user"),
+        (0, 4, "assistant"),
+    }
+    actual_keys = {
+        (log.module_idx, log.step_idx, log.role) for log in lesson_log.pending_logs
+    }
+    assert actual_keys == expected_keys
+    assert len(lesson_log.pending_logs) == len(expected_keys)

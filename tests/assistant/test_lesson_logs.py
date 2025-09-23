@@ -149,5 +149,4 @@ async def test_reflush_does_not_duplicate(
 
     with session_factory() as session:
         assert session.query(LessonLog).count() == 1
-    assert len(logs.pending_logs) == 1
-    assert logs.pending_logs[0] is dup
+    assert not logs.pending_logs

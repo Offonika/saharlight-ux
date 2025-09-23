@@ -167,18 +167,51 @@ async def test_logs_queue_and_flush(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(logs.pending_logs) == 2
 
     inserted: list[LessonLog] = []
+    stored_rows: list[LessonLog] = []
+
+    class DummyQuery:
+        def __init__(self, rows: list[LessonLog]) -> None:
+            self._rows = rows
+            self._filters: dict[str, int] = {}
+
+        def filter(self, *conditions: object) -> "DummyQuery":
+            for condition in conditions:
+                left = getattr(condition, "left", None)
+                right = getattr(condition, "right", None)
+                key = getattr(left, "key", None)
+                value = getattr(right, "value", None)
+                if key is not None and value is not None:
+                    self._filters[key] = value
+            return self
+
+        def all(self) -> list[tuple[int, int, str]]:
+            result: list[tuple[int, int, str]] = []
+            for row in self._rows:
+                if any(
+                    getattr(row, key) != value for key, value in self._filters.items()
+                ):
+                    continue
+                result.append((row.module_idx, row.step_idx, row.role))
+            return result
 
     class DummySession:
+        def __init__(self, rows: list[LessonLog]) -> None:
+            self._rows = rows
+
         def add_all(self, objs: list[LessonLog]) -> None:
             inserted.extend(objs)
+            self._rows.extend(objs)
 
         def get(self, *args: object, **kwargs: object) -> object | None:
             return object()
 
+        def query(self, *args: object, **kwargs: object) -> DummyQuery:
+            return DummyQuery(self._rows)
+
     async def ok_run_db(
         fn: Callable[[DummySession], None], *args: object, **kwargs: object
     ) -> None:
-        fn(DummySession())
+        fn(DummySession(stored_rows))
 
     monkeypatch.setattr(logs, "run_db", ok_run_db)
     monkeypatch.setattr(logs, "commit", lambda _: None)
@@ -198,13 +231,46 @@ async def test_flush_does_not_block_new_logs(
     logs.pending_logs.clear()
 
     inserted: list[LessonLog] = []
+    stored_rows: list[LessonLog] = []
+
+    class DummyQuery:
+        def __init__(self, rows: list[LessonLog]) -> None:
+            self._rows = rows
+            self._filters: dict[str, int] = {}
+
+        def filter(self, *conditions: object) -> "DummyQuery":
+            for condition in conditions:
+                left = getattr(condition, "left", None)
+                right = getattr(condition, "right", None)
+                key = getattr(left, "key", None)
+                value = getattr(right, "value", None)
+                if key is not None and value is not None:
+                    self._filters[key] = value
+            return self
+
+        def all(self) -> list[tuple[int, int, str]]:
+            result: list[tuple[int, int, str]] = []
+            for row in self._rows:
+                if any(
+                    getattr(row, key) != value for key, value in self._filters.items()
+                ):
+                    continue
+                result.append((row.module_idx, row.step_idx, row.role))
+            return result
 
     class DummySession:
+        def __init__(self, rows: list[LessonLog]) -> None:
+            self._rows = rows
+
         def add_all(self, objs: list[LessonLog]) -> None:
             inserted.extend(objs)
+            self._rows.extend(objs)
 
         def get(self, *args: object, **kwargs: object) -> object | None:
             return object()
+
+        def query(self, *args: object, **kwargs: object) -> DummyQuery:
+            return DummyQuery(self._rows)
 
     flush_started = asyncio.Event()
     continue_flush = asyncio.Event()
@@ -218,7 +284,7 @@ async def test_flush_does_not_block_new_logs(
         if calls == 1:
             flush_started.set()
             await continue_flush.wait()
-        fn(DummySession())
+        fn(DummySession(stored_rows))
 
     monkeypatch.setattr(logs, "run_db", slow_run_db)
     monkeypatch.setattr(logs, "commit", lambda _: None)
