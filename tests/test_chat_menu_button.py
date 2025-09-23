@@ -8,7 +8,7 @@ from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonDefault, MenuButtonWebApp
+from telegram import MenuButtonDefault
 from telegram.error import NetworkError, RetryAfter
 
 from services.api.app.assistant.services import memory_service
@@ -128,10 +128,10 @@ async def test_post_init_warns_when_retry_fails(
 
 
 @pytest.mark.asyncio
-async def test_post_init_configures_webapp_menu_once(
+async def test_post_init_configures_menu_button_once(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Custom WebApp button is applied once when WEBAPP_URL is set."""
+    """Default menu button is applied once when ``WEBAPP_URL`` is set."""
 
     monkeypatch.setenv("WEBAPP_URL", "https://web.example/app")
     main = _reload_main()
@@ -152,9 +152,7 @@ async def test_post_init_configures_webapp_menu_once(
     bot.set_my_commands.assert_awaited_once_with(main.commands)
     assert bot.set_chat_menu_button.await_count == 1
     button = bot.set_chat_menu_button.call_args.kwargs["menu_button"]
-    assert isinstance(button, MenuButtonWebApp)
-    assert button.text == "Profile"
-    assert button.web_app.url == "https://web.example/app/profile"
+    assert isinstance(button, MenuButtonDefault)
     main.menu_button_post_init.assert_not_awaited()
 
 
@@ -186,7 +184,7 @@ async def test_post_init_restores_default_when_webapp_url_removed(
 
     assert bot.set_chat_menu_button.await_count == 1
     first_button = bot.set_chat_menu_button.await_args_list[0].kwargs["menu_button"]
-    assert isinstance(first_button, MenuButtonWebApp)
+    assert isinstance(first_button, MenuButtonDefault)
     assert fallback_mock.await_count == 0
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
