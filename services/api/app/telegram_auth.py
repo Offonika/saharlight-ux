@@ -3,6 +3,7 @@ import hmac
 import json
 import logging
 import time
+import weakref
 from typing import cast
 from urllib.parse import parse_qsl
 
@@ -20,15 +21,74 @@ TG_INIT_DATA_HEADER = "X-Telegram-Init-Data"
 # Maximum allowed age of auth_date in seconds (24 hours)
 AUTH_DATE_MAX_AGE = 24 * 60 * 60
 
+_SETTINGS_CACHE: list[weakref.ReferenceType[object]] = []
+_LAST_SEEN_SETTINGS_ID: int | None = None
+_LAST_SEEN_SETTINGS_TYPE: type[object] | None = None
 
-_SETTINGS_CACHE: list[object] = []
+
+def _settings_type() -> type[object] | None:
+    settings_cls = getattr(config, "Settings", None)
+    return settings_cls if isinstance(settings_cls, type) else None
+
+
+def _is_settings_instance(candidate: object) -> bool:
+    settings_cls = _settings_type()
+    return settings_cls is not None and isinstance(candidate, settings_cls)
 
 
 def _remember_settings(candidate: object) -> None:
-    for existing in _SETTINGS_CACHE:
+    if not _is_settings_instance(candidate):
+        return
+
+    for ref in list(_SETTINGS_CACHE):
+        existing = ref()
+        if existing is None:
+            _SETTINGS_CACHE.remove(ref)
+            continue
+        if not _is_settings_instance(existing):
+            _SETTINGS_CACHE.remove(ref)
+            continue
         if existing is candidate:
             return
-    _SETTINGS_CACHE.append(candidate)
+
+    try:
+        _SETTINGS_CACHE.append(weakref.ref(candidate))
+    except TypeError:
+        # ``Settings`` should support weak references, but guard defensively.
+        return
+
+
+def _purge_obsolete_settings(current_settings: object | None) -> None:
+    global _LAST_SEEN_SETTINGS_ID, _LAST_SEEN_SETTINGS_TYPE
+
+    settings_cls = _settings_type()
+
+    for ref in list(_SETTINGS_CACHE):
+        target = ref()
+        if target is None:
+            _SETTINGS_CACHE.remove(ref)
+            continue
+        if settings_cls is not None and not isinstance(target, settings_cls):
+            _SETTINGS_CACHE.remove(ref)
+
+    module_settings_id = id(current_settings) if current_settings is not None else None
+
+    type_changed = (
+        _LAST_SEEN_SETTINGS_TYPE is not None
+        and settings_cls is not None
+        and settings_cls is not _LAST_SEEN_SETTINGS_TYPE
+    )
+    instance_changed = (
+        _LAST_SEEN_SETTINGS_ID is not None
+        and module_settings_id is not None
+        and module_settings_id != _LAST_SEEN_SETTINGS_ID
+    )
+
+    if type_changed or instance_changed:
+        _SETTINGS_CACHE.clear()
+
+    _LAST_SEEN_SETTINGS_TYPE = settings_cls
+    _LAST_SEEN_SETTINGS_ID = module_settings_id
 
 
 _remember_settings(config.get_settings())
@@ -37,11 +97,11 @@ _remember_settings(config.get_settings())
 def _iter_settings_candidates() -> list[object]:
     """Return unique configuration objects to consult for the Telegram token."""
 
+    module_settings = getattr(config, "settings", None)
+    _purge_obsolete_settings(module_settings)
+
     current_candidates: list[object] = []
-    for candidate in (
-        config.get_settings(),
-        getattr(config, "settings", None),
-    ):
+    for candidate in (config.get_settings(), module_settings):
         if candidate is None:
             continue
         current_candidates.append(candidate)
@@ -49,13 +109,34 @@ def _iter_settings_candidates() -> list[object]:
 
     candidates: list[object] = []
     seen_ids: set[int] = set()
-    for candidate in current_candidates + _SETTINGS_CACHE:
+
+    def consider(candidate: object) -> None:
+        if candidate is None:
+            return
         candidate_id = id(candidate)
         if candidate_id in seen_ids:
-            continue
+            return
         seen_ids.add(candidate_id)
         candidates.append(candidate)
-    return candidates
+        _remember_settings(candidate)
+
+    for candidate in current_candidates:
+        consider(candidate)
+
+    for ref in list(_SETTINGS_CACHE):
+        cached = ref()
+        if cached is None:
+            _SETTINGS_CACHE.remove(ref)
+            continue
+        consider(cached)
+
+    filtered: list[object] = []
+    for candidate in candidates:
+        token = getattr(candidate, "telegram_token", None)
+        if isinstance(token, str) and token:
+            filtered.append(candidate)
+
+    return filtered
 
 
 def parse_and_verify_init_data(init_data: str, token: str) -> dict[str, object]:
