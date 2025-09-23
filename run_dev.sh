@@ -2,6 +2,8 @@
 # file: run_dev.sh
 set -e
 
+DEV_PORT="${DEV_PORT:-8000}"
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
 
@@ -39,8 +41,13 @@ if [[ ! -w "$STATE_DIRECTORY" ]]; then
 fi
 
 # Запускаем API с авто-reload (1 процесс)
+if lsof -iTCP:"$DEV_PORT" -sTCP:LISTEN >/dev/null; then
+  echo "Port $DEV_PORT is already in use. Set DEV_PORT to use a different port." >&2
+  exit 1
+fi
+
 uvicorn services.api.app.main:app \
-        --reload --host 0.0.0.0 --port 8000 &
+        --reload --host 0.0.0.0 --port "$DEV_PORT" &
 API_PID=$!
 
 # Запускаем Telegram-бота
