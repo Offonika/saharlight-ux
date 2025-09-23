@@ -6,7 +6,7 @@ import logging
 import os
 import posixpath
 import threading
-from typing import Literal, Optional
+from typing import Any, Literal, Optional, cast
 from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator
@@ -208,26 +208,87 @@ class Settings(BaseSettings):
         return self.learning_mode_enabled
 
 
+
+
+class _SettingsProxy:
+    """A proxy that forwards attribute access to the active settings object."""
+
+    __slots__ = ("_instance",)
+
+    def __init__(self, instance: Settings) -> None:
+        object.__setattr__(self, "_instance", instance)
+
+    def _get_instance(self) -> Settings:
+        return cast(Settings, object.__getattribute__(self, "_instance"))
+
+    def _set_instance(self, instance: Settings) -> None:
+        object.__setattr__(self, "_instance", instance)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._get_instance(), name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        setattr(self._get_instance(), name, value)
+
+    def __repr__(self) -> str:
+        return f"SettingsProxy({self._get_instance()!r})"
+
+    def __dir__(self) -> list[str]:
+        return sorted(set(dir(self._get_instance())))
+
+
+_settings_proxy = _SettingsProxy(Settings())
+
 # Instantiate settings for external use
-settings = Settings()
+settings = cast(Settings, _settings_proxy)
 
 
 def get_settings() -> Settings:
     """Return the current application settings."""
 
-    return settings
+    return _settings_proxy._get_instance()
 
 
 def reload_settings() -> Settings:
-    """Reload settings from the environment and return them.
+    """Reload settings from the environment while preserving identity.
 
-    Thread-safe: a module-level lock guards reinitialization of ``settings``.
+    ``settings`` is mutated in place so that modules holding a direct
+    reference to :data:`settings` continue to observe refreshed values after
+    reloading. A module-level lock guards refreshes to keep the operation
+    thread-safe.
     """
 
-    global settings
     with _settings_lock:
-        settings = Settings()
-        return settings
+
+        fresh_settings = Settings()
+        current = settings
+
+        if type(current) is not type(fresh_settings):
+            try:
+                current.__class__ = type(fresh_settings)
+            except TypeError:  # pragma: no cover - defensive guard
+                logger.debug("Unable to update settings class", exc_info=True)
+
+        current_fields = set(current.__dict__.keys())
+        fresh_fields = set(type(fresh_settings).model_fields.keys())
+
+        for field in current_fields - fresh_fields:
+            try:
+                delattr(current, field)
+            except AttributeError:
+                current.__dict__.pop(field, None)
+
+        for field in fresh_fields:
+            setattr(current, field, getattr(fresh_settings, field))
+
+        object.__setattr__(
+            current,
+            "__pydantic_fields_set__",
+            getattr(fresh_settings, "__pydantic_fields_set__", set()),
+        )
+
+        return current
+
 
 
 def get_db_password() -> Optional[str]:

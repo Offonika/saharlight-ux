@@ -4,13 +4,14 @@ import io
 import logging
 import re
 from dataclasses import dataclass
-from typing import Iterable, MutableMapping, cast
+from collections.abc import Callable, Iterable, Mapping
+from typing import Coroutine, MutableMapping, cast
 
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
 from telegram import Message, Update
 from telegram.error import TelegramError
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
 
 from services.api.app.ui.keyboard import build_main_keyboard
 
@@ -238,6 +239,46 @@ async def labs_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     return END
 
 
+class LabsMessageHandler(MessageHandler[ContextTypes.DEFAULT_TYPE, int]):
+    """Message handler that only processes updates in labs context."""
+
+    __slots__ = ("_user_data",)
+
+    def __init__(
+        self,
+        message_filters: filters.BaseFilter | None,
+        callback: Callable[
+            [Update, ContextTypes.DEFAULT_TYPE], Coroutine[object, object, int]
+        ],
+        user_data: Mapping[int, Mapping[str, object] | MutableMapping[str, object]],
+        *,
+        block: bool = True,
+    ) -> None:
+        super().__init__(message_filters, callback, block=block)
+        self._user_data = user_data
+
+    def _is_labs_context(self, update: Update) -> bool:
+        user = update.effective_user
+        if user is None:
+            return False
+        data = self._user_data.get(user.id)
+        if not isinstance(data, Mapping):
+            return False
+        waiting = bool(data.get("waiting_labs"))
+        assistant_mode = data.get("assistant_last_mode") == "labs"
+        return waiting or assistant_mode
+
+    def check_update(
+        self, update: object
+    ) -> bool | dict[str, list[object]] | None:
+        check = super().check_update(update)
+        if not check or not isinstance(update, Update):
+            return check
+        if not self._is_labs_context(update):
+            return False
+        return check
+
+
 __all__ = [
     "AWAITING_KIND",
     "KIND_FILE",
@@ -246,4 +287,6 @@ __all__ = [
     "parse_labs",
     "labs_handler",
     "format_reply",
+    "LabsMessageHandler",
 ]
+
