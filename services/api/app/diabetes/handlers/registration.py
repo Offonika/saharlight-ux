@@ -24,7 +24,7 @@ from .common_handlers import help_command, smart_input_help
 from .router import callback_router
 from . import assistant_router
 from .. import learning_handlers
-from ..labs_handlers import labs_handler
+from ..labs_handlers import LabsMessageHandler, labs_handler
 from ..utils.ui import (
     PROFILE_BUTTON_TEXT,
     REMINDERS_BUTTON_TEXT,
@@ -292,9 +292,10 @@ def register_handlers(
     if learning_enabled:
         learning_handlers.register_handlers(app)
     app.add_handler(
-        MessageHandlerT(
+        LabsMessageHandler(
             (filters.TEXT | filters.PHOTO | filters.Document.ALL) & ~filters.COMMAND,
             labs_handler,
+            user_data=app.user_data,
             block=False,  # чтобы фото продолжали обрабатываться
         )
     )
