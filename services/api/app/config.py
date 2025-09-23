@@ -261,7 +261,7 @@ def reload_settings() -> Settings:
     with _settings_lock:
 
         fresh_settings = Settings()
-        current = settings
+        current = get_settings()
 
         if type(current) is not type(fresh_settings):
             try:
@@ -284,7 +284,7 @@ def reload_settings() -> Settings:
         object.__setattr__(
             current,
             "__pydantic_fields_set__",
-            getattr(fresh_settings, "__pydantic_fields_set__", set()),
+            getattr(fresh_settings, "__pydantic_fields_set__", set()).copy(),
         )
 
         return current
