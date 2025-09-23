@@ -52,7 +52,14 @@ logger = logging.getLogger(__name__)
 TELEGRAM_TOKEN = settings.telegram_token
 
 TELEGRAM_TOKEN_PLACEHOLDER = "bot<hidden>"
-HTTP_CLIENT_LOGGER_NAMES: tuple[str, ...] = ("httpx", "httpcore", "telegram")
+HTTP_CLIENT_LOGGER_NAMES: tuple[str, ...] = (
+    "httpx",
+    "httpcore",
+    "telegram",
+    "telegram.ext",
+    "telegram.request",
+)
+_HTTP_CLIENT_WARN_LOGGER_NAMES = frozenset({"httpx", "httpcore"})
 
 
 class TokenRedactingFilter(logging.Filter):
@@ -140,10 +147,7 @@ def configure_http_client_logging(token: str | None) -> None:
     _install_filter(root_logger, token_filter)
 
     for name in HTTP_CLIENT_LOGGER_NAMES:
-        logger_instance = logging.getLogger(name)
-        if name in {"httpx", "httpcore"} and logger_instance.level < logging.WARNING:
-            logger_instance.setLevel(logging.WARNING)
-        _install_filter(logger_instance, token_filter)
+        _configure_logger_tree(name, token_filter)
 
 
 def _install_filter(logger_instance: logging.Logger, token_filter: TokenRedactingFilter) -> None:
@@ -151,6 +155,22 @@ def _install_filter(logger_instance: logging.Logger, token_filter: TokenRedactin
         if isinstance(existing, TokenRedactingFilter):
             logger_instance.removeFilter(existing)
     logger_instance.addFilter(token_filter)
+
+
+def _configure_logger_tree(name: str, token_filter: TokenRedactingFilter) -> None:
+    logger_instance = logging.getLogger(name)
+    if name in _HTTP_CLIENT_WARN_LOGGER_NAMES and logger_instance.level < logging.WARNING:
+        logger_instance.setLevel(logging.WARNING)
+    _install_filter(logger_instance, token_filter)
+
+    prefix = f"{name}."
+    logger_dict = logging.Logger.manager.loggerDict
+    for child_name, child_logger in list(logger_dict.items()):
+        if (
+            isinstance(child_logger, logging.Logger)
+            and child_name.startswith(prefix)
+        ):
+            _install_filter(child_logger, token_filter)
 
 redis_stub = SimpleNamespace()
 redis_stub.Redis = SimpleNamespace(from_url=lambda *a, **k: None)
