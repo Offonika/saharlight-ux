@@ -250,15 +250,45 @@ def get_settings() -> Settings:
 
 
 def reload_settings() -> Settings:
-    """Reload settings from the environment and return them.
+    """Reload settings from the environment while preserving identity.
 
-    Thread-safe: a module-level lock guards reinitialization of ``settings``.
+    ``settings`` is mutated in place so that modules holding a direct
+    reference to :data:`settings` continue to observe refreshed values after
+    reloading. A module-level lock guards refreshes to keep the operation
+    thread-safe.
     """
 
     with _settings_lock:
-        new_settings = Settings()
-        _settings_proxy._set_instance(new_settings)
-        return new_settings
+
+        fresh_settings = Settings()
+        current = settings
+
+        if type(current) is not type(fresh_settings):
+            try:
+                current.__class__ = type(fresh_settings)
+            except TypeError:  # pragma: no cover - defensive guard
+                logger.debug("Unable to update settings class", exc_info=True)
+
+        current_fields = set(current.__dict__.keys())
+        fresh_fields = set(type(fresh_settings).model_fields.keys())
+
+        for field in current_fields - fresh_fields:
+            try:
+                delattr(current, field)
+            except AttributeError:
+                current.__dict__.pop(field, None)
+
+        for field in fresh_fields:
+            setattr(current, field, getattr(fresh_settings, field))
+
+        object.__setattr__(
+            current,
+            "__pydantic_fields_set__",
+            getattr(fresh_settings, "__pydantic_fields_set__", set()),
+        )
+
+        return current
+
 
 
 def get_db_password() -> Optional[str]:

@@ -285,6 +285,24 @@ def test_require_and_check_use_reloaded_settings_token(
     assert exc_check_old.value.detail == "invalid hash"
 
 
+def test_check_token_accepts_reloaded_settings_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+
+    reloaded = config.reload_settings()
+    assert reloaded is config.settings
+
+    refreshed_token = "reloaded-runtime-token"
+    monkeypatch.setattr(config.settings, "telegram_token", refreshed_token)
+
+    init_data = build_init_data(token=refreshed_token)
+    header = f"tg {init_data}"
+
+    user = check_token(header)
+    assert user["id"] == 1
+
+
 def test_require_tg_user_invalid_id_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
