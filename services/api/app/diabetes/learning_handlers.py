@@ -467,6 +467,8 @@ async def _dynamic_learn_command(
     if user is None:
         return
     user_data = cast(MutableMapping[str, Any], context.user_data)
+    raw_plan_id = user_data.get("learning_plan_id")
+    plan_id: int | None = raw_plan_id if isinstance(raw_plan_id, int) else None
     try:
         profile_db = await profiles.get_profile_for_user(user.id, context)
     except AuthRequiredError as exc:
@@ -505,8 +507,6 @@ async def _dynamic_learn_command(
         state.last_step_at = time.monotonic()
         state.last_sent_step_id = getattr(sent, "message_id", None)
         set_state(user_data, state)
-        raw_plan_id = user_data.get("learning_plan_id")
-        plan_id = raw_plan_id if isinstance(raw_plan_id, int) else None
         if plan_id is not None:
             progress_map = cast(
                 dict[int, ProgressData], context.bot_data.setdefault(PROGRESS_KEY, {})
