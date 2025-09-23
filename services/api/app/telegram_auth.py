@@ -25,6 +25,7 @@ _SETTINGS_CACHE: list[weakref.ReferenceType[object]] = []
 _LAST_SEEN_SETTINGS_ID: int | None = None
 _LAST_SEEN_SETTINGS_TYPE: type[object] | None = None
 _LAST_SEEN_ACTIVE_SETTINGS_TOKEN: tuple[int, str | None] | None = None
+_LAST_SEEN_ACTIVE_SETTINGS_ID: int | None = None
 
 
 def _settings_type() -> type[object] | None:
@@ -63,7 +64,7 @@ def _purge_obsolete_settings(
     module_settings: object | None, active_settings: object | None
 ) -> None:
     global _LAST_SEEN_SETTINGS_ID, _LAST_SEEN_SETTINGS_TYPE
-    global _LAST_SEEN_ACTIVE_SETTINGS_TOKEN
+    global _LAST_SEEN_ACTIVE_SETTINGS_TOKEN, _LAST_SEEN_ACTIVE_SETTINGS_ID
 
     settings_cls = _settings_type()
 
@@ -93,9 +94,16 @@ def _purge_obsolete_settings(
         _LAST_SEEN_ACTIVE_SETTINGS_TOKEN = None
 
     if active_settings is not None and _is_settings_instance(active_settings):
+        active_id = id(active_settings)
+        if (
+            _LAST_SEEN_ACTIVE_SETTINGS_ID is not None
+            and active_id != _LAST_SEEN_ACTIVE_SETTINGS_ID
+        ):
+            _SETTINGS_CACHE.clear()
+        _LAST_SEEN_ACTIVE_SETTINGS_ID = active_id
+
         token_value_obj = getattr(active_settings, "telegram_token", None)
         token_value = token_value_obj if isinstance(token_value_obj, str) else None
-        active_id = id(active_settings)
         if (
             _LAST_SEEN_ACTIVE_SETTINGS_TOKEN is not None
             and _LAST_SEEN_ACTIVE_SETTINGS_TOKEN[0] == active_id
@@ -104,6 +112,7 @@ def _purge_obsolete_settings(
             _SETTINGS_CACHE.clear()
         _LAST_SEEN_ACTIVE_SETTINGS_TOKEN = (active_id, token_value)
     else:
+        _LAST_SEEN_ACTIVE_SETTINGS_ID = None
         _LAST_SEEN_ACTIVE_SETTINGS_TOKEN = None
 
     _LAST_SEEN_SETTINGS_TYPE = settings_cls
