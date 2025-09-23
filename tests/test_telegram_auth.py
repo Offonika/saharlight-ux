@@ -140,6 +140,38 @@ def test_require_tg_user_token_cleared_returns_503(
     assert exc.value.detail == "telegram token not configured"
 
 
+def test_require_and_check_use_updated_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    initial_token = "initial-token"
+    monkeypatch.setattr(config.settings, "telegram_token", initial_token)
+
+    init_data_old = build_init_data(token=initial_token)
+    user_old = require_tg_user(init_data_old)
+    assert user_old["id"] == 1
+    header_old = f"tg {init_data_old}"
+    user_old_header = check_token(header_old)
+    assert user_old_header["id"] == 1
+
+    updated_token = "updated-token"
+    config.settings.telegram_token = updated_token
+
+    init_data_new = build_init_data(token=updated_token)
+    user_new = require_tg_user(init_data_new)
+    assert user_new["id"] == 1
+    header_new = f"tg {init_data_new}"
+    user_new_header = check_token(header_new)
+    assert user_new_header["id"] == 1
+
+    with pytest.raises(HTTPException) as exc_require:
+        require_tg_user(init_data_old)
+    assert exc_require.value.status_code == 401
+    assert exc_require.value.detail == "invalid hash"
+
+    with pytest.raises(HTTPException) as exc_check:
+        check_token(header_old)
+    assert exc_check.value.status_code == 401
+    assert exc_check.value.detail == "invalid hash"
+
+
 def test_require_tg_user_after_config_reload(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -204,6 +236,54 @@ def test_require_tg_user_config_reload_requires_new_token(
             require_tg_user(initial_init_data)
         assert exc_old.value.status_code == 401
         assert exc_old.value.detail == "invalid hash"
+    finally:
+        config.settings = original_settings
+
+
+def test_require_and_check_use_reloaded_settings_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("TELEGRAM_TOKEN", raising=False)
+    initial_token = "initial-reload-token"
+    monkeypatch.setattr(config.settings, "telegram_token", initial_token)
+
+    init_data_old = build_init_data(token=initial_token)
+    require_tg_user(init_data_old)
+    header_old = f"tg {init_data_old}"
+    check_token(header_old)
+
+    original_settings = config.settings
+    reloaded_settings = config.reload_settings()
+    try:
+        with pytest.raises(HTTPException) as exc_require_missing:
+            require_tg_user(init_data_old)
+        assert exc_require_missing.value.status_code == 503
+        assert exc_require_missing.value.detail == "telegram token not configured"
+
+        with pytest.raises(HTTPException) as exc_check_missing:
+            check_token(header_old)
+        assert exc_check_missing.value.status_code == 503
+        assert exc_check_missing.value.detail == "telegram token not configured"
+
+        updated_token = "reloaded-token"
+        monkeypatch.setattr(reloaded_settings, "telegram_token", updated_token)
+
+        init_data_new = build_init_data(token=updated_token)
+        user_new = require_tg_user(init_data_new)
+        assert user_new["id"] == 1
+        header_new = f"tg {init_data_new}"
+        user_new_header = check_token(header_new)
+        assert user_new_header["id"] == 1
+
+        with pytest.raises(HTTPException) as exc_require_old:
+            require_tg_user(init_data_old)
+        assert exc_require_old.value.status_code == 401
+        assert exc_require_old.value.detail == "invalid hash"
+
+        with pytest.raises(HTTPException) as exc_check_old:
+            check_token(header_old)
+        assert exc_check_old.value.status_code == 401
+        assert exc_check_old.value.detail == "invalid hash"
     finally:
         config.settings = original_settings
 
