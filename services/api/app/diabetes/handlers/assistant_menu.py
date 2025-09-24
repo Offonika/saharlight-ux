@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
+from collections.abc import Awaitable
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
@@ -22,6 +24,7 @@ from services.api.app.diabetes.utils.ui import BACK_BUTTON_TEXT
 from services.api.app.diabetes.assistant_state import AWAITING_KIND, set_last_mode
 from services.api.app.diabetes.labs_handlers import AWAITING_KIND as LABS_AWAITING_KIND
 from services.api.app.diabetes import visit_handlers
+from . import registration
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +66,13 @@ MODE_TEXTS: dict[str, str] = {
 }
 
 
+async def _maybe_await(result: object) -> None:
+    """Await ``result`` when it is awaitable."""
+
+    if inspect.isawaitable(result):
+        await cast(Awaitable[object], result)
+
+
 def assistant_keyboard() -> InlineKeyboardMarkup:
     """Build assistant menu keyboard."""
 
@@ -74,7 +84,7 @@ async def show_menu(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 
     message = update.effective_message
     if message:
-        await message.reply_text("Ассистент:", reply_markup=assistant_keyboard())
+        await _maybe_await(message.reply_text("Ассистент:", reply_markup=assistant_keyboard()))
 
 
 def _back_keyboard() -> InlineKeyboardMarkup:
@@ -124,10 +134,15 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
     if data == "asst:save_note":
         await visit_handlers.save_note_callback(update, ctx)
         return
+    user = getattr(update, "effective_user", None)
+    user_id = cast(int | None, getattr(user, "id", None))
     if data in {"asst:back", "asst:menu"}:
+        registration.deactivate_gpt_mode(ctx, user_id)
         if message and hasattr(message, "edit_text"):
-            await cast(Message, message).edit_text(
-                "Ассистент:", reply_markup=assistant_keyboard()
+            await _maybe_await(
+                cast(Message, message).edit_text(
+                    "Ассистент:", reply_markup=assistant_keyboard()
+                )
             )
         return
     mode = data.split(":", 1)[1]
@@ -139,8 +154,10 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
             extra={"data": data, "user_id": getattr(user, "id", None)},
         )
         if message and hasattr(message, "edit_text"):
-            await cast(Message, message).edit_text(
-                "Неизвестная команда.", reply_markup=_back_keyboard()
+            await _maybe_await(
+                cast(Message, message).edit_text(
+                    "Неизвестная команда.", reply_markup=_back_keyboard()
+                )
             )
         return
     logger.info(
@@ -148,11 +165,16 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         extra={"mode": mode, "user_id": getattr(user, "id", None)},
     )
     if message and hasattr(message, "edit_text"):
-        await cast(Message, message).edit_text(
-            MODE_TEXTS[mode], reply_markup=_back_keyboard()
+        await _maybe_await(
+            cast(Message, message).edit_text(
+                MODE_TEXTS[mode], reply_markup=_back_keyboard()
+            )
         )
+    if ctx.user_data is None:
+        ctx.user_data = {}
     user_data = cast(dict[str, object], ctx.user_data)
     if mode == "labs":
+        registration.deactivate_gpt_mode(ctx, user_id)
         user_data["waiting_labs"] = True
         user_data.pop(LABS_AWAITING_KIND, None)
         user_data[AWAITING_KIND] = "labs"
@@ -164,6 +186,16 @@ async def assistant_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> 
         set_last_mode(user_data, mode)
         if isinstance(user_id, int):
             await memory_service.set_last_mode(user_id, mode)
+        if mode == "chat":
+            registration.activate_gpt_mode(ctx, user_id)
+            if message and hasattr(message, "reply_text"):
+                await _maybe_await(
+                    cast(Message, message).reply_text(
+                        "💬 GPT режим активирован. Напишите сообщение или /cancel для выхода."
+                    )
+                )
+            return
+        registration.deactivate_gpt_mode(ctx, user_id)
         if mode == "visit":
             await visit_handlers.send_checklist(update, ctx)
             return

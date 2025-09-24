@@ -480,6 +480,7 @@ async def parse_via_gpt(
     message: Message,
     *,
     parse_command: Callable[[str], Awaitable[dict[str, object] | None]],
+    on_unrecognized: Callable[[], Awaitable[None]] | None = None,
 ) -> tuple[datetime.datetime, dict[str, float | None]] | None:
     """Parse freeform text via GPT parser."""
     try:
@@ -489,7 +490,10 @@ async def parse_via_gpt(
         return None
     logger.info("FREEFORM parsed=%s", parsed)
     if not parsed or parsed.get("action") != "add_entry":
-        await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
+        if on_unrecognized is not None:
+            await on_unrecognized()
+        else:
+            await message.reply_text("Не понял, воспользуйтесь /help или кнопками меню")
         return None
     fields = parsed.get("fields")
     if not isinstance(fields, dict):
@@ -612,8 +616,22 @@ async def freeform_handler(
     user_id = user.id
     logger.info("FREEFORM raw='%s'  user=%s", _sanitize(raw_text), user_id)
 
-    if user_data.get(GPT_MODE_KEY):
-        await chat_with_gpt(update, context)
+    last_mode_obj = user_data.get(assistant_state.LAST_MODE_KEY)
+    chat_active = bool(user_data.get(GPT_MODE_KEY)) or last_mode_obj == "chat"
+    if chat_active:
+        async def _continue_chat() -> None:
+            await chat_with_gpt(update, context)
+
+        parsed_entry = await parse_via_gpt(
+            raw_text,
+            message,
+            parse_command=parse_command,
+            on_unrecognized=_continue_chat,
+        )
+        if parsed_entry is None:
+            return
+        event_dt, fields = parsed_entry
+        await finalize_entry(fields, event_dt, user_id, user_data, message)
         return
 
     if await _handle_report_request(
