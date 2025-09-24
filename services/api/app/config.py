@@ -6,7 +6,7 @@ import logging
 import os
 import posixpath
 import threading
-from typing import Any, Literal, Optional, cast
+from typing import Literal, Optional, cast
 from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, Field, field_validator
