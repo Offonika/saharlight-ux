@@ -208,45 +208,52 @@ class Settings(BaseSettings):
         return self.learning_mode_enabled
 
 
+def _apply_settings(current: Settings, fresh: Settings) -> Settings:
+    if type(current) is not type(fresh):
+        try:
+            current.__class__ = type(fresh)
+        except TypeError:  # pragma: no cover - defensive guard
+            logger.debug("Unable to update settings class", exc_info=True)
+
+    current_fields = set(current.__dict__.keys())
+    fresh_fields = set(type(fresh).model_fields.keys())
+
+    for field in current_fields - fresh_fields:
+        try:
+            delattr(current, field)
+        except AttributeError:
+            current.__dict__.pop(field, None)
+
+    for field in fresh_fields:
+        setattr(current, field, getattr(fresh, field))
+
+    object.__setattr__(
+        current,
+        "__pydantic_fields_set__",
+        getattr(fresh, "__pydantic_fields_set__", set()).copy(),
+    )
+
+    return current
 
 
-class _SettingsProxy:
-    """A proxy that forwards attribute access to the active settings object."""
 
-    __slots__ = ("_instance",)
+# Instantiate settings for external use.  When the module is reloaded via
+# :func:`importlib.reload`, reuse the previously created instance so that other
+# modules holding a reference to :data:`settings` continue to observe the
+# refreshed values.
+if "_settings_instance" in globals():
+    _settings_instance = cast("Settings", globals()["_settings_instance"])
+    _apply_settings(_settings_instance, Settings())
+else:
+    _settings_instance = Settings()
 
-    def __init__(self, instance: Settings) -> None:
-        object.__setattr__(self, "_instance", instance)
-
-    def _get_instance(self) -> Settings:
-        return cast(Settings, object.__getattribute__(self, "_instance"))
-
-    def _set_instance(self, instance: Settings) -> None:
-        object.__setattr__(self, "_instance", instance)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._get_instance(), name)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        setattr(self._get_instance(), name, value)
-
-    def __repr__(self) -> str:
-        return f"SettingsProxy({self._get_instance()!r})"
-
-    def __dir__(self) -> list[str]:
-        return sorted(set(dir(self._get_instance())))
-
-
-_settings_proxy = _SettingsProxy(Settings())
-
-# Instantiate settings for external use
-settings = cast(Settings, _settings_proxy)
+settings: Settings = _settings_instance
 
 
 def get_settings() -> Settings:
     """Return the current application settings."""
 
-    return _settings_proxy._get_instance()
+    return _settings_instance
 
 
 def reload_settings() -> Settings:
@@ -259,34 +266,8 @@ def reload_settings() -> Settings:
     """
 
     with _settings_lock:
-
         fresh_settings = Settings()
-        current = get_settings()
-
-        if type(current) is not type(fresh_settings):
-            try:
-                current.__class__ = type(fresh_settings)
-            except TypeError:  # pragma: no cover - defensive guard
-                logger.debug("Unable to update settings class", exc_info=True)
-
-        current_fields = set(current.__dict__.keys())
-        fresh_fields = set(type(fresh_settings).model_fields.keys())
-
-        for field in current_fields - fresh_fields:
-            try:
-                delattr(current, field)
-            except AttributeError:
-                current.__dict__.pop(field, None)
-
-        for field in fresh_fields:
-            setattr(current, field, getattr(fresh_settings, field))
-
-        object.__setattr__(
-            current,
-            "__pydantic_fields_set__",
-            getattr(fresh_settings, "__pydantic_fields_set__", set()).copy(),
-        )
-
+        current = _apply_settings(_settings_instance, fresh_settings)
         return current
 
 

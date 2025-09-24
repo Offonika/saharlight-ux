@@ -248,7 +248,13 @@ def get_tg_user(init_data: str) -> UserContext:
 
     tokens: list[str] = [*primary_tokens, *cached_tokens]
     if not tokens:
-        logger.error("telegram token not configured")
+        module_has_token = bool(getattr(module_settings, "telegram_token", None))
+        active_has_token = bool(getattr(active_settings, "telegram_token", None))
+        logger.error(
+            "telegram token not configured (module_has_token=%s, active_has_token=%s)",
+            module_has_token,
+            active_has_token,
+        )
         raise HTTPException(status_code=503, detail="telegram token not configured")
 
     last_invalid_hash_error: HTTPException | None = None

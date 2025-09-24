@@ -430,6 +430,13 @@ async def topics_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if message is None:
         return
     if not settings.learning_mode_enabled:
+        logger.warning(
+            "learning disabled for learn_command",
+            extra={
+                "learning_mode_enabled": settings.learning_mode_enabled,
+                "settings_id": id(settings),
+            },
+        )
         await message.reply_text("режим обучения отключён")
         return
     if settings.learning_content_mode == "static":
