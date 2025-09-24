@@ -185,6 +185,148 @@ async def test_photo_handler_commit_failure_resets_waiting_flag(
 
 
 @pytest.mark.asyncio
+async def test_photo_handler_recovers_empty_thread_id(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    class StatusMessage:
+        def __init__(self) -> None:
+            self.deleted = False
+
+        async def delete(self) -> None:
+            self.deleted = True
+
+    class DummyMessage:
+        def __init__(self) -> None:
+            self.photo = (DummyPhoto(),)
+            self.chat_id = 1
+            self.texts: list[str] = []
+            self.status = StatusMessage()
+
+        async def reply_text(self, text: str, **kwargs: Any) -> Any:
+            self.texts.append(text)
+            if text.startswith("🔍"):
+                return self.status
+            return None
+
+    class File:
+        async def download_as_bytearray(self) -> bytearray:
+            return bytearray(b"img")
+
+    class DummySession:
+        def __init__(self) -> None:
+            self.user = SimpleNamespace(thread_id="", telegram_id=1)
+            self.add_called = False
+            self.closed = False
+
+        def __enter__(self) -> "DummySession":
+            return self
+
+        def __exit__(self, *args: Any) -> None:  # pragma: no cover - housekeeping
+            self.closed = True
+
+        def get(self, *args: Any, **kwargs: Any) -> Any:
+            return self.user
+
+        def add(self, obj: Any) -> None:
+            self.add_called = True
+
+    class Messages:
+        data = [
+            SimpleNamespace(
+                role="assistant",
+                content=[SimpleNamespace(text=SimpleNamespace(value="text"))],
+            )
+        ]
+
+    class DummyClient:
+        class _Threads:
+            class _Messages:
+                @staticmethod
+                def list(thread_id: str, run_id: str | None = None) -> Messages:
+                    return Messages()
+
+            messages = _Messages()
+
+        beta = SimpleNamespace(threads=_Threads())
+
+    session = DummySession()
+    commit_called = False
+    create_thread_calls = 0
+
+    def fake_commit(sess: object) -> None:
+        nonlocal commit_called
+        commit_called = True
+
+    def fake_create_thread_sync() -> str:
+        nonlocal create_thread_calls
+        create_thread_calls += 1
+        return "tid-new"
+
+    send_message_calls: list[str] = []
+
+    class Run:
+        def __init__(self, thread_id: str) -> None:
+            self.status = "completed"
+            self.thread_id = thread_id
+            self.id = "rid"
+
+    async def fake_send_message(*, thread_id: str, **kwargs: Any) -> Run:
+        send_message_calls.append(thread_id)
+        return Run(thread_id)
+
+    async def run_db_stub(fn, *args: Any, sessionmaker, **kwargs: Any) -> Any:
+        def wrapper() -> Any:
+            with sessionmaker() as sess:
+                return fn(sess, *args, **kwargs)
+
+        return await asyncio.to_thread(wrapper)
+
+    bot = SimpleNamespace(
+        get_file=AsyncMock(return_value=File()),
+        send_chat_action=AsyncMock(),
+    )
+
+    monkeypatch.setattr(photo_handlers, "SessionLocal", lambda: session)
+    monkeypatch.setattr(photo_handlers, "create_thread_sync", fake_create_thread_sync)
+    monkeypatch.setattr(photo_handlers, "commit", fake_commit)
+    monkeypatch.setattr(photo_handlers, "send_message", fake_send_message)
+    monkeypatch.setattr(photo_handlers, "run_db", run_db_stub)
+    monkeypatch.setattr(photo_handlers, "_get_client", lambda: DummyClient())
+    monkeypatch.setattr(
+        photo_handlers,
+        "extract_nutrition_info",
+        lambda text: functions.NutritionInfo(carbs_g=10, xe=0.5),
+    )
+
+    message = DummyMessage()
+    update = cast(
+        Update,
+        SimpleNamespace(message=message, effective_user=SimpleNamespace(id=1)),
+    )
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(bot=bot, user_data=MappingProxyType({})),
+    )
+
+    monkeypatch.chdir(tmp_path)
+    result = await photo_handlers.photo_handler(update, context)
+
+    assert result == photo_handlers.PHOTO_SUGAR
+    assert commit_called
+    assert create_thread_calls == 1
+    assert send_message_calls == ["tid-new"]
+    assert session.user.thread_id == "tid-new"
+    assert not session.add_called
+    assert session.closed
+    assert message.status.deleted
+    user_data = photo_handlers._get_mutable_user_data(context)
+    assert user_data.get("thread_id") == "tid-new"
+    assert photo_handlers.WAITING_GPT_FLAG not in user_data
+    assert photo_handlers.WAITING_GPT_TIMESTAMP not in user_data
+    assert bot.send_chat_action.called
+
+
+@pytest.mark.asyncio
 async def test_photo_handler_run_failure(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
