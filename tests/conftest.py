@@ -13,6 +13,8 @@ import pytest
 import sqlalchemy
 from sqlalchemy.orm import Session, sessionmaker
 
+from services.api.app import config
+
 from services.api.app.diabetes import curriculum_engine
 from services.api.app.diabetes import learning_handlers as _dynamic_learning_handlers
 
@@ -199,6 +201,31 @@ def _reset_init_db() -> Iterator[None]:
     main_module = sys.modules.get("services.api.app.main")
     if main_module is not None:
         setattr(main_module, "init_db", db_module.init_db)
+
+
+@pytest.fixture(autouse=True)
+def _ensure_learning_defaults() -> Iterator[None]:
+    """Ensure learning mode starts enabled for each test.
+
+    Reloading configuration before every test reset the Telegram token to an
+    empty value, which in turn caused API tests relying on
+    :mod:`services.api.app.telegram_auth` to respond with ``503``.  Instead of
+    refreshing the entire settings object, capture the previous learning flags,
+    enforce the desired defaults for the duration of the test and then restore
+    the original values.
+    """
+
+    previous_enabled = config.settings.learning_mode_enabled
+    previous_mode = config.settings.learning_content_mode
+
+    config.settings.learning_mode_enabled = True
+    config.settings.learning_content_mode = "dynamic"
+
+    try:
+        yield
+    finally:
+        config.settings.learning_mode_enabled = previous_enabled
+        config.settings.learning_content_mode = previous_mode
 
 
 @pytest.fixture(autouse=True, scope="session")
