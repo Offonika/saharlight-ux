@@ -3,6 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 import re
+from collections.abc import MutableMapping
 
 from telegram import Update
 from telegram.error import TelegramError
@@ -17,7 +18,7 @@ from telegram.ext import (
     filters,
 )
 from sqlalchemy.exc import SQLAlchemyError
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias, cast
 
 
 from .common_handlers import help_command, smart_input_help
@@ -54,6 +55,78 @@ MODE_DISCLAIMED_KEY = "mode_disclaimed"
 GPT_TIMEOUT = datetime.timedelta(minutes=5)
 
 
+def _ensure_user_data(
+    context: ContextTypes.DEFAULT_TYPE,
+) -> MutableMapping[str, object]:
+    if context.user_data is None:
+        context.user_data = {}
+    return cast(MutableMapping[str, object], context.user_data)
+
+
+def _gpt_job_name(user_id: int) -> str:
+    return f"gpt_timeout_{user_id}"
+
+
+def _cancel_gpt_timeout(
+    job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None,
+    user_id: int | None,
+) -> None:
+    if job_queue is None or user_id is None:
+        return
+    job_name = _gpt_job_name(user_id)
+    for job in job_queue.get_jobs_by_name(job_name):
+        job.schedule_removal()
+
+
+def _schedule_gpt_timeout(
+    job_queue: JobQueue[ContextTypes.DEFAULT_TYPE] | None,
+    user_id: int | None,
+) -> None:
+    if job_queue is None or user_id is None:
+        return
+    _cancel_gpt_timeout(job_queue, user_id)
+    job_queue.run_once(
+        _gpt_timeout,
+        when=GPT_TIMEOUT,
+        name=_gpt_job_name(user_id),
+        data=user_id,
+    )
+
+
+def activate_gpt_mode(
+    context: ContextTypes.DEFAULT_TYPE,
+    user_id: int | None,
+) -> None:
+    """Set GPT flags in ``context`` and schedule timeout."""
+
+    user_data = _ensure_user_data(context)
+    user_data.pop(MODE_DISCLAIMED_KEY, None)
+    user_data[GPT_MODE_KEY] = True
+    job_queue = cast(
+        JobQueue[ContextTypes.DEFAULT_TYPE] | None,
+        getattr(context, "job_queue", None),
+    )
+    _schedule_gpt_timeout(job_queue, user_id)
+
+
+def deactivate_gpt_mode(
+    context: ContextTypes.DEFAULT_TYPE,
+    user_id: int | None,
+) -> None:
+    """Clear GPT flags in ``context`` and cancel timeout."""
+
+    user_data_obj = context.user_data
+    if isinstance(user_data_obj, MutableMapping):
+        user_data = cast(MutableMapping[str, object], user_data_obj)
+        user_data.pop(GPT_MODE_KEY, None)
+        user_data.pop(MODE_DISCLAIMED_KEY, None)
+    job_queue = cast(
+        JobQueue[ContextTypes.DEFAULT_TYPE] | None,
+        getattr(context, "job_queue", None),
+    )
+    _cancel_gpt_timeout(job_queue, user_id)
+
+
 async def _gpt_timeout(context: ContextTypes.DEFAULT_TYPE) -> None:
     """Clear GPT dialog flag on timeout."""
     job = context.job
@@ -71,36 +144,17 @@ async def start_gpt_dialog(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     message = update.message
     if message is None:
         return
-    if context.user_data is None:
-        context.user_data = {}
-    context.user_data.pop(MODE_DISCLAIMED_KEY, None)
-    context.user_data[GPT_MODE_KEY] = True
-    jq = context.job_queue
     user = update.effective_user
-    if jq and user is not None:
-        job_name = f"gpt_timeout_{user.id}"
-        for job in jq.get_jobs_by_name(job_name):
-            job.schedule_removal()
-        jq.run_once(
-            _gpt_timeout,
-            when=GPT_TIMEOUT,
-            name=job_name,
-            data=user.id,
-        )
+    user_id = cast(int | None, getattr(user, "id", None))
+    activate_gpt_mode(context, user_id)
     await message.reply_text("💬 GPT режим активирован. Напишите сообщение или /cancel для выхода.")
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Cancel current operation and clear GPT dialog flag."""
-    if context.user_data is not None:
-        context.user_data.pop(GPT_MODE_KEY, None)
-        context.user_data.pop(MODE_DISCLAIMED_KEY, None)
-    jq = context.job_queue
     user = update.effective_user
-    if jq and user is not None:
-        job_name = f"gpt_timeout_{user.id}"
-        for job in jq.get_jobs_by_name(job_name):
-            job.schedule_removal()
+    user_id = cast(int | None, getattr(user, "id", None))
+    deactivate_gpt_mode(context, user_id)
     from . import dose_calc
 
     await dose_calc.dose_cancel(update, context)
