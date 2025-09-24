@@ -137,8 +137,14 @@ async def photo_handler(
 
             def _fetch_or_create(session: Session) -> str:
                 user = session.get(User, user_id)
-                if user:
-                    return user.thread_id
+                if user is not None:
+                    existing_thread_id = (user.thread_id or "").strip()
+                    if existing_thread_id:
+                        return existing_thread_id
+                    thread_id_local = create_thread_sync()
+                    user.thread_id = thread_id_local
+                    commit(session)
+                    return thread_id_local
                 thread_id_local = create_thread_sync()
                 session.add(User(telegram_id=user_id, thread_id=thread_id_local))
                 commit(session)
