@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 
 import pytest
-from telegram import MenuButtonDefault, MenuButtonWebApp
+from telegram import MenuButtonDefault
 from telegram.error import BadRequest
 from telegram.ext import ApplicationBuilder, ExtBot
 
@@ -15,7 +15,7 @@ def _reload_config() -> None:
 
 
 @pytest.mark.asyncio
-async def test_post_init_configures_webapp_menu(
+async def test_post_init_configures_default_menu(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("WEBAPP_URL", raising=False)
@@ -50,6 +50,4 @@ async def test_post_init_configures_webapp_menu(
 
     assert len(calls) == 2
     button = calls[-1][1]["menu_button"]
-    assert isinstance(button, MenuButtonWebApp)
-    assert button.text == "Profile"
-    assert button.web_app.url == "https://web.example/app/profile"
+    assert isinstance(button, MenuButtonDefault)
