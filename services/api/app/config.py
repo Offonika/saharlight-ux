@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 _settings_lock: threading.Lock = threading.Lock()
 
+_env_file_raw = os.environ.get("SAHARLIGHT_ENV_FILE", ".env")
+_ENV_FILE: str | None = _env_file_raw.strip() or None
+
 TOPICS_RU: dict[str, str] = {
     "xe_basics": "Хлебные единицы",
     "healthy-eating": "Здоровое питание",
@@ -38,7 +41,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE,
         extra="ignore",
     )
 
