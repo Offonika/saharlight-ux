@@ -35,10 +35,10 @@ async def post_init(
 ) -> None:
     """Configure the chat menu, falling back to Telegram's default button."""
 
-    previous_settings = config.get_settings()
+    previous_webapp_url = config.get_settings().webapp_url
     active_settings = config.reload_settings()
 
-    if active_settings.webapp_url != previous_settings.webapp_url:
+    if active_settings.webapp_url != previous_webapp_url:
         menu_setup._reset_last_configured()  # noqa: SLF001
 
     if await menu_setup.setup_chat_menu(app.bot, settings=active_settings):
