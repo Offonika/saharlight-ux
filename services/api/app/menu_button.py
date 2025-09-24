@@ -1,9 +1,7 @@
 """Configure Telegram chat menu button.
 
-Whenever a WebApp URL is configured the bot installs a
-``MenuButtonWebApp`` pointing to the profile section. Otherwise the standard
-Telegram menu button is restored. The helper is idempotent and safely skips
-bots that do not expose ``set_chat_menu_button``.
+The bot always restores Telegram's default chat menu button. Bots that do not
+support ``set_chat_menu_button`` are ignored gracefully.
 """
 
 from __future__ import annotations
@@ -35,15 +33,9 @@ async def post_init(
 ) -> None:
     """Configure the chat menu, falling back to Telegram's default button."""
 
-    previous_webapp_url = config.get_settings().webapp_url
     active_settings = config.reload_settings()
 
-    if active_settings.webapp_url != previous_webapp_url:
-        menu_setup._reset_last_configured()  # noqa: SLF001
-
     if await menu_setup.setup_chat_menu(app.bot, settings=active_settings):
-        return
-    if menu_setup.is_webapp_menu_active(settings=active_settings):
         return
 
     set_chat_menu_button: Callable[..., Awaitable[Any]] | None

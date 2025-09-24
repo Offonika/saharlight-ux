@@ -8,7 +8,7 @@ from types import MappingProxyType, ModuleType, SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from telegram import MenuButtonDefault, MenuButtonWebApp
+from telegram import MenuButtonDefault
 from telegram.error import NetworkError, RetryAfter
 
 
@@ -157,10 +157,10 @@ async def test_post_init_with_webapp_url_and_stub_bot(
 
 
 @pytest.mark.asyncio
-async def test_post_init_reloads_settings_for_chat_menu(
+async def test_post_init_always_uses_default_menu(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Removing WEBAPP_URL triggers the default menu button configuration."""
+    """Chat menu defaults regardless of WEBAPP_URL changes."""
 
     base_url = "https://web.example/app"
     monkeypatch.delenv("WEBAPP_URL", raising=False)
@@ -192,9 +192,8 @@ async def test_post_init_reloads_settings_for_chat_menu(
 
     fallback_mock.assert_not_awaited()
     assert bot.set_chat_menu_button.await_count == 2
-    webapp_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
-    assert isinstance(webapp_button, MenuButtonWebApp)
-    assert webapp_button.web_app.url == f"{base_url}/profile"
+    second_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
+    assert isinstance(second_button, MenuButtonDefault)
 
     monkeypatch.delenv("WEBAPP_URL", raising=False)
 
@@ -203,5 +202,4 @@ async def test_post_init_reloads_settings_for_chat_menu(
     fallback_mock.assert_not_awaited()
     assert bot.set_chat_menu_button.await_count == 3
     last_button = bot.set_chat_menu_button.await_args_list[-1].kwargs["menu_button"]
-
     assert isinstance(last_button, MenuButtonDefault)
