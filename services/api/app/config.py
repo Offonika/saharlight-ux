@@ -83,13 +83,22 @@ class Settings(BaseSettings):
     webapp_url: Optional[str] = Field(default=None, alias="WEBAPP_URL")
     api_url: Optional[str] = Field(default=None, alias="API_URL")
     subscription_url: Optional[str] = Field(default=None, alias="SUBSCRIPTION_URL")
-    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    openai_api_key: Optional[str] = Field(
+        default=None,
+        alias="OPENAI_API_KEY",
+        validation_alias=AliasChoices("OPENAI_API_KEY", "WHISPER_API_KEY"),
+    )
+    openai_base_url: Optional[str] = Field(default=None, alias="OPENAI_BASE_URL")
     openai_assistant_id: Optional[str] = Field(
         default=None, alias="OPENAI_ASSISTANT_ID"
     )
     openai_command_model: str = Field(
         default="gpt-4o-mini", alias="OPENAI_COMMAND_MODEL"
     )
+    whisper_rate_per_min_usd: float = Field(
+        default=0.006, alias="WHISPER_RATE_PER_MIN_USD"
+    )
+    stt_max_file_minutes: int = Field(default=15, alias="STT_MAX_FILE_MINUTES")
     api_key_min_length: int = Field(default=32, alias="API_KEY_MIN_LENGTH")
     assistant_mode_enabled: bool = Field(
         default=True,

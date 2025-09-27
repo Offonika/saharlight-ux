@@ -6,11 +6,16 @@ on:
       - '.github/workflows/ci.yml'
       - 'services/**'
       - 'tests/**'
+
   pull_request:
     paths:
       - '.github/workflows/ci.yml'
       - 'services/**'
       - 'tests/**'
+
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
 
 jobs:
   lint:

@@ -24,7 +24,10 @@ from services.api.app.config import reload_settings, settings
 # provided which is convenient for tests where most variables are unset.
 TELEGRAM_TOKEN = settings.telegram_token
 ONBOARDING_VIDEO_URL = settings.onboarding_video_url
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = settings.openai_api_key
+OPENAI_BASE_URL = settings.openai_base_url
+WHISPER_RATE_PER_MIN_USD = settings.whisper_rate_per_min_usd
+STT_MAX_FILE_MINUTES = settings.stt_max_file_minutes
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_NAME = os.getenv("DB_NAME")
