@@ -168,8 +168,11 @@ curl -H 'Authorization: tg <init-data>' \
 - `API_URL` — базовый URL внешнего API (поддерживается устаревший `API_BASE_URL`); требует установленный пакет `diabetes_sdk`;
 - `INTERNAL_API_KEY` — ключ для внутренней аутентификации; при отсутствии нужно передавать `tg_init_data`;
 - `REDIS_URL` — адрес подключения к Redis для кеширования команд (по умолчанию `redis://localhost:6379/0`);
-- `OPENAI_API_KEY` — ключ OpenAI для распознавания фото;
+- `OPENAI_API_KEY` — ключ OpenAI для распознавания фото и речи;
+- `OPENAI_BASE_URL` — (опционально) альтернативный endpoint OpenAI, например, для прокси;
 - `OPENAI_ASSISTANT_ID` — идентификатор ассистента для GPT;
+- `WHISPER_RATE_PER_MIN_USD` — ориентир стоимости минут распознавания речи;
+- `STT_MAX_FILE_MINUTES` — максимальная длительность файла для одного запроса (длинные делятся на чанки);
 - `SUBSCRIPTION_URL` — страница оформления подписки в WebApp;
 - `UI_BASE_URL` и `VITE_API_BASE` — базовые пути для фронтенда и API;
 - `BILLING_ENABLED`/`BILLING_TEST_MODE`/`BILLING_PROVIDER` — управление биллингом;
@@ -179,6 +182,15 @@ curl -H 'Authorization: tg <init-data>' \
   старые записи удаляются.
 
 Подробнее см. `infra/env/.env.example`.
+
+### OpenAI ключ
+Для функций распознавания речи и саммари нужен действующий `OPENAI_API_KEY`.
+
+1. Скопируйте пример: `cp infra/env/.env.example .env`.
+2. Заполните `OPENAI_API_KEY=sk-...` в своём `.env` или переменных окружения.
+3. (Опционально) укажите `OPENAI_BASE_URL=https://...`, если используете корпоративный прокси или совместимый endpoint.
+
+Без ключа API функции STT возвращают управляемую ошибку `503 Service Unavailable` с подсказкой добавить переменную.
 
 ## Health check
 Сервис предоставляет два эндпоинта проверки состояния:

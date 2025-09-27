@@ -4,7 +4,7 @@ import logging
 import threading
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Final, TypeAlias
+from typing import Any, Final, TypeAlias
 
 import httpx
 from openai import AsyncOpenAI, OpenAI
@@ -165,12 +165,22 @@ def get_openai_client() -> OpenAI:
 
     settings = config.get_settings()
     if not settings.openai_api_key:
-        message = "OPENAI_API_KEY is not set"
+        message = (
+            "OPENAI_API_KEY is not configured. Set it in the environment to enable OpenAI features."
+        )
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
     http_client = build_http_client(settings.openai_proxy)
-    client = OpenAI(api_key=settings.openai_api_key, http_client=http_client)
+    client_kwargs: dict[str, Any] = {
+        "api_key": settings.openai_api_key,
+        "http_client": http_client,
+    }
+    base_url = getattr(settings, "openai_base_url", None)
+    if base_url:
+        client_kwargs["base_url"] = base_url
+
+    client = OpenAI(**client_kwargs)
 
     if settings.openai_assistant_id:
         logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)
@@ -182,12 +192,22 @@ def get_async_openai_client() -> AsyncOpenAI:
 
     settings = config.get_settings()
     if not settings.openai_api_key:
-        message = "OPENAI_API_KEY is not set"
+        message = (
+            "OPENAI_API_KEY is not configured. Set it in the environment to enable OpenAI features."
+        )
         logger.error("[OpenAI] %s", message)
         raise RuntimeError(message)
 
     http_client = build_async_http_client(settings.openai_proxy)
-    client = AsyncOpenAI(api_key=settings.openai_api_key, http_client=http_client)
+    client_kwargs: dict[str, Any] = {
+        "api_key": settings.openai_api_key,
+        "http_client": http_client,
+    }
+    base_url = getattr(settings, "openai_base_url", None)
+    if base_url:
+        client_kwargs["base_url"] = base_url
+
+    client = AsyncOpenAI(**client_kwargs)
 
     if settings.openai_assistant_id:
         logger.info("[OpenAI] Using assistant: %s", settings.openai_assistant_id)

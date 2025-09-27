@@ -6,6 +6,11 @@ services:
       context: ../..
       dockerfile: infra/docker/Dockerfile.api
     env_file: [ ../../.env ]
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      - WHISPER_RATE_PER_MIN_USD=${WHISPER_RATE_PER_MIN_USD}
+      - STT_MAX_FILE_MINUTES=${STT_MAX_FILE_MINUTES}
     ports:
       - "8000:8000"
     command: >-
