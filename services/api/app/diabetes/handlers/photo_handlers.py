@@ -75,6 +75,10 @@ async def _delete_status_message(status_message: Message | None, tag: str) -> No
 
 async def photo_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Prompt user to send a food photo for analysis."""
+    user_data_raw = getattr(context, "user_data", None)
+    if isinstance(user_data_raw, MutableMapping):
+        user_data = cast(UserData, user_data_raw)
+        user_data.pop("waiting_labs", None)
     message = update.message
     if message is None:
         return

@@ -36,6 +36,20 @@ async def test_photo_prompt_sends_message() -> None:
 
 
 @pytest.mark.asyncio
+async def test_photo_prompt_clears_labs_waiting() -> None:
+    message = DummyMessage()
+    update = cast(Update, SimpleNamespace(message=message))
+    context = cast(
+        CallbackContext[Any, dict[str, Any], dict[str, Any], dict[str, Any]],
+        SimpleNamespace(user_data={"waiting_labs": True, "other": "value"}),
+    )
+    await photo_handlers.photo_prompt(update, context)
+    assert context.user_data is not None
+    assert "waiting_labs" not in context.user_data
+    assert context.user_data.get("other") == "value"
+
+
+@pytest.mark.asyncio
 async def test_photo_handler_waiting_flag_returns_end() -> None:
     message = DummyMessage(photo=(SimpleNamespace(file_id="f", file_unique_id="u"),))
     update = cast(

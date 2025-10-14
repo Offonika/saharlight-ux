@@ -62,3 +62,8 @@ libs/ts-sdk/.openapi-generator/
 .cache/
 data/
 backup.sql
+
+# temp images
+*.jpg
+*.jpeg
+*.png
