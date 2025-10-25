@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional, SupportsInt
+from typing import Optional
 
 from pydantic import Field, field_validator
 
@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     @field_validator("log_level", mode="before")
     @classmethod
-    def parse_log_level(cls, v: str | SupportsInt) -> int:  # pragma: no cover - simple parsing
+    def parse_log_level(cls, v: str | int | float) -> int:  # pragma: no cover - simple parsing
         if isinstance(v, str):
             if v.lower() in {"1", "true", "debug"}:
                 return logging.DEBUG
@@ -65,9 +65,9 @@ class Settings(BaseSettings):
                 return int(v)
             except ValueError:
                 return logging.INFO
-        if isinstance(v, SupportsInt):
+        if isinstance(v, (int, float)):
             return int(v)
-        return logging.INFO
+        raise TypeError(f"Unsupported log level type: {type(v)!r}")
 
 
 # Instantiate settings for external use
