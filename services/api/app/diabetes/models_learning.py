@@ -25,7 +25,13 @@ class ProgressData(TypedDict):
 class LearningPlan(Base):
     __tablename__ = "learning_plans"
     __table_args__ = (
-        sa.Index("ix_learning_plans_user_id_is_active", "user_id", "is_active"),
+        sa.Index(
+            "ix_learning_plans_user_id_is_active",
+            "user_id",
+            unique=True,
+            sqlite_where=sa.text("is_active"),
+            postgresql_where=sa.text("is_active"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
