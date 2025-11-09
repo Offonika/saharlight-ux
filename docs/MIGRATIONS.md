@@ -1,40 +1,64 @@
-# Миграция дневника: split insulin doses
+# Руководство по миграциям
 
-Документ описывает практические шаги для выпуска миграции, добавляющей поля `insulin_short` и `insulin_long` в таблицу записей дневника.
+## Split Insulin Doses
 
-## Подготовка
-1. Убедитесь, что окружение активировано и установлены зависимости: `pip install -r requirements.txt` и dev-зависимости API.
-2. Перед выполнением миграции остановите фоновый воркер, чтобы исключить конкурентные записи.
-3. Создайте резервную копию базы (snapshot/Barman/pg_dump — по политике окружения).
+Документ описывает пошаговый сценарий выката и возможного отката миграции, добавляющей в дневник поля `insulin_short` и `insulin_long`.
 
-## Обновление схемы
-1. Запустите стандартный пайплайн: `make migrate` — он собирает окружение и применяет все доступные ревизии Alembic.
-2. Если требуется выборочное применение, выполните `alembic -c services/api/alembic/alembic.ini upgrade head`.
-3. После апгрейда прогоните дымовые проверки:
-   - `SELECT column_name FROM information_schema.columns WHERE table_name = 'history_records' AND column_name IN ('insulin_short','insulin_long');`
-   - Через API создать запись с `insulin_short` и убедиться, что в ответе оба поля приходят.
-4. **Не выполняйте массовое копирование `dose` → `insulin_short`.** Сервер сам маппит легаси-значения на чтении/записи; дополнительные UPDATE могут испортить аудит изменений.
+### Pre-checks
+1. Проверьте состояние репозитория и миграций:
+   - `git status` — нет незакоммиченных файлов.
+   - `alembic -c services/api/alembic/alembic.ini heads` — только ожидаемая ревизия сплит-доз.
+2. Убедитесь, что окружение активировано и зависимости установлены: `pip install -r requirements.txt` и dev-зависимости API.
+3. Договоритесь с операторами фоновых воркеров/cron о времени окна — миграция должна выполняться без конкурентных записей.
+4. Уточните текущие значения фич-флагов: `kubectl -n diabetes get configmap feature-flags -o yaml | rg insulin_dose_split` — фича должна быть выключена до завершения миграции.
+5. Снимите показания мониторинга по метрикам `legacy_dose_used` и `split_dose_saved` (Grafana/Prometheus) для последующего сравнения.
 
-## План отката
-1. Зафиксируйте идентификатор ревизии перед обновлением (см. `alembic history --verbose | tail`).
-2. В случае ошибки выполните `alembic -c services/api/alembic/alembic.ini downgrade <previous_revision>`.
-3. Верните сервисы в online только после успешного прогона smoke-тестов и проверки телеметрии (см. [metrics](observability/split-insulin-doses-metrics.md)).
+### Backup и подготовка
+1. Переведите сервисы, записывающие дневник, в режим read-only: `kubectl -n diabetes scale deploy diary-writer --replicas=0`.
+2. Создайте свежий снапшот БД согласно политике окружения, например:
+   - `pg_dump --dbname=$DATABASE_URL --format=custom --file=backups/split_doses_before.dump`;
+   - либо инициируйте снапшот в Barman: `barman backup prod-diabetes`.
+3. Зафиксируйте идентификатор текущей ревизии: `alembic -c services/api/alembic/alembic.ini history --verbose | tail -n 1` и сохраните его в журнале деплоя.
 
-## Проверки после деплоя
+### Порядок действий при апгрейде
+1. Подготовьте инфраструктуру:
+   - `make migrate` — собирает окружение и применяет все доступные ревизии Alembic;
+   - при точечном применении: `alembic -c services/api/alembic/alembic.ini upgrade head`.
+2. Выполните прогон автоматизированных smoke-тестов API (минимальный набор):
+   - `pytest tests/api/entries/test_split_doses_smoke.py -q`.
+3. Запустите сервисы обратно: `kubectl -n diabetes scale deploy diary-writer --replicas=3`.
+4. Переключите фич-флаг «split insulin doses» в режим gradual rollout (например, 5 % пользователей) через соответствующий ConfigMap или LaunchDarkly.
+5. Мониторьте метрики в течение первого часа. При росте `legacy_dose_used` убедитесь, что клиенты корректно обновлены.
+
+### Smoke-проверки после апгрейда
+1. Структура данных:
+   - `SELECT column_name FROM information_schema.columns WHERE table_name = 'history_records' AND column_name IN ('insulin_short', 'insulin_long');` — оба столбца должны существовать.
+2. CRUD через API:
+   - `http POST $API_URL/v1/diary \
+       insulin_short:=4.5 insulin_long:=6.0 note='split dose smoke'` — запись должна быть создана;
+   - `http GET $API_URL/v1/diary/$ENTRY_ID` — ответ содержит оба поля и поле `dose` становится только для обратной совместимости.
+3. Агрегации:
+   - `SELECT count(*) FILTER (WHERE insulin_short IS NOT NULL), count(*) FILTER (WHERE insulin_long IS NOT NULL) FROM history_records WHERE created_at >= now() - interval '1 day';` — значения не нулевые.
+4. Метрики и логи: убедитесь, что не появляется алёртов в канале observability и что дашборд `Split insulin doses` обновил графики без скачков.
+
+### Трактовка legacy дозы
+- Поле `dose` остаётся только для чтения и совместимости. Его значение трактуется как «быстрая» доза (`insulin_short`).
+- **Запрещено** копировать значение `dose` одновременно в `insulin_short` и `insulin_long` — это приведёт к удвоению инсулина и нарушит аудит изменений.
+- Новые записи должны содержать ровно одну из частей (или обе, если пользователь реально ввёл две разные дозы). При отсутствии длинной дозы поле `insulin_long` остаётся `NULL`.
+
+### План отката
+1. Остановите запись новых событий (аналогично pre-checks: `kubectl -n diabetes scale deploy diary-writer --replicas=0`).
+2. Отключите фич-флаг «split insulin doses» для всех пользователей.
+3. Выполните даунгрейд схемы до сохранённой ревизии:
+   - `alembic -c services/api/alembic/alembic.ini downgrade <previous_revision>`.
+4. Проверьте, что таблица `history_records` больше не содержит столбцов `insulin_short` и `insulin_long`:
+   - `SELECT column_name FROM information_schema.columns WHERE table_name = 'history_records';` — столбцы должны исчезнуть.
+5. Восстановите данные из бэкапа при необходимости: `pg_restore --clean --dbname=$DATABASE_URL backups/split_doses_before.dump`.
+6. Верните сервисы в online: `kubectl -n diabetes scale deploy diary-writer --replicas=3`.
+7. Проведите smoke-проверки legacy API (создание записи без сплит-полей) и убедитесь, что метрика `legacy_dose_used` возвращается к докатному уровню.
+8. Создайте запись в журнале инцидентов и запустите постмортем по шаблону DoD.
+
+### Мониторинг и отчётность
 - QA следует [тест-плану](qa/split-insulin-doses-testplan.md).
 - BI-команда проверяет отчётность согласно [гайду по визуализации](reporting/insulin-doses-rendering.md).
-- Через 24 часа убедитесь, что доля событий `legacy_dose_used` находится ниже целевого порога.
-
-## Пример SQL для мониторинга
-```sql
--- быстрый срез распределения заполненности новых полей
-SELECT
-  date_trunc('day', created_at) AS day,
-  count(*) FILTER (WHERE insulin_short IS NOT NULL) AS short_entries,
-  count(*) FILTER (WHERE insulin_long IS NOT NULL) AS long_entries,
-  count(*) FILTER (WHERE dose IS NOT NULL AND insulin_short IS NULL) AS legacy_only
-FROM history_records
-WHERE created_at >= now() - interval '14 days'
-GROUP BY 1
-ORDER BY 1;
-```
+- Через 24 часа убедитесь, что доля событий `legacy_dose_used` остаётся ниже целевого порога, определённого продуктовой аналитикой.
