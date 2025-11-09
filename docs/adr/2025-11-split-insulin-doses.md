@@ -1,5 +1,7 @@
 # Split Insulin Doses (bolus/basal)
 
+> [← Назад к оглавлению документации](../README.md)
+
 - **Дата:** 2025-11-12
 - **Статус:** Draft
 - **Владелец:** Backend Guild

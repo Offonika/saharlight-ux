@@ -1,5 +1,7 @@
 # Свободный GPT-диалог: задачи на исправление
 
+> [← Назад к оглавлению документации](../README.md)
+
 ## Контекст
 - Свободный хендлер сейчас продолжает работать как дневниковый парсер и отвечает "Не понял...", если GPT-парсер вернул действие, отличное от `add_entry`, даже когда пользователь выбрал режим «Чат». 【F:services/api/app/diabetes/handlers/gpt_handlers.py†L484-L493】
 - Меню ассистента при выборе "Свободный диалог" только записывает `assistant_awaiting_kind`, но не активирует `gpt_mode`, поэтому `freeform_handler` не переключается в `chat_with_gpt`. 【F:services/api/app/diabetes/handlers/assistant_menu.py†L154-L169】【F:services/api/app/diabetes/handlers/gpt_handlers.py†L615-L688】
