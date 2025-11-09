@@ -180,6 +180,7 @@ async def _handle_pending_entry(
             pending_entry["carbs_g"] = XE_GRAMS * value
         else:
             pending_entry["dose"] = value
+            pending_entry["insulin_short"] = value
         pending_fields.pop(0)
         if pending_fields:
             next_field = pending_fields[0]
@@ -201,9 +202,21 @@ async def _handle_pending_entry(
         user_data.pop("pending_entry", None)
         user_data.pop("pending_fields", None)
         xe = pending_entry.get("xe")
-        dose = pending_entry.get("dose")
+        dose = pending_entry.get("insulin_short")
+        if dose is None:
+            dose = pending_entry.get("dose")
+        long_dose = pending_entry.get("insulin_long")
         xe_info = f", ХЕ {xe}" if xe is not None else ""
-        dose_info = f", доза {dose} Ед." if dose is not None else ", доза —"
+        dose_parts: list[str] = []
+        if dose is not None:
+            dose_parts.append(f"короткий {dose} Ед")
+        if long_dose is not None:
+            dose_parts.append(f"длинный {long_dose} Ед")
+        if dose_parts:
+            dose_info = ", ".join(dose_parts)
+            dose_info = f", {dose_info}"
+        else:
+            dose_info = ", доза —"
         sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
         await message.reply_text(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
@@ -255,6 +268,7 @@ async def _handle_pending_entry(
                 patient = PatientProfile(icr=profile.icr, cf=profile.cf, target_bg=profile.target_bg)
                 dose = calc_bolus(carbs_g, sugar, patient)
                 pending_entry["dose"] = dose
+                pending_entry["insulin_short"] = dose
                 await message.reply_text(
                     f"💉\u202fРасчёт дозы: {dose}\u202fЕд.\nСахар: {sugar}\u202fммоль/л",
                     reply_markup=confirm_keyboard(),
@@ -303,6 +317,7 @@ async def _handle_edit_entry(
             entry.xe = value
         else:
             entry.dose = value
+            entry.insulin_short = value
         try:
             commit(session)
         except CommitError:
@@ -391,6 +406,7 @@ async def apply_pending_entry(
             pending_entry["carbs_g"] = carbs_g
         if quick["dose"] is not None:
             pending_entry["dose"] = quick["dose"]
+            pending_entry["insulin_short"] = quick["dose"]
         missing = [
             f
             for f, key in (
@@ -421,9 +437,20 @@ async def apply_pending_entry(
         user_data.pop("pending_entry", None)
         user_data.pop("pending_fields", None)
         xe = pending_entry.get("xe")
-        dose = pending_entry.get("dose")
+        dose = pending_entry.get("insulin_short")
+        if dose is None:
+            dose = pending_entry.get("dose")
+        long_dose = pending_entry.get("insulin_long")
         xe_info = f", ХЕ {xe}" if xe is not None else ""
-        dose_info = f", доза {dose} Ед." if dose is not None else ", доза —"
+        dose_parts = []
+        if dose is not None:
+            dose_parts.append(f"короткий {dose} Ед")
+        if long_dose is not None:
+            dose_parts.append(f"длинный {long_dose} Ед")
+        if dose_parts:
+            dose_info = f", {', '.join(dose_parts)}"
+        else:
+            dose_info = ", доза —"
         sugar_info = f"сахар {sugar} ммоль/л" if sugar is not None else "сахар —"
         await message.reply_text(
             f"✅ Запись сохранена: {sugar_info}{xe_info}{dose_info}",
@@ -444,6 +471,7 @@ async def apply_pending_entry(
             "sugar_before": sugar,
             "xe": xe,
             "dose": dose,
+            "insulin_short": dose,
             "carbs_g": XE_GRAMS * xe if xe is not None else None,
         }
         missing = [f for f in ("sugar", "xe", "dose") if quick[f] is None]
@@ -458,8 +486,9 @@ async def apply_pending_entry(
                 await check_alert(update, context, sugar)
             user_data.pop("pending_entry", None)
             user_data.pop("pending_fields", None)
+            short_info = f"короткий {dose} Ед." if dose is not None else "короткий —"
             await message.reply_text(
-                f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, доза {dose} Ед.",
+                f"✅ Запись сохранена: сахар {sugar} ммоль/л, ХЕ {xe}, {short_info}",
                 reply_markup=menu_keyboard,
             )
             return True

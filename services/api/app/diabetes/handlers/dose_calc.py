@@ -34,6 +34,7 @@ from services.api.app.diabetes.utils.functions import (
 from services.api.app.diabetes.utils.ui import (
     confirm_keyboard,
     dose_keyboard,
+    dose_method_keyboard,
     PHOTO_BUTTON_PATTERN,
     SUGAR_BUTTON_TEXT,
     DOSE_BUTTON_TEXT,
@@ -41,6 +42,8 @@ from services.api.app.diabetes.utils.ui import (
     REPORT_BUTTON_TEXT,
     PROFILE_BUTTON_TEXT,
     BACK_BUTTON_TEXT,
+    SHORT_INSULIN_BUTTON_TEXT,
+    LONG_INSULIN_BUTTON_TEXT,
 )
 from services.api.app.ui.keyboard import build_main_keyboard
 
@@ -65,19 +68,25 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
+MAX_INSULIN_UNITS = 200.0
+
 
 class DoseState(IntEnum):
+    TYPE = 2
     METHOD = 3
     XE = 4
     CARBS = 5
     SUGAR = 6
+    LONG = 7
 
 
-DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR = (
+DOSE_TYPE, DOSE_METHOD, DOSE_XE, DOSE_CARBS, DOSE_SUGAR, DOSE_LONG = (
+    DoseState.TYPE,
     DoseState.METHOD,
     DoseState.XE,
     DoseState.CARBS,
     DoseState.SUGAR,
+    DoseState.LONG,
 )
 END: int = ConversationHandler.END
 
@@ -94,10 +103,10 @@ async def dose_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data.pop("pending_entry", None)
     user_data.pop("edit_id", None)
     await message.reply_text(
-        "💉 Как рассчитать дозу? Выберите метод:",
+        "💉 Какую дозу хотите записать?",
         reply_markup=dose_keyboard,
     )
-    return DoseState.METHOD
+    return DoseState.TYPE
 
 
 async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -112,20 +121,74 @@ async def dose_method_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     text = message.text
     if text is None:
         return END
-    text = text.lower()
-    if "назад" in text:
-        return await dose_cancel(update, context)
-    if "углев" in text:
-        await message.reply_text("Введите количество углеводов (г).")
+    text_lower = text.lower()
+    if "назад" in text_lower:
+        await message.reply_text(
+            "💉 Какую дозу хотите записать?",
+            reply_markup=dose_keyboard,
+        )
+        user_data.pop("pending_entry", None)
+        return DoseState.TYPE
+    if "углев" in text_lower:
+        await message.reply_text(
+            "Введите количество углеводов (г).",
+            reply_markup=dose_method_keyboard,
+        )
         return DoseState.CARBS
-    if "xe" in text or "хе" in text:
-        await message.reply_text("Введите количество ХЕ.")
+    if "xe" in text_lower or "хе" in text_lower:
+        await message.reply_text(
+            "Введите количество ХЕ.", reply_markup=dose_method_keyboard
+        )
         return DoseState.XE
     await message.reply_text(
         "Пожалуйста, выберите метод: ХЕ или углеводы.",
-        reply_markup=dose_keyboard,
+        reply_markup=dose_method_keyboard,
     )
     return DoseState.METHOD
+
+
+async def dose_type_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Handle insulin type selection before method choice."""
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        return END
+    user_data = cast(UserData, user_data_raw)
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    text_lower = text.lower()
+    short_token = SHORT_INSULIN_BUTTON_TEXT.lower()
+    long_token = LONG_INSULIN_BUTTON_TEXT.lower()
+    if "назад" in text_lower:
+        return await dose_cancel(update, context)
+    if "корот" in text_lower or text_lower.strip() == short_token:
+        user_data.pop("pending_entry", None)
+        await message.reply_text(
+            "Как рассчитать короткий (болюс) инсулин? Выберите метод:",
+            reply_markup=dose_method_keyboard,
+        )
+        return DoseState.METHOD
+    if "длин" in text_lower or text_lower.strip() == long_token:
+        user = update.effective_user
+        if user is None:
+            return END
+        entry: EntryData = {
+            "telegram_id": user.id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+        }
+        user_data["pending_entry"] = entry
+        await message.reply_text(
+            "Введите дозу длинного (базального) инсулина (ед.)."
+        )
+        return DoseState.LONG
+    await message.reply_text(
+        "Пожалуйста, выберите короткий или длинный инсулин.",
+        reply_markup=dose_keyboard,
+    )
+    return DoseState.TYPE
 
 
 async def dose_xe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -190,6 +253,55 @@ async def dose_carbs(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data["pending_entry"] = entry
     await message.reply_text("Введите текущий сахар (ммоль/л).")
     return DoseState.SUGAR
+
+
+async def dose_long(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Capture long (basal) insulin dose from user."""
+    user_data_raw = context.user_data
+    if user_data_raw is None:
+        return END
+    user_data = cast(UserData, user_data_raw)
+    message = update.message
+    if message is None:
+        return END
+    text = message.text
+    if text is None:
+        return END
+    user = update.effective_user
+    if user is None:
+        return END
+    dose_value = _safe_float(text)
+    if dose_value is None:
+        await message.reply_text("Введите дозу длинного инсулина числом (ед.).")
+        return DoseState.LONG
+    if dose_value < 0:
+        await message.reply_text("Доза длинного инсулина не может быть отрицательной.")
+        return DoseState.LONG
+    rounded_value = round(dose_value * 2) / 2
+    if rounded_value > MAX_INSULIN_UNITS:
+        await message.reply_text(
+            f"Доза длинного инсулина не должна превышать {MAX_INSULIN_UNITS} ед."
+        )
+        return DoseState.LONG
+    entry_raw = user_data.get("pending_entry")
+    if not isinstance(entry_raw, dict):
+        entry: EntryData = {
+            "telegram_id": user.id,
+            "event_time": datetime.datetime.now(datetime.timezone.utc),
+        }
+    else:
+        entry = entry_raw
+    entry["insulin_long"] = rounded_value
+    user_data["pending_entry"] = entry
+    short_val = entry.get("insulin_short")
+    short_info = (
+        f"Короткий (болюс) — {short_val} ед." if short_val is not None else "Короткий не вводился."
+    )
+    await message.reply_text(
+        f"Подтвердите: длинный (базал) — {rounded_value} ед. {short_info}",
+        reply_markup=confirm_keyboard(),
+    )
+    return END
 
 
 async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -304,20 +416,22 @@ async def dose_sugar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         user_data.pop("pending_entry", None)
         return END
     entry["dose"] = dose
+    entry["insulin_short"] = dose
 
     user_data["pending_entry"] = entry
 
     xe_info = f", ХЕ: {xe}" if xe is not None else ""
-    await message.reply_text(
-        text=(
-            f"💉 Расчёт завершён:\n"
-            f"• Углеводы: {carbs_g} г{xe_info}\n"
-            f"• Сахар: {sugar} ммоль/л\n"
-            f"• Ваша доза: {dose} Ед\n\n"
-            "Сохранить это в дневник?"
-        ),
-        reply_markup=confirm_keyboard(),
+    long_val = entry.get("insulin_long")
+    summary = (
+        f"💉 Расчёт завершён:\n"
+        f"• Углеводы: {carbs_g} г{xe_info}\n"
+        f"• Сахар: {sugar} ммоль/л\n"
+        f"• Короткий (болюс): {dose} Ед\n"
     )
+    if long_val is not None:
+        summary += f"• Длинный (базал): {long_val} ед\n"
+    summary += "\nСохранить это в дневник?"
+    await message.reply_text(summary, reply_markup=confirm_keyboard())
     return END
 
 
@@ -395,6 +509,9 @@ dose_conv = ConversationHandler(
         MessageHandler(filters.Regex(f"^{DOSE_BUTTON_TEXT}$"), dose_start),
     ],
     states={
+        DoseState.TYPE: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, dose_type_choice)
+        ],
         DoseState.METHOD: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, dose_method_choice)
         ],
@@ -406,6 +523,9 @@ dose_conv = ConversationHandler(
         ],
         DoseState.SUGAR: [
             MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_sugar)
+        ],
+        DoseState.LONG: [
+            MessageHandler(filters.Regex(r"^-?\d+(?:[.,]\d+)?$"), dose_long)
         ],
         PHOTO_SUGAR: [
             MessageHandler(
@@ -449,11 +569,15 @@ __all__ = [
     "DOSE_XE",
     "DOSE_CARBS",
     "DOSE_SUGAR",
+    "DOSE_TYPE",
+    "DOSE_LONG",
     "END",
     "dose_start",
+    "dose_type_choice",
     "dose_method_choice",
     "dose_xe",
     "dose_carbs",
+    "dose_long",
     "dose_sugar",
     "dose_cancel",
     "_cancel_then",

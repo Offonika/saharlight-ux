@@ -13,6 +13,8 @@ class EntryData(TypedDict, total=False):
 
     telegram_id: int
     event_time: datetime.datetime
+    insulin_short: float | None
+    insulin_long: float | None
     xe: float | None
     carbs_g: float | None
     weight_g: float | None

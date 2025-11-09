@@ -63,6 +63,8 @@ class EntryLike(Protocol):
     sugar_before: float | None
     carbs_g: float | None
     xe: float | None
+    insulin_short: float | None
+    insulin_long: float | None
     dose: float | str | None
     weight_g: float | None
     protein_g: float | None
@@ -76,7 +78,19 @@ def render_entry(entry: EntryLike) -> str:
     sugar = (
         html.escape(str(entry.sugar_before)) if entry.sugar_before is not None else "—"
     )
-    dose = html.escape(str(entry.dose)) if entry.dose is not None else "—"
+    short_val = getattr(entry, "insulin_short", None)
+    long_val = getattr(entry, "insulin_long", None)
+    dose_field = entry.dose
+    short_display: str
+    if short_val is not None:
+        short_display = html.escape(str(short_val))
+    elif isinstance(dose_field, (int, float)):
+        short_display = f"{html.escape(str(dose_field))} (legacy)"
+    elif dose_field is not None:
+        short_display = html.escape(str(dose_field))
+    else:
+        short_display = "—"
+    long_display = html.escape(str(long_val)) if long_val is not None else "—"
 
     if entry.carbs_g is not None:
         carbs_text = f"{html.escape(str(entry.carbs_g))} г"
@@ -91,7 +105,8 @@ def render_entry(entry: EntryLike) -> str:
         f"<b>{day_str}</b>",
         f"🍭 Сахар: <b>{sugar}</b>",
         f"🍞 Углеводы: <b>{carbs_text}</b>",
-        f"💉 Доза: <b>{dose}</b>",
+        f"💉 Короткий: <b>{short_display}</b>",
+        f"🕒 Длинный: <b>{long_display}</b>",
     ]
     if entry.weight_g is not None:
         lines.append(f"⚖️ Вес: <b>{html.escape(str(entry.weight_g))} г</b>")
@@ -113,6 +128,8 @@ class HistoryEntry(EntryLike):
     sugar_before: float | None
     carbs_g: float | None
     xe: float | None
+    insulin_short: float | None
+    insulin_long: float | None
     dose: float | str | None
     weight_g: float | None = None
     protein_g: float | None = None
@@ -131,6 +148,8 @@ def _history_record_to_entry(record: HistoryRecord) -> HistoryEntry:
         sugar_before=record.sugar,
         carbs_g=record.carbs,
         xe=record.bread_units,
+        insulin_short=record.insulin,
+        insulin_long=None,
         dose=record.insulin,
         weight_g=None,
         protein_g=None,
