@@ -2,7 +2,7 @@
 
 > Данный чек-лист фиксирует единый источник истины о готовности функциональности по разбиению доз инсулина.
 >
-> Ссылки на исходные артефакты: [ADR 005 — Split insulin doses](../ADR/005-split-insulin-doses.md), [MIGRATIONS.md](../MIGRATIONS.md), [API draft — diary entries](../api/entries.md), [UX copy](../content/style/insulin-doses-copy.md), [Reporting spec](../reporting/insulin-doses-rendering.md), [QA test plan](../qa/split-insulin-doses-testplan.md), [Observability checklist](../observability/split-insulin-doses-metrics.md).
+> Ссылки на исходные артефакты: [ADR 005 — Split insulin doses](../ADR/005-split-insulin-doses.md), [MIGRATIONS.md](../MIGRATIONS.md), [Entries — поля и совместимость](../api/entries.md), [UX copy](../content/style/insulin-doses-copy.md), [Reporting spec](../reporting/insulin-doses-rendering.md), [QA test plan](../qa/split-insulin-doses-testplan.md), [Observability checklist](../observability/split-insulin-doses-metrics.md).
 
 ## Архитектура и данные
 **Готово, если…**
