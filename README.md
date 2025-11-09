@@ -9,11 +9,11 @@
 
 История событий сохраняется в PostgreSQL (таблица `history_records`). Миграции лежат в `services/api/alembic/`.
 
-## Что нового: разделение доз инсулина
-- [ADR 005](docs/ADR/005-split-insulin-doses.md) фиксирует схему данных, обработку `dose` и план выключения легаси.
-- [Инструкции по миграции](docs/MIGRATIONS.md) и черновик [Entries API](docs/api/entries.md) описывают обновления бекенда.
-- [Гайд по копирайтингу](docs/content/style/insulin-doses-copy.md) и [правила отчётности](docs/reporting/insulin-doses-rendering.md) помогают фронтенду и BI.
-- [Тест-план](docs/qa/split-insulin-doses-testplan.md) и [метрики релиза](docs/observability/split-insulin-doses-metrics.md) закрывают качество и мониторинг.
+## Что нового — Split Insulin Doses
+- [ADR 005](docs/ADR/005-split-insulin-doses.md) и [DoD Master — Split Insulin Doses](docs/feature-dod/split-insulin-doses.md) задают контекст и критерии готовности.
+- [Инструкции по миграции](docs/MIGRATIONS.md) вместе с черновиком [Entries API](docs/api/entries.md) описывают поток обновления данных.
+- [Гайд по UX-копирайтингу](docs/content/style/insulin-doses-copy.md) и [правила отчётности](docs/reporting/insulin-doses-rendering.md) синхронизируют пользовательские сценарии и аналитики.
+- [Тест-план](docs/qa/split-insulin-doses-testplan.md) и [метрики наблюдаемости](docs/observability/split-insulin-doses-metrics.md) закрывают проверку и мониторинг запуска.
 
 ## Структура репозитория
 - `services/` — микросервисы и приложения
