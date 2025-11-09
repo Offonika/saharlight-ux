@@ -1,9 +1,14 @@
 # Changelog
 
 ## Unreleased
-- Fixed missing role in AuthMiddleware causing 403 on authorized `/api/reminders` requests.
-- Changed `/api/reminders`: returns `200` with an empty list instead of `404` when no reminders exist.
-- Changed `/api/stats`: now returns default stats (or `204`) instead of `404` when no data is available.
-- Enhanced bot command menu with emojis for easier navigation.
-- Updated `ProfileSchema`: field `target` is now optional and aliases `cf`, `targetLow`, `targetHigh` are documented.
-- Added learning-mode feature flag and model configuration. See [docs/BRD.md](docs/BRD.md) and [docs/Концепция_проекта.md](docs/Концепция_проекта.md).
+
+### Added
+- Documented split insulin dose fields `insulin_short` и `insulin_long` для дневника записей и API. Сервер принимает оба поля и безопасно
+  интерпретирует легаси-поле `dose` как `insulin_short`, чтобы клиенты без обновления не ломались.
+- Зафиксированы инструкции и планы по внедрению фичи: ADR, миграции, API-конспекты, UX-копирайтинг, отчётность, тест-план и телеметрия. См.
+  соответствующие документы в `docs/`.
+
+### Deprecated
+- Поле `dose` в записях дневника помечено как устаревшее. Его поддержка завершится в релизе **v3.0** (ориентировочно 2026‑03‑01);
+  до удаления значение автоматически копируется в `insulin_short`. Клиентам рекомендовано перейти на явные поля `insulin_short` и
+  `insulin_long`.

@@ -9,6 +9,12 @@
 
 История событий сохраняется в PostgreSQL (таблица `history_records`). Миграции лежат в `services/api/alembic/`.
 
+## Что нового: разделение доз инсулина
+- [ADR 005](docs/ADR/005-split-insulin-doses.md) фиксирует схему данных, обработку `dose` и план выключения легаси.
+- [Инструкции по миграции](docs/MIGRATIONS.md) и черновик [Entries API](docs/api/entries.md) описывают обновления бекенда.
+- [Гайд по копирайтингу](docs/content/style/insulin-doses-copy.md) и [правила отчётности](docs/reporting/insulin-doses-rendering.md) помогают фронтенду и BI.
+- [Тест-план](docs/qa/split-insulin-doses-testplan.md) и [метрики релиза](docs/observability/split-insulin-doses-metrics.md) закрывают качество и мониторинг.
+
 ## Структура репозитория
 - `services/` — микросервисы и приложения
   - `api/` — FastAPI‑сервер и телеграм‑бот (`services/api/app/diabetes/` — основной пакет)
@@ -42,6 +48,18 @@ python3.12 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 make migrate
+```
+
+- При точечном запуске используйте `alembic -c services/api/alembic/alembic.ini upgrade head`.
+- После применения проверьте схему и API: выполните `GET /api/entries` и убедитесь, что пришли поля `insulin_short`/`insulin_long`.
+- При инцидентах откатывайтесь на предыдущую ревизию `alembic downgrade <rev>`.
+- **Не копируйте значения `dose` в `insulin_short` вручную** — сервер сделает это на лету.
+- Быстрая проверка распределения:
+
+```sql
+SELECT count(*) FILTER (WHERE insulin_short IS NOT NULL) AS short_filled,
+       count(*) FILTER (WHERE insulin_long IS NOT NULL)  AS long_filled
+FROM history_records;
 ```
 
 ### Установка `diabetes_sdk`
