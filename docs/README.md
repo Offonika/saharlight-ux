@@ -20,7 +20,7 @@ Telegram WebApp. Унифицированный клиент `httpClient` (че�
 - `QA_Test_Plan.md` — план тестирования
 - `MIGRATIONS.md` — практическое руководство по миграции `insulin_short`/`insulin_long`
 - `feature-dod/split-insulin-doses.md` — критерии готовности фичи split insulin doses
-- `api/entries.md` — временная документация API дневника
+- `api/entries.md` — «Entries — поля и совместимость» (draft) для дневника доз
 - `content/style/` — гайдлайны по копирайтингу (в т.ч. [insulin-doses-copy.md](content/style/insulin-doses-copy.md))
 - `reporting/insulin-doses-rendering.md` — правила визуализации доз инсулина
 - `qa/split-insulin-doses-testplan.md` — тест-план новой фичи
