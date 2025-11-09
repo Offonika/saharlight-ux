@@ -334,6 +334,8 @@ class Entry(Base):
     fat_g: Mapped[Optional[float]] = mapped_column(Float)
     calories_kcal: Mapped[Optional[float]] = mapped_column(Float)
     sugar_before: Mapped[Optional[float]] = mapped_column(Float)
+    insulin_short: Mapped[Optional[float]] = mapped_column(Float)
+    insulin_long: Mapped[Optional[float]] = mapped_column(Float)
     dose: Mapped[Optional[float]] = mapped_column(Float)
     gpt_summary: Mapped[Optional[str]] = mapped_column(Text)
 

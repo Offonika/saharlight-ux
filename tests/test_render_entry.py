@@ -14,6 +14,8 @@ def make_entry(**kwargs: Any) -> EntryLike:
         "sugar_before": 5.5,
         "carbs_g": None,
         "xe": None,
+        "insulin_short": None,
+        "insulin_long": None,
         "dose": 1.0,
         "weight_g": None,
         "protein_g": None,
@@ -28,6 +30,8 @@ def test_render_entry_with_xe_and_carbs() -> None:
     entry: EntryLike = make_entry(carbs_g=50, xe=4.1)
     text = render_entry(entry)
     assert "🍞 Углеводы: <b>50 г (4.1 ХЕ)</b>" in text
+    assert "💉 Короткий: <b>1.0 (legacy)</b>" in text
+    assert "🕒 Длинный: <b>—</b>" in text
 
 
 def test_render_entry_with_xe_only() -> None:
@@ -46,7 +50,8 @@ def test_render_entry_without_xe() -> None:
 def test_render_entry_escapes_html() -> None:
     entry: EntryLike = make_entry(dose="<script>")
     text = render_entry(entry)
-    assert "&lt;script&gt;" in text
+    assert "💉 Короткий: <b>&lt;script&gt;</b>" in text
+    assert "🕒 Длинный: <b>—</b>" in text
 
 
 def test_render_entry_with_macros() -> None:
@@ -56,3 +61,10 @@ def test_render_entry_with_macros() -> None:
     assert "🥩 Белки: <b>5 г</b>" in text
     assert "🧈 Жиры: <b>3 г</b>" in text
     assert "🔥 Калории: <b>120 ккал</b>" in text
+
+
+def test_render_entry_with_explicit_insulin_values() -> None:
+    entry: EntryLike = make_entry(insulin_short=4.5, insulin_long=12.0, dose=None)
+    text = render_entry(entry)
+    assert "💉 Короткий: <b>4.5</b>" in text
+    assert "🕒 Длинный: <b>12.0</b>" in text

@@ -30,12 +30,15 @@ HELP_BUTTON_TEXT = "ℹ️ Помощь"
 SOS_BUTTON_TEXT = "🆘 SOS контакт"
 SUBSCRIPTION_BUTTON_TEXT = "💳 Подписка"
 BACK_BUTTON_TEXT = "↩️ Назад"
+SHORT_INSULIN_BUTTON_TEXT = "Короткий инсулин"
+LONG_INSULIN_BUTTON_TEXT = "Длинный инсулин"
 XE_BUTTON_TEXT = "ХЕ"
 CARBS_BUTTON_TEXT = "Углеводы"
 
 __all__ = (
     "menu_keyboard",
     "dose_keyboard",
+    "dose_method_keyboard",
     "sugar_keyboard",
     "confirm_keyboard",
     "back_keyboard",
@@ -53,6 +56,8 @@ __all__ = (
     "SOS_BUTTON_TEXT",
     "SUBSCRIPTION_BUTTON_TEXT",
     "BACK_BUTTON_TEXT",
+    "SHORT_INSULIN_BUTTON_TEXT",
+    "LONG_INSULIN_BUTTON_TEXT",
     "XE_BUTTON_TEXT",
     "CARBS_BUTTON_TEXT",
     "subscription_keyboard",
@@ -75,6 +80,19 @@ def menu_keyboard() -> ReplyKeyboardMarkup:
 
 
 dose_keyboard = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(SHORT_INSULIN_BUTTON_TEXT),
+            KeyboardButton(LONG_INSULIN_BUTTON_TEXT),
+        ],
+        [KeyboardButton(BACK_BUTTON_TEXT)],
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=True,
+    input_field_placeholder="Какую дозу хотите записать?",
+)
+
+dose_method_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(XE_BUTTON_TEXT), KeyboardButton(CARBS_BUTTON_TEXT)],
         [KeyboardButton(BACK_BUTTON_TEXT)],
