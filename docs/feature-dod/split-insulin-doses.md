@@ -2,7 +2,7 @@
 
 > Данный чек-лист фиксирует единый источник истины о готовности функциональности по разбиению доз инсулина.
 >
-> Ссылки на исходные артефакты: [ADR 005 — Split insulin doses](../ADR/005-split-insulin-doses.md), [MIGRATIONS.md](../MIGRATIONS.md), [Entries — поля и совместимость](../api/entries.md), [UX copy](../content/style/insulin-doses-copy.md), [Reporting spec](../reporting/insulin-doses-rendering.md), [QA test plan](../qa/split-insulin-doses-testplan.md), [Observability checklist](../observability/split-insulin-doses-metrics.md).
+> Ссылки на исходные артефакты: [ADR 005 — Split insulin doses](../ADR/005-split-insulin-doses.md), [MIGRATIONS.md](../MIGRATIONS.md), [Entries — поля и совместимость](../api/entries.md), [UX copy](../content/style/insulin-doses-copy.md), [Reporting spec — визуализация доз](../reporting/insulin-doses-rendering.md#правила-отображения), [QA test plan](../qa/split-insulin-doses-testplan.md), [Observability checklist](../observability/split-insulin-doses-metrics.md).
 
 ## Архитектура и данные
 **Готово, если…**
@@ -41,7 +41,7 @@
 
 ## Отчёты/История
 **Готово, если…**
-- [ ] отчёты и история в WebApp и Telegram учитывают обе части дозы и отображают их согласно [Reporting spec](../reporting/insulin-doses-rendering.md);
+- [ ] отчёты и история в WebApp и Telegram учитывают обе части дозы и отображают их согласно [Reporting spec](../reporting/insulin-doses-rendering.md#правила-отображения);
 - [ ] экспортные форматы (CSV, PDF) и API-эндпоинты содержат корректные поля сплит-доз;
 - [ ] аналитика и агрегаты (суточные/недельные) пересчитаны и проверены.
 
