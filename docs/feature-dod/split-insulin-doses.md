@@ -2,7 +2,7 @@
 
 > Данный чек-лист фиксирует единый источник истины о готовности функциональности по разбиению доз инсулина.
 >
-> Ссылки на исходные артефакты: [ADR 005 — Split insulin doses](../ADR/005-split-insulin-doses.md), [MIGRATIONS.md](../MIGRATIONS.md), [Entries — поля и совместимость](../api/entries.md), [UX copy](../content/style/insulin-doses-copy.md), [Reporting spec — визуализация доз](../reporting/insulin-doses-rendering.md#правила-отображения), [QA test plan](../qa/split-insulin-doses-testplan.md), [Observability checklist](../observability/split-insulin-doses-metrics.md).
+> Ссылки на исходные артефакты: [ADR 005 — Split insulin doses](../ADR/005-split-insulin-doses.md), [MIGRATIONS.md](../MIGRATIONS.md), [Entries — поля и совместимость](../api/entries.md), [UX copy](../content/style/insulin-doses-copy.md), [Reminder mapping](../ux/reminders-insulin-mapping.md), [Reporting spec — визуализация доз](../reporting/insulin-doses-rendering.md#правила-отображения), [QA test plan](../qa/split-insulin-doses-testplan.md), [Observability checklist](../observability/split-insulin-doses-metrics.md).
 
 ## Архитектура и данные
 **Готово, если…**
@@ -55,6 +55,7 @@
 - [ ] напоминания учитывают раздельные дозы и корректно подсказывают пользователю, когда принять каждую часть;
 - [ ] логика snooze/skip обновлена и покрыта тестами на новые статусы;
 - [ ] push и Telegram-уведомления используют копирайтинг из [глоссария и режима 60+](../content/style/insulin-doses-copy.md#термины-и-соответствие-словарям-напоминаний).
+- [ ] типы напоминаний и поля записи синхронизированы с [таблицей соответствия](../ux/reminders-insulin-mapping.md) и не содержат расхождений между API и UI.
 
 **Негативные кейсы**
 - [ ] напоминания не дублируются и не пропадают при смене часового пояса;
