@@ -1,5 +1,7 @@
 # 005 — Split insulin doses for diary entries
 
+> [← Назад к оглавлению документации](../README.md)
+
 - **Status:** Proposed
 - **Date:** 2025-02-21
 - **Owner:** Backend Guild
