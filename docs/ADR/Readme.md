@@ -6,6 +6,7 @@
 | 002 | Database Choice | **Accepted** | 2025‑08‑05 |
 | 003 | SOS Contact Alerts | **Proposed** | 2025‑08‑08 |
 | 004 | Monorepo Structure | **Proposed** | 2025‑08‑12 |
+| 005 | Split Insulin Doses for Diary Entries | **Proposed** | 2025‑02‑21 |
 
 > **How to add a new ADR**
 > 1. Copy `template.md` in this folder and rename to `004_<short-title>.md`.<br>
