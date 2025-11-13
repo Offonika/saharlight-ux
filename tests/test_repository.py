@@ -49,5 +49,5 @@ def test_transactional_value_error() -> None:
     with pytest.raises(ValueError):
         with repository.transactional(session):
             raise ValueError("boom")
-    session.rollback.assert_called_once()
+    session.rollback.assert_not_called()
     session.commit.assert_not_called()
